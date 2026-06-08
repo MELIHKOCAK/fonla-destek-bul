@@ -12,10 +12,7 @@ export const createTestQueryClient = (): QueryClient =>
 
 type WrapperProps = { children: ReactNode };
 
-export const renderWithProviders = (
-  ui: ReactElement,
-  options?: RenderOptions,
-) => {
+export const renderWithProviders = (ui: ReactElement, options?: RenderOptions) => {
   const queryClient = createTestQueryClient();
   const Wrapper = ({ children }: WrapperProps) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

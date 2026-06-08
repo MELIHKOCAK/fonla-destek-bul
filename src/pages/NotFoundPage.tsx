@@ -5,12 +5,8 @@ export const NotFoundPage = () => {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <Container className="flex min-h-screen flex-col items-center justify-center py-16 text-center">
-        <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
-          404
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-          Sayfa bulunamadı
-        </h1>
+        <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">404</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Sayfa bulunamadı</h1>
         <p className="mt-3 max-w-md text-sm text-muted-foreground">
           Aradığınız sayfa mevcut değil veya taşınmış olabilir.
         </p>

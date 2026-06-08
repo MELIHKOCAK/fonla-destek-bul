@@ -14,11 +14,10 @@ export const HomePage = () => {
               BeniFonla geliştirme aşamasında
             </h1>
             <p className="mx-auto max-w-xl text-base text-muted-foreground">
-              BeniFonla; ürünlerini, yaratıcı fikirlerini ve projelerini
-              tanıtmak isteyen kişilerin belirli bir hedef tutar ve süreyle
-              destek toplayabildiği ödül temelli bir kitle fonlama
-              platformudur. BeniFonla bir yatırım, hisse satışı veya finansal
-              getiri ürünü değildir.
+              BeniFonla; ürünlerini, yaratıcı fikirlerini ve projelerini tanıtmak isteyen kişilerin
+              belirli bir hedef tutar ve süreyle destek toplayabildiği ödül temelli bir kitle
+              fonlama platformudur. BeniFonla bir yatırım, hisse satışı veya finansal getiri ürünü
+              değildir.
             </p>
           </header>
 
@@ -28,20 +27,14 @@ export const HomePage = () => {
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
               <p>
-                Şu an yalnızca temel uygulama iskeleti hazır. Kampanya
-                oluşturma, kullanıcı hesabı, ödeme ve destek akışları gibi
-                ürün özellikleri sonraki fazlarda devreye alınacaktır.
+                Şu an yalnızca temel uygulama iskeleti hazır. Kampanya oluşturma, kullanıcı hesabı,
+                ödeme ve destek akışları gibi ürün özellikleri sonraki fazlarda devreye alınacaktır.
               </p>
               <p>
                 Geliştirme süreci hakkında daha fazla bilgi için depodaki{" "}
-                <code className="rounded bg-muted px-1 py-0.5 text-xs">
-                  README.md
-                </code>{" "}
-                ve{" "}
-                <code className="rounded bg-muted px-1 py-0.5 text-xs">
-                  docs/
-                </code>{" "}
-                klasörüne bakabilirsiniz.
+                <code className="rounded bg-muted px-1 py-0.5 text-xs">README.md</code> ve{" "}
+                <code className="rounded bg-muted px-1 py-0.5 text-xs">docs/</code> klasörüne
+                bakabilirsiniz.
               </p>
             </CardContent>
           </Card>

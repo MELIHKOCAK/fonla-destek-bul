@@ -80,14 +80,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "BeniFonla" },
       {
         name: "description",
-        content:
-          "BeniFonla; ürün, fikir ve projeler için ödül temelli kitle fonlama platformu.",
+        content: "BeniFonla; ürün, fikir ve projeler için ödül temelli kitle fonlama platformu.",
       },
       { property: "og:title", content: "BeniFonla" },
       {
         property: "og:description",
-        content:
-          "BeniFonla; ürün, fikir ve projeler için ödül temelli kitle fonlama platformu.",
+        content: "BeniFonla; ürün, fikir ve projeler için ödül temelli kitle fonlama platformu.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

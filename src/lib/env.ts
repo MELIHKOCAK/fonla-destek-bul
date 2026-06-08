@@ -7,9 +7,7 @@ import { z } from "zod";
  */
 const envSchema = z.object({
   VITE_APP_NAME: z.string().min(1).default("BeniFonla"),
-  VITE_APP_ENV: z
-    .enum(["local", "development", "staging", "production"])
-    .default("local"),
+  VITE_APP_ENV: z.enum(["local", "development", "staging", "production"]).default("local"),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
