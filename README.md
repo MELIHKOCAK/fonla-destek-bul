@@ -86,6 +86,15 @@ Detay için bkz. [`docs/development-workflow.md`](./docs/development-workflow.md
 - [Workspace Knowledge — geliştirme kuralları](./docs/workspace-knowledge.md)
 - [Project Knowledge — ürün ve alan bilgisi](./docs/project-knowledge.md)
 - [Ortamlar (local/staging/production)](./docs/environments.md)
+- [Ürün kapsamı (MVP)](./docs/product-scope.md)
+- [Domain sözlüğü](./docs/domain-glossary.md)
+- [Aktörler ve yetki sınırları](./docs/roles-and-permissions.md)
+- [Kampanya state machine](./docs/campaign-state-machine.md)
+- [Contribution & Payment state machine](./docs/contribution-payment-state-machine.md)
+- [Para akışı](./docs/money-flow.md)
+- [Fonksiyonel olmayan gereksinimler](./docs/non-functional-requirements.md)
+- [MVP dışı — kesin yasak listesi](./docs/out-of-scope.md)
+- [Kabul senaryoları](./docs/acceptance-scenarios.md)
 
 ## Güvenlik
 
