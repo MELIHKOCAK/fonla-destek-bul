@@ -53,6 +53,83 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_comments: {
+        Row: {
+          author_id: string
+          body: string
+          campaign_id: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          parent_id: string | null
+          status: Database["public"]["Enums"]["comment_status"]
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          campaign_id: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          parent_id?: string | null
+          status?: Database["public"]["Enums"]["comment_status"]
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          campaign_id?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          parent_id?: string | null
+          status?: Database["public"]["Enums"]["comment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_comments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_follows: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_follows_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_media: {
         Row: {
           alt_text: string | null
@@ -99,6 +176,63 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_reports: {
+        Row: {
+          assigned_admin_id: string | null
+          campaign_id: string | null
+          comment_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          reason_code: string
+          reporter_id: string
+          resolution_note: string | null
+          status: Database["public"]["Enums"]["report_status"]
+          updated_at: string
+        }
+        Insert: {
+          assigned_admin_id?: string | null
+          campaign_id?: string | null
+          comment_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          reason_code: string
+          reporter_id: string
+          resolution_note?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          updated_at?: string
+        }
+        Update: {
+          assigned_admin_id?: string | null
+          campaign_id?: string | null
+          comment_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          reason_code?: string
+          reporter_id?: string
+          resolution_note?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_reports_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_reports_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_comments"
             referencedColumns: ["id"]
           },
         ]
@@ -153,6 +287,8 @@ export type Database = {
           body_content: string
           campaign_id: string
           created_at: string
+          edit_history: Json
+          edited_at: string | null
           id: string
           is_published: boolean
           published_at: string | null
@@ -164,6 +300,8 @@ export type Database = {
           body_content: string
           campaign_id: string
           created_at?: string
+          edit_history?: Json
+          edited_at?: string | null
           id?: string
           is_published?: boolean
           published_at?: string | null
@@ -175,6 +313,8 @@ export type Database = {
           body_content?: string
           campaign_id?: string
           created_at?: string
+          edit_history?: Json
+          edited_at?: string | null
           id?: string
           is_published?: boolean
           published_at?: string | null
@@ -757,6 +897,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auto_follow_on_pledge: boolean
           avatar_path: string | null
           bio: string | null
           created_at: string
@@ -771,6 +912,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          auto_follow_on_pledge?: boolean
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
@@ -785,6 +927,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          auto_follow_on_pledge?: boolean
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
@@ -972,6 +1115,57 @@ export type Database = {
       }
     }
     Views: {
+      my_reports: {
+        Row: {
+          campaign_id: string | null
+          comment_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          reason_code: string | null
+          reporter_id: string | null
+          status: Database["public"]["Enums"]["report_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          comment_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          reason_code?: string | null
+          reporter_id?: string | null
+          status?: Database["public"]["Enums"]["report_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          comment_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          reason_code?: string | null
+          reporter_id?: string | null
+          status?: Database["public"]["Enums"]["report_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_reports_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_reports_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles_public: {
         Row: {
           avatar_path: string | null
@@ -1008,6 +1202,26 @@ export type Database = {
     }
     Functions: {
       _assert_admin: { Args: never; Returns: undefined }
+      admin_hide_comment: {
+        Args: { _comment_id: string; _reason: string }
+        Returns: {
+          author_id: string
+          body: string
+          campaign_id: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          parent_id: string | null
+          status: Database["public"]["Enums"]["comment_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaign_comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       approve_campaign: {
         Args: {
           _campaign_id: string
@@ -1112,6 +1326,26 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_comment: {
+        Args: { _body: string; _campaign_id: string; _parent_id: string }
+        Returns: {
+          author_id: string
+          body: string
+          campaign_id: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          parent_id: string | null
+          status: Database["public"]["Enums"]["comment_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaign_comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       creator_campaign_reviews: {
         Args: { _campaign_id: string }
         Returns: {
@@ -1123,6 +1357,28 @@ export type Database = {
           id: string
           to_status: Database["public"]["Enums"]["campaign_status"]
         }[]
+      }
+      creator_edit_update: {
+        Args: { _body: string; _title: string; _update_id: string }
+        Returns: {
+          author_id: string
+          body_content: string
+          campaign_id: string
+          created_at: string
+          edit_history: Json
+          edited_at: string | null
+          id: string
+          is_published: boolean
+          published_at: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaign_updates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       generate_unique_campaign_slug: {
         Args: { _base: string }
@@ -1260,6 +1516,8 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_username_reserved: { Args: { _username: string }; Returns: boolean }
+      mark_all_notifications_read: { Args: never; Returns: number }
+      mark_notification_read: { Args: { _id: string }; Returns: undefined }
       my_contributions: {
         Args: never
         Returns: {
@@ -1273,6 +1531,28 @@ export type Database = {
           status: Database["public"]["Enums"]["contribution_status"]
           updated_at: string
         }[]
+      }
+      publish_campaign_update: {
+        Args: { _body: string; _campaign_id: string; _title: string }
+        Returns: {
+          author_id: string
+          body_content: string
+          campaign_id: string
+          created_at: string
+          edit_history: Json
+          edited_at: string | null
+          id: string
+          is_published: boolean
+          published_at: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaign_updates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       publish_due_campaigns: { Args: never; Returns: number }
       reject_campaign: {
@@ -1313,6 +1593,33 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      report_target: {
+        Args: {
+          _campaign_id: string
+          _comment_id: string
+          _description: string
+          _reason_code: string
+        }
+        Returns: {
+          assigned_admin_id: string | null
+          campaign_id: string | null
+          comment_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          reason_code: string
+          reporter_id: string
+          resolution_note: string | null
+          status: Database["public"]["Enums"]["report_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaign_reports"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1361,6 +1668,26 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      soft_delete_comment: {
+        Args: { _comment_id: string }
+        Returns: {
+          author_id: string
+          body: string
+          campaign_id: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          parent_id: string | null
+          status: Database["public"]["Enums"]["comment_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaign_comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       start_campaign_review: {
         Args: { _campaign_id: string; _expected_lock_version: number }
         Returns: {
@@ -1476,6 +1803,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      toggle_favorite: { Args: { _campaign_id: string }; Returns: boolean }
+      toggle_follow: { Args: { _campaign_id: string }; Returns: boolean }
       update_campaign_draft: {
         Args: {
           _campaign_id: string
@@ -1517,6 +1846,26 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      update_comment: {
+        Args: { _body: string; _comment_id: string }
+        Returns: {
+          author_id: string
+          body: string
+          campaign_id: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          parent_id: string | null
+          status: Database["public"]["Enums"]["comment_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaign_comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       campaign_media_type: "image" | "video" | "document"
@@ -1537,6 +1886,7 @@ export type Database = {
         | "refunding"
         | "refunded"
         | "rejected"
+      comment_status: "visible" | "hidden_by_admin" | "deleted_by_author"
       contribution_status:
         | "pending"
         | "authorized"
@@ -1576,6 +1926,7 @@ export type Database = {
         | "succeeded"
         | "failed"
         | "cancelled"
+      report_status: "open" | "reviewing" | "resolved" | "dismissed"
       review_decision:
         | "approved"
         | "rejected"
@@ -1729,6 +2080,7 @@ export const Constants = {
         "refunded",
         "rejected",
       ],
+      comment_status: ["visible", "hidden_by_admin", "deleted_by_author"],
       contribution_status: [
         "pending",
         "authorized",
@@ -1773,6 +2125,7 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
+      report_status: ["open", "reviewing", "resolved", "dismissed"],
       review_decision: [
         "approved",
         "rejected",
