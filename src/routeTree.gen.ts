@@ -33,6 +33,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as CampaignsSlugBackRouteImport } from './routes/campaigns.$slug.back'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings.account'
+import { Route as AuthenticatedDashboardContributionsRouteImport } from './routes/_authenticated/dashboard.contributions'
 import { Route as AuthenticatedCreatorCampaignsRouteImport } from './routes/_authenticated/creator.campaigns'
 import { Route as CampaignsSlugBackIndexRouteImport } from './routes/campaigns.$slug.back.index'
 import { Route as AuthenticatedCreatorCampaignsIndexRouteImport } from './routes/_authenticated/creator.campaigns.index'
@@ -171,6 +172,12 @@ const AuthenticatedSettingsAccountRoute =
     path: '/account',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedDashboardContributionsRoute =
+  AuthenticatedDashboardContributionsRouteImport.update({
+    id: '/contributions',
+    path: '/contributions',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedCreatorCampaignsRoute =
   AuthenticatedCreatorCampaignsRouteImport.update({
     id: '/creator/campaigns',
@@ -270,7 +277,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -279,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
+  '/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
@@ -309,7 +317,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/unauthorized': typeof UnauthorizedRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -317,6 +325,7 @@ export interface FileRoutesByTo {
   '/campaigns/$slug': typeof CampaignsSlugRouteWithChildren
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
+  '/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -349,7 +358,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -358,6 +367,7 @@ export interface FileRoutesById {
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
   '/_authenticated/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
+  '/_authenticated/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/categories/$slug'
     | '/creators/$username'
     | '/creator/campaigns'
+    | '/dashboard/contributions'
     | '/settings/account'
     | '/settings/profile'
     | '/campaigns/$slug/back'
@@ -438,6 +449,7 @@ export interface FileRouteTypes {
     | '/campaigns/$slug'
     | '/categories/$slug'
     | '/creators/$username'
+    | '/dashboard/contributions'
     | '/settings/account'
     | '/settings/profile'
     | '/admin'
@@ -478,6 +490,7 @@ export interface FileRouteTypes {
     | '/categories/$slug'
     | '/creators/$username'
     | '/_authenticated/creator/campaigns'
+    | '/_authenticated/dashboard/contributions'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/profile'
     | '/campaigns/$slug/back'
@@ -687,6 +700,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAccountRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/dashboard/contributions': {
+      id: '/_authenticated/dashboard/contributions'
+      path: '/contributions'
+      fullPath: '/dashboard/contributions'
+      preLoaderRoute: typeof AuthenticatedDashboardContributionsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/creator/campaigns': {
       id: '/_authenticated/creator/campaigns'
       path: '/creator/campaigns'
@@ -815,6 +835,21 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardContributionsRoute: typeof AuthenticatedDashboardContributionsRoute
+}
+
+const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
+  {
+    AuthenticatedDashboardContributionsRoute:
+      AuthenticatedDashboardContributionsRoute,
+  }
+
+const AuthenticatedDashboardRouteWithChildren =
+  AuthenticatedDashboardRoute._addFileChildren(
+    AuthenticatedDashboardRouteChildren,
+  )
+
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
   AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
@@ -859,7 +894,7 @@ const AuthenticatedCreatorCampaignsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
@@ -868,7 +903,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
