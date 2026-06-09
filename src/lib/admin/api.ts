@@ -138,7 +138,7 @@ export async function getCampaignForReview(campaignId: string): Promise<ReviewDe
     supabase.from("reward_tiers").select("*").eq("campaign_id", campaignId).order("sort_order"),
     supabase
       .from("profiles")
-      .select("id, display_name, username, avatar_url, bio")
+      .select("id, display_name, username, avatar_path, bio")
       .eq("id", campaign.creator_id)
       .maybeSingle(),
     supabase.from("categories").select("id, name, slug").eq("id", campaign.category_id).maybeSingle(),
