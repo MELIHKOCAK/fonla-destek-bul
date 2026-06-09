@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { MobileNavigation } from "./MobileNavigation";
 import { NavLinks } from "./NavLinks";
 import { UserMenu } from "./UserMenu";
+import { NotificationBell } from "@/components/social/NotificationBell";
 import { useAuth } from "@/hooks/use-auth";
 
 export function AppHeader() {
@@ -34,7 +35,10 @@ export function AppHeader() {
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-2 md:flex">
             {status === "authenticated" && user ? (
-              <UserMenu />
+              <>
+                <NotificationBell />
+                <UserMenu />
+              </>
             ) : status === "unauthenticated" ? (
               <>
                 <Button asChild variant="ghost" size="sm">
