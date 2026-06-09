@@ -206,6 +206,8 @@ export type Database = {
           id: string
           lock_version: number
           published_at: string | null
+          reject_reason_code: string | null
+          reject_reason_note: string | null
           risks_content: string | null
           short_description: string | null
           slug: string
@@ -232,6 +234,8 @@ export type Database = {
           id?: string
           lock_version?: number
           published_at?: string | null
+          reject_reason_code?: string | null
+          reject_reason_note?: string | null
           risks_content?: string | null
           short_description?: string | null
           slug: string
@@ -258,6 +262,8 @@ export type Database = {
           id?: string
           lock_version?: number
           published_at?: string | null
+          reject_reason_code?: string | null
+          reject_reason_note?: string | null
           risks_content?: string | null
           short_description?: string | null
           slug?: string
@@ -1001,6 +1007,49 @@ export type Database = {
       }
     }
     Functions: {
+      _assert_admin: { Args: never; Returns: undefined }
+      approve_campaign: {
+        Args: {
+          _campaign_id: string
+          _creator_note?: string
+          _expected_lock_version: number
+          _internal_note?: string
+        }
+        Returns: {
+          approved_at: string | null
+          cancellation_reason: string | null
+          category_id: string
+          closed_at: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          end_at: string | null
+          funds_usage_content: string | null
+          goal_amount_minor: number
+          id: string
+          lock_version: number
+          published_at: string | null
+          reject_reason_code: string | null
+          reject_reason_note: string | null
+          risks_content: string | null
+          short_description: string | null
+          slug: string
+          start_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          story_content: string | null
+          submitted_at: string | null
+          suspension_reason: string | null
+          timeline_content: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       campaign_contributions_for_creator: {
         Args: { _campaign_id: string }
         Returns: {
@@ -1042,6 +1091,8 @@ export type Database = {
           id: string
           lock_version: number
           published_at: string | null
+          reject_reason_code: string | null
+          reject_reason_note: string | null
           risks_content: string | null
           short_description: string | null
           slug: string
@@ -1100,8 +1151,130 @@ export type Database = {
           updated_at: string
         }[]
       }
+      publish_due_campaigns: { Args: never; Returns: number }
+      reject_campaign: {
+        Args: {
+          _campaign_id: string
+          _creator_note: string
+          _expected_lock_version: number
+          _reason_code: string
+        }
+        Returns: {
+          approved_at: string | null
+          cancellation_reason: string | null
+          category_id: string
+          closed_at: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          end_at: string | null
+          funds_usage_content: string | null
+          goal_amount_minor: number
+          id: string
+          lock_version: number
+          published_at: string | null
+          reject_reason_code: string | null
+          reject_reason_note: string | null
+          risks_content: string | null
+          short_description: string | null
+          slug: string
+          start_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          story_content: string | null
+          submitted_at: string | null
+          suspension_reason: string | null
+          timeline_content: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      request_campaign_revision: {
+        Args: {
+          _campaign_id: string
+          _creator_note: string
+          _expected_lock_version: number
+          _issues?: Json
+        }
+        Returns: {
+          approved_at: string | null
+          cancellation_reason: string | null
+          category_id: string
+          closed_at: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          end_at: string | null
+          funds_usage_content: string | null
+          goal_amount_minor: number
+          id: string
+          lock_version: number
+          published_at: string | null
+          reject_reason_code: string | null
+          reject_reason_note: string | null
+          risks_content: string | null
+          short_description: string | null
+          slug: string
+          start_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          story_content: string | null
+          submitted_at: string | null
+          suspension_reason: string | null
+          timeline_content: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      start_campaign_review: {
+        Args: { _campaign_id: string; _expected_lock_version: number }
+        Returns: {
+          approved_at: string | null
+          cancellation_reason: string | null
+          category_id: string
+          closed_at: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          end_at: string | null
+          funds_usage_content: string | null
+          goal_amount_minor: number
+          id: string
+          lock_version: number
+          published_at: string | null
+          reject_reason_code: string | null
+          reject_reason_note: string | null
+          risks_content: string | null
+          short_description: string | null
+          slug: string
+          start_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          story_content: string | null
+          submitted_at: string | null
+          suspension_reason: string | null
+          timeline_content: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       submit_campaign_for_review: {
         Args: { _campaign_id: string; _expected_lock_version: number }
         Returns: {
@@ -1118,6 +1291,49 @@ export type Database = {
           id: string
           lock_version: number
           published_at: string | null
+          reject_reason_code: string | null
+          reject_reason_note: string | null
+          risks_content: string | null
+          short_description: string | null
+          slug: string
+          start_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          story_content: string | null
+          submitted_at: string | null
+          suspension_reason: string | null
+          timeline_content: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      suspend_campaign: {
+        Args: {
+          _campaign_id: string
+          _expected_lock_version: number
+          _reason: string
+        }
+        Returns: {
+          approved_at: string | null
+          cancellation_reason: string | null
+          category_id: string
+          closed_at: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          end_at: string | null
+          funds_usage_content: string | null
+          goal_amount_minor: number
+          id: string
+          lock_version: number
+          published_at: string | null
+          reject_reason_code: string | null
+          reject_reason_note: string | null
           risks_content: string | null
           short_description: string | null
           slug: string
@@ -1157,6 +1373,8 @@ export type Database = {
           id: string
           lock_version: number
           published_at: string | null
+          reject_reason_code: string | null
+          reject_reason_note: string | null
           risks_content: string | null
           short_description: string | null
           slug: string
