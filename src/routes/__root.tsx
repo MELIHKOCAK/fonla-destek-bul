@@ -132,7 +132,16 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Outlet />
+        <ToasterRoot />
       </ThemeProvider>
     </QueryClientProvider>
   );
+}
+
+function ToasterRoot() {
+  // Sonner client-only; dynamic import sırasında SSR'ı bozmamak için sade kullanım.
+  // import edildiğinde browser-only event listener register etmez.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Toaster } = require("@/components/ui/sonner") as typeof import("@/components/ui/sonner");
+  return <Toaster richColors closeButton />;
 }
