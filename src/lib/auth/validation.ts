@@ -41,7 +41,7 @@ export const registerSchema = z
     termsAccepted: z.literal(true, {
       message: "Devam etmek için kullanım koşullarını kabul edin.",
     }),
-    marketingConsent: z.boolean().default(false),
+    marketingConsent: z.boolean(),
   })
   .refine((d) => d.password === d.passwordConfirmation, {
     message: "Şifreler eşleşmiyor.",
