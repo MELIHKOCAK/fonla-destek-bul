@@ -110,7 +110,7 @@ export interface ReviewDetail {
   campaign: CampaignRow;
   media: CampaignMediaRow[];
   rewardTiers: RewardTierRow[];
-  creator: { id: string; display_name: string | null; username: string | null; avatar_url: string | null; bio: string | null } | null;
+  creator: { id: string; display_name: string | null; username: string | null; avatar_path: string | null; bio: string | null } | null;
   category: { id: string; name: string; slug: string } | null;
   reviewHistory: CampaignReviewRow[];
   auditHistory: AuditLogRow[];
