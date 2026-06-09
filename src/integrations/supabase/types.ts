@@ -1128,6 +1128,129 @@ export type Database = {
         Args: { _base: string }
         Returns: string
       }
+      get_public_campaign_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          backer_count: number
+          category_name: string
+          category_slug: string
+          cover_external_url: string
+          cover_storage_path: string
+          creator_avatar_path: string
+          creator_display_name: string
+          creator_id: string
+          creator_username: string
+          currency: string
+          end_at: string
+          funds_usage_content: string
+          goal_amount_minor: number
+          id: string
+          published_at: string
+          raised_amount_minor: number
+          risks_content: string
+          short_description: string
+          slug: string
+          start_at: string
+          status: Database["public"]["Enums"]["campaign_status"]
+          story_content: string
+          timeline_content: string
+          title: string
+        }[]
+      }
+      get_public_campaign_media: {
+        Args: { _campaign_id: string }
+        Returns: {
+          alt_text: string
+          external_url: string
+          id: string
+          is_cover: boolean
+          media_type: Database["public"]["Enums"]["campaign_media_type"]
+          sort_order: number
+          storage_path: string
+        }[]
+      }
+      get_public_campaign_rewards: {
+        Args: { _campaign_id: string }
+        Returns: {
+          amount_minor: number
+          description: string
+          estimated_delivery_date: string
+          id: string
+          quantity_limit: number
+          shipping_required: boolean
+          sort_order: number
+          title: string
+        }[]
+      }
+      get_public_campaign_updates: {
+        Args: { _campaign_id: string }
+        Returns: {
+          body_content: string
+          id: string
+          published_at: string
+          title: string
+        }[]
+      }
+      get_public_campaigns: {
+        Args: {
+          _category_slugs?: string[]
+          _ending_within_days?: number
+          _funded_max?: number
+          _funded_min?: number
+          _limit?: number
+          _offset?: number
+          _q?: string
+          _sort?: string
+          _statuses?: string[]
+        }
+        Returns: {
+          backer_count: number
+          category_name: string
+          category_slug: string
+          cover_external_url: string
+          cover_storage_path: string
+          creator_avatar_path: string
+          creator_display_name: string
+          creator_username: string
+          currency: string
+          end_at: string
+          goal_amount_minor: number
+          id: string
+          published_at: string
+          raised_amount_minor: number
+          short_description: string
+          slug: string
+          start_at: string
+          status: Database["public"]["Enums"]["campaign_status"]
+          title: string
+          total_count: number
+        }[]
+      }
+      get_public_categories: {
+        Args: never
+        Returns: {
+          description: string
+          icon_name: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+        }[]
+      }
+      get_public_creator_profile: {
+        Args: { _username: string }
+        Returns: {
+          avatar_path: string
+          bio: string
+          display_name: string
+          id: string
+          location: string
+          total_backers: number
+          total_campaigns: number
+          username: string
+          website_url: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
