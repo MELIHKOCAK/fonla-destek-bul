@@ -966,6 +966,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_username_available: {
+        Args: { _username: string }
+        Returns: boolean
+      }
+      claim_username: { Args: { _username: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
@@ -973,6 +978,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_username_reserved: { Args: { _username: string }; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }

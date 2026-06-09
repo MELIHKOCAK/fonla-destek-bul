@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/app/theme/ThemeProvider";
 import { themeInitScript } from "@/app/theme/theme-script";
 import { AppShell } from "@/components/layout/AppShell";
+import { AuthProvider } from "@/app/auth/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -132,8 +133,10 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <Outlet />
-        <Toaster richColors closeButton />
+        <AuthProvider>
+          <Outlet />
+          <Toaster richColors closeButton />
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
