@@ -124,11 +124,11 @@ export const createContribution = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: row, error } = await supabase.rpc("create_contribution", {
       _campaign_id: data.campaignId,
-      _reward_tier_id: data.rewardTierId ?? null,
+      _reward_tier_id: (data.rewardTierId ?? null) as unknown as string,
       _amount_minor: data.amountMinor,
       _anonymous: data.anonymous ?? false,
       _risk_ack: data.riskAck,
-      _shipping: data.shipping ?? {},
+      _shipping: (data.shipping ?? {}) as never,
       _idempotency_key: data.idempotencyKey,
     });
     if (error) throw mapPgError(error);
