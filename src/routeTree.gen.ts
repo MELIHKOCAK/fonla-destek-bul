@@ -33,6 +33,7 @@ import { Route as AuthenticatedAdminCampaignReviewsIndexRouteImport } from './ro
 import { Route as AuthenticatedCreatorCampaignsNewRouteImport } from './routes/_authenticated/creator.campaigns.new'
 import { Route as AuthenticatedAdminCampaignReviewsCampaignIdRouteImport } from './routes/_authenticated/admin.campaign-reviews.$campaignId'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.preview'
+import { Route as AuthenticatedAdminCampaignsCampaignIdHistoryRouteImport } from './routes/_authenticated/admin.campaigns.$campaignId.history'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdEditStepRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.edit.$step'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
@@ -162,6 +163,12 @@ const AuthenticatedCreatorCampaignsCampaignIdPreviewRoute =
     path: '/$campaignId/preview',
     getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
   } as any)
+const AuthenticatedAdminCampaignsCampaignIdHistoryRoute =
+  AuthenticatedAdminCampaignsCampaignIdHistoryRouteImport.update({
+    id: '/campaigns/$campaignId/history',
+    path: '/campaigns/$campaignId/history',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedCreatorCampaignsCampaignIdEditStepRoute =
   AuthenticatedCreatorCampaignsCampaignIdEditStepRouteImport.update({
     id: '/$campaignId/edit/$step',
@@ -192,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/admin/campaign-reviews/': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
+  '/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
   '/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
   '/creator/campaigns/$campaignId/edit/$step': typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
 }
@@ -216,6 +224,7 @@ export interface FileRoutesByTo {
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/admin/campaign-reviews': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsIndexRoute
+  '/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
   '/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
   '/creator/campaigns/$campaignId/edit/$step': typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
 }
@@ -244,6 +253,7 @@ export interface FileRoutesById {
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/_authenticated/admin/campaign-reviews/': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/_authenticated/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
+  '/_authenticated/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
   '/_authenticated/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
   '/_authenticated/creator/campaigns/$campaignId/edit/$step': typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
 }
@@ -272,6 +282,7 @@ export interface FileRouteTypes {
     | '/creator/campaigns/new'
     | '/admin/campaign-reviews/'
     | '/creator/campaigns/'
+    | '/admin/campaigns/$campaignId/history'
     | '/creator/campaigns/$campaignId/preview'
     | '/creator/campaigns/$campaignId/edit/$step'
   fileRoutesByTo: FileRoutesByTo
@@ -296,6 +307,7 @@ export interface FileRouteTypes {
     | '/creator/campaigns/new'
     | '/admin/campaign-reviews'
     | '/creator/campaigns'
+    | '/admin/campaigns/$campaignId/history'
     | '/creator/campaigns/$campaignId/preview'
     | '/creator/campaigns/$campaignId/edit/$step'
   id:
@@ -323,6 +335,7 @@ export interface FileRouteTypes {
     | '/_authenticated/creator/campaigns/new'
     | '/_authenticated/admin/campaign-reviews/'
     | '/_authenticated/creator/campaigns/'
+    | '/_authenticated/admin/campaigns/$campaignId/history'
     | '/_authenticated/creator/campaigns/$campaignId/preview'
     | '/_authenticated/creator/campaigns/$campaignId/edit/$step'
   fileRoutesById: FileRoutesById
@@ -511,6 +524,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport
       parentRoute: typeof AuthenticatedCreatorCampaignsRoute
     }
+    '/_authenticated/admin/campaigns/$campaignId/history': {
+      id: '/_authenticated/admin/campaigns/$campaignId/history'
+      path: '/campaigns/$campaignId/history'
+      fullPath: '/admin/campaigns/$campaignId/history'
+      preLoaderRoute: typeof AuthenticatedAdminCampaignsCampaignIdHistoryRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/creator/campaigns/$campaignId/edit/$step': {
       id: '/_authenticated/creator/campaigns/$campaignId/edit/$step'
       path: '/$campaignId/edit/$step'
@@ -525,6 +545,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminCampaignReviewsCampaignIdRoute: typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   AuthenticatedAdminCampaignReviewsIndexRoute: typeof AuthenticatedAdminCampaignReviewsIndexRoute
+  AuthenticatedAdminCampaignsCampaignIdHistoryRoute: typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
@@ -533,6 +554,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminCampaignReviewsCampaignIdRoute,
   AuthenticatedAdminCampaignReviewsIndexRoute:
     AuthenticatedAdminCampaignReviewsIndexRoute,
+  AuthenticatedAdminCampaignsCampaignIdHistoryRoute:
+    AuthenticatedAdminCampaignsCampaignIdHistoryRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =
