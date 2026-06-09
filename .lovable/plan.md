@@ -1,123 +1,111 @@
 
-# BeniFonla — Faz 2: Ürün Sözleşmesi ve Domain Dokümantasyonu
+# Faz 3 — Tasarım Sistemi ve Uygulama İskeleti (Mock Data)
 
-**Kapsam:** Yalnızca `docs/` altına dokümantasyon. Hiçbir uygulama kodu, route, bileşen, paket, test veya UI dosyası **değişmeyecek**. Mevcut Faz 1 iskeleti aynen korunur.
+Bu faz tamamen frontend: backend, Supabase, auth, ödeme YOK. Sadece tema, layout, ortak bileşenler, mock veri ve `/design-system` showcase.
 
-## 1. Önce inceleme
+## 1. Tema sistemi (`src/styles.css`)
 
-Mevcut `docs/project-knowledge.md` ve `docs/workspace-knowledge.md` dosyaları kaynak gerçek olarak okunur; yeni dokümanlar bunlarla çelişmez, eksik kalan yerleri genişletir. Yaşam döngüsü ve terim seti zaten Faz 1'de taslak halinde var — Faz 2 onları kanonik sözleşmeye çevirir ve durum makinelerini ayrıştırır.
+Mevcut shadcn token bloğunu BeniFonla marka paletine göre yeniden yaz:
 
-## 2. Oluşturulacak / güçlendirilecek dokümanlar
+- **Ana ton:** gece mavisi (`--background` dark: derin navy oklch; light: kırık beyaz)
+- **Primary:** kontrollü turkuaz/emerald (güven + ilerleme)
+- **Accent (warm):** amber (ödül/başarı) — yeni token `--accent-warm`
+- **Semantic ek tokenlar:** `--success`, `--warning`, `--info`, `--campaign-progress`, `--campaign-progress-track`
+- `:root` (light) ve `.dark` (dark) eksiksiz tanımlanır; `@theme inline` içine yeni tokenlar map edilir (`--color-success`, `--color-warning`, `--color-info`, `--color-accent-warm`, `--color-campaign-progress`, …).
+- Tüm renkler `oklch()`. Bileşenler renkleri hardcode etmez — sadece semantic util kullanır.
 
-Tümü `docs/` altında, Türkçe içerik, İngilizce kod terimleriyle birlikte:
+## 2. Tema yönetimi
 
-### `docs/product-scope.md`
-- BeniFonla'nın kesin tanımı (ödül temelli kitle fonlama; yatırım/menkul kıymet/faiz DEĞİL).
-- **MVP'de var** listesi: e-posta auth (kayıt/giriş/çıkış/doğrulama/şifre sıfırlama), kullanıcı profili + public creator profili, çok adımlı kampanya taslak/düzenleme, admin inceleme akışı (revision/approve/reject/suspend), yayınlama + liste + detay, arama/kategori/filtre/sıralama, favori/takip/yorum/creator yanıtı/şikâyet, reward tier, destek akışı, sandbox ödeme, başarı/başarısızlık sonucu, platform komisyonu + iade + payout kayıtları, User/Creator/Admin panelleri, uygulama içi bildirim + temel işlem e-postaları.
-- **MVP dışı** kesin liste (hisse, faiz, cüzdan, kripto, çoklu para, canlı sohbet/DM, sosyal grafik, mobil uygulama, AI skor, kişiselleştirilmiş öneri, çok satıcılı e-ticaret).
+- `src/app/theme/ThemeProvider.tsx`: context (`theme: "light" | "dark" | "system"`, `resolvedTheme`, `setTheme`). `prefers-color-scheme` dinler, seçim varsa `localStorage("benifonla-theme")` saklar, `<html>` üzerine `.dark` toggle eder.
+- `src/app/theme/theme-script.ts`: senkron inline script string'i export eder; `__root.tsx` `head()` içine `scripts: [{ children: themeInitScript }]` olarak basılır → FOUC engellenir.
+- `src/components/common/ThemeToggle.tsx`: erişilebilir dropdown (Sistem / Açık / Koyu), `aria-label`, ikon (`Sun`/`Moon`/`Monitor`).
 
-### `docs/domain-glossary.md`
-- Her terim için: kanonik İngilizce ad, Türkçe arayüz metni, kesin tanım, **ne DEĞİLDİR**, ilişkili terimler.
-- Terimler: `Campaign`, `Creator`, `Backer`, `Contribution`, `Payment`, `Refund`, `Payout`, `Platform Fee`, `Provider Fee`, `Reward Tier`, `Settlement`, `Ledger Entry`.
-- Açık vurgu: **Contribution, Payment, Refund ve Payout aynı tabloda veya aynı `status` alanında temsil edilemez** — her biri bağımsız varlık ve bağımsız state machine'e sahiptir.
+## 3. AppShell ve navigation
 
-### `docs/roles-and-permissions.md`
-- Aktörler: Guest, User, Creator, Backer, Moderator (gelecek), Admin.
-- Her aktör için: yapabilecekleri, yapamayacakları, yetki sınırı (özellikle: Admin **finans kaydını doğrudan değiştiremez**; durum geçişi tetikleyebilir, ledger ters kayıt ister).
-- Açık vurgu: **Creator kalıcı ayrı kullanıcı tipi değildir**, kampanya sahipliği ilişkisidir. Bir kişi aynı anda User + Creator (bir kampanyasında) + Backer (başka kampanyada) olabilir.
-- Yetki matrisi tablosu (aktör × kaynak × eylem).
+- `src/components/layout/AppHeader.tsx`: logo (text mark "BeniFonla"), masaüstü nav (`Keşfet`, `Nasıl Çalışır`, `Proje Başlat`), giriş/kayıt placeholder buton (henüz route yok → disabled veya `#` + `aria-disabled`), `ThemeToggle`, mobilde hamburger.
+- `src/components/layout/MobileNavigation.tsx`: shadcn `Sheet` tabanlı; focus trap (Radix verir), ESC kapanır, aynı linkler.
+- `src/components/layout/AppFooter.tsx`: 4 grup (Ürün, Kaynaklar, Yasal, Sosyal) + copyright + KVKK/yatırım uyarı notu.
+- `src/components/layout/AppShell.tsx`: header + `<main>` + footer wrapper; `Container` ile ortak max-width.
+- `Container` mevcut — gerekirse `narrow/default/wide` variantları eklenir.
+- `__root.tsx`: `ThemeProvider` ile sar, `AppShell` outlet'i sarar. `/design-system` route'u header nav listesinde GÖRÜNMEZ (nav listesi sabit array, design-system orada yok).
 
-### `docs/campaign-state-machine.md`
-- Tüm geçerli durumlar: `draft`, `submitted`, `under_review`, `revision_requested`, `approved`, `scheduled`, `live`, `successful`, `failed`, `suspended`, `cancelled`, `payout_pending`, `paid_out`, `refunding`, `refunded`, `rejected`.
-- **Geçiş tablosu** sütunları: kaynak durum, hedef durum, tetikleyen aktör, ön koşullar, yan etkiler, audit log alanı, bildirim hedefi.
-- Geçerli geçişler (yalnızca):
-  ```text
-  draft → submitted (Creator)
-  submitted → under_review (Admin)
-  under_review → revision_requested (Admin)
-  revision_requested → submitted (Creator)
-  under_review → approved (Admin)
-  under_review → rejected (Admin)
-  approved → scheduled | live (sistem, başlangıç tarihine göre)
-  scheduled → live (sistem, planlanan zamanda)
-  live → successful (sistem, süre + hedef koşulu)
-  live → failed (sistem, süre doldu hedef yok)
-  live → suspended (Admin)
-  suspended → live | cancelled (Admin)
-  successful → payout_pending → paid_out (sistem + Admin onayı)
-  failed → refunding → refunded (sistem)
-  cancelled → refunding → refunded (sistem, tahsil varsa)
-  ```
-- Yasak: keyfi geriye geçiş, istemciden status değiştirme, atlamalı geçiş.
-- ASCII diyagram.
+## 4. Domain tipleri (`src/types/`)
 
-### `docs/contribution-payment-state-machine.md`
-- **Contribution** durumları: `initiated`, `payment_pending`, `paid`, `failed`, `cancelled`, `refund_pending`, `refunded`, `disputed`, `chargeback`.
-- **Payment attempt** durumları (ayrı varlık, ayrı tablo): `created`, `pending`, `authorized`, `captured` (= `paid`), `failed`, `cancelled`, `refunded`, `partially_refunded`, `disputed`, `chargeback`.
-- İki state machine'in ayrı tabloları olduğu, aralarındaki ilişkinin 1 contribution → N payment attempt olduğu.
-- Örnek: ilk attempt `failed` → ikinci attempt `captured` → contribution `paid` (bir contribution'ın birden fazla attempt'inin tablo örneği).
-- Geçiş tabloları + ASCII diyagram + yasak geçişler.
+```ts
+// campaign.ts
+export type CampaignStatus =
+  | "draft" | "in_review" | "rejected" | "scheduled"
+  | "live" | "successful" | "failed" | "cancelled"
+  | "paid_out" | "refunded";
 
-### `docs/money-flow.md`
-- Para her zaman **TRY kuruşu cinsinden integer** saklanır; UI'da locale formatla gösterilir.
-- 7 akış adım adım:
-  1. **Başarılı ödeme**: contribution.initiated → payment.created → authorized → captured → contribution.paid → ledger append.
-  2. **Reddedilen ödeme + yeniden deneme**: payment.failed → yeni payment attempt → captured.
-  3. **Başarılı kampanya settlement & payout**: campaign.successful → gross hesap → provider fee düş → platform fee düş → net payout → payout_pending → Admin onay → paid_out → ledger.
-  4. **Başarısız kampanya refund / authorization cancel**: pre-auth varsa cancel; captured varsa refund.
-  5. **Chargeback**: dispute → chargeback → ledger ters kayıt + Creator bilgilendirme.
-  6. **Duplicate webhook & idempotency**: provider event id ile unique constraint; aynı event ikinci kez işlenmez.
-  7. **Platform fee vs Provider fee ayrımı**: ayrı ledger entry tipleri, ayrı hesap.
-- Ledger'ın **append-only** olduğu, düzeltmenin yeni ters kayıtla yapıldığı.
+export interface Money { amountMinor: number; currency: "TRY" }
+export interface Creator { id; displayName; avatarUrl?; verified }
+export interface Category { id; slug; label }
+export interface Campaign { id; slug; title; shortDescription; coverImage;
+  creator; category; raisedAmountMinor; goalAmountMinor; backerCount;
+  endDate: string; status: CampaignStatus; featured?: boolean }
+```
 
-### `docs/non-functional-requirements.md`
-- **Güvenlik**: RLS her tabloda, server-side validation (Zod), least privilege grant, secret isolation (`process.env` yalnızca server), service role frontend'de YOK.
-- **Tutarlılık**: kritik işlemler transaction içinde, idempotency key (özellikle ödeme/webhook), unique constraint (provider event id, contribution-attempt ilişkisi), audit log her durum geçişinde.
-- **Erişilebilirlik**: WCAG 2.1 AA temelleri, klavye navigasyonu, görünür focus, semantic label, kontrast oranı.
-- **Performans**: liste/arama pagination, projection (gereken kolonlar), index stratejisi (kampanya durumu, kategori, slug), lazy loading / route splitting.
-- **Gözlemlenebilirlik**: yapılandırılmış JSON log, correlation id / request id, hata takibi (mevcut `reportLovableError` zaten kurulu).
-- **Gizlilik**: minimum veri toplama, kart verisi tutulmaz (provider tokenize eder), PII erişimi rol bazlı.
-- **Test edilebilirlik**: frontend unit (Vitest), database/RLS testleri, Edge/server function entegrasyon testleri, browser akışı (sonraki fazlarda).
+## 5. Ortak bileşenler (`src/components/common/`)
 
-### `docs/out-of-scope.md`
-- MVP dışı listesi madde madde, **neden** dışta olduğu kısa gerekçesiyle (hukuki, kapsam, karmaşıklık).
-- Bu maddelerin sonraki fazlara da otomatik girmediği — her biri ayrıca karar gerektirir.
+Hepsi typed props, hiç hardcoded renk yok, light+dark uyumlu.
 
-### `docs/acceptance-scenarios.md`
-- Anahtar kullanıcı senaryolarını Given/When/Then formatında:
-  - Guest live kampanyayı görür ama destek butonuna basınca login'e yönlenir.
-  - User kampanya taslağı oluşturur, submit eder, admin revision ister, düzeltip tekrar submit eder.
-  - Backer canlı kampanyaya destek verir, ödeme başarılı → contribution.paid + ledger.
-  - Backer ödemesi reddedilir, tekrar dener, ikincisi başarılı.
-  - Kampanya süresi biter, hedef tutar, sistem successful → settlement → payout_pending.
-  - Kampanya başarısız, sistem refunding → refunded.
-  - Admin canlı kampanyayı suspend eder; suspend sırasında yeni contribution kabul edilmez.
-  - Duplicate webhook gelir, ikincisi idempotency ile yok sayılır.
-  - User şikâyet oluşturur, Admin görür.
-  - Kullanıcı şifresini sıfırlar.
+- **MoneyDisplay** — props: `amountMinor: number`, `currency?: "TRY"`, `variant?: "full" | "compact"`. `Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 })`. Compact için `notation: "compact"`. Sıfır ve negatif güvenli. Float yok — `amountMinor / 100` integer bölme bilgisi ama formatter'a number verilir; precision testle korunur.
+- **CampaignProgress** — props: `raisedMinor`, `goalMinor`, `showLabel?`. Yüzde `goal > 0 ? min(raised/goal*100, ∞) : 0`. Progress bar görseli `clamp(0, 100)`; metin gerçek yüzdeyi (`%124`) gösterir. `--campaign-progress` token.
+- **StatusBadge** — `type: "campaign" | "contribution"`, `status: string`. Typed record (`CAMPAIGN_STATUS_META: Record<CampaignStatus, {label; tone}>`). Bilinmeyen status → muted fallback + `console.warn` dev'de.
+- **CategoryBadge** — `category: Category`, varyant: outline.
+- **CreatorBadge** — `creator: Creator`, avatar + isim + verified ikon.
+- **CampaignCard** — TEK component, variant yok. Yukarıdaki props. Cover üstte (aspect 16/9, fallback gradient placeholder), kategori chip, başlık (line-clamp-2), creator, MoneyDisplay (raised), CampaignProgress, backerCount + kalan süre (`Intl.RelativeTimeFormat("tr")`). Hover/focus state, keyboard erişilebilir link (`<Link>` ile sar).
+- **EmptyState / ErrorState** — `title`, `description`, `action?: {label; onClick}`, ikon. ErrorState `retry` aksiyonu.
+- **LoadingSkeleton** — primitive: `CampaignCardSkeleton`, `LineSkeleton`, `AvatarSkeleton`. Gerçek layout ölçüleri.
+- **ConfirmDialog** — shadcn `AlertDialog` üzerine wrapper: `title`, `description`, `confirmLabel`, `cancelLabel`, `variant: "default" | "destructive"`, `onConfirm`.
+- **Pagination** — `page`, `pageCount`, `onPageChange`. Klavye ile gezilebilir.
+- **SearchInput** — controlled, `aria-label`, clear butonu, debounce hook yok (parent kontrol).
+- **FilterPanel** — generic shell: kategori multi-select, status select, sıralama. Mock veri üzerinde çalışır.
 
-## 3. Çıktı eklentileri (kullanıcının istediği)
+## 6. Mock veri (`src/mocks/`)
 
-Dokümanlardan sonra son cevapta:
+- `categories.ts` — 8 kategori (Teknoloji, Tasarım, Sanat, Müzik, Yayıncılık, Oyun, Topluluk, Eğitim).
+- `creators.ts` — 8 creator, Türkçe isimler, generated avatar (DiceBear `https://api.dicebear.com/7.x/initials/svg?seed=...` — public, lisanslı, kişi fotoğrafı değil).
+- `campaigns.ts` — **12 kampanya**, farklı:
+  - fonlama oranları: %12, %45, %78, %100, %134, %220
+  - statuslar: live (çoğu), scheduled, successful, failed, draft (1 örnek)
+  - süreler: 3 gün, 14 gün, 30 gün, bitmiş
+  - cover: lokal gradient placeholder util (`coverGradient(slug)` → `linear-gradient` CSS string) — gerçek fotoğraf yok, lisans riski sıfır.
+- `index.ts` — re-export + helper'lar (`getCampaignBySlug`, `listFeaturedCampaigns`, `filterCampaigns`). Sayfalar mocks'u doğrudan import etmez; bu helper'ları kullanır.
 
-- **Karar Gerektiren Konular**: dokümanları yazarken karşılaşılan çelişkiler / belirsizlikler (örn. payout onayı tam otomatik mi yoksa Admin onayı mı; reward tier sınırı; refund kısmi mi tam mı).
-- **Project Knowledge için yoğunlaştırılmış nihai metin**: kopyalanabilir kısa form (mevcut Faz 1 metnini Faz 2 kararlarıyla günceller).
-- **Definition of Done kontrol listesi**: bir özellik PR'ının kabul edilmesi için sağlanması gereken maddeler (typecheck, lint, test, RLS, audit log, bildirim, a11y, dokümantasyon güncellemesi vb.).
+## 7. Sayfalar
 
-## 4. Doğrulama
+- `src/routes/index.tsx` → `HomePage` güncelle: hero (marka mesajı, CTA "Keşfet" / "Proje Başlat"), featured kampanyalar grid (CampaignCard × mock).
+- `src/routes/design-system.tsx` (YENİ) → `DesignSystemPage`. Bölümler: Renkler (token swatches), Tipografi, Buttons, Form inputs, Badges, MoneyDisplay (full/compact/edge), CampaignProgress (0/45/100/134), CampaignCard grid, EmptyState, ErrorState, LoadingSkeleton, ConfirmDialog tetikleyici, Pagination, SearchInput, FilterPanel, AppHeader/Footer preview. Nav'da listelenmez.
+- Mevcut `NotFoundPage` ve `$.tsx` korunur; AppShell içine düşer.
 
-Kod değişmediği için:
-- `bunx tsc --noEmit` — yine temiz (regression yok kontrolü).
-- `bunx vitest run` — smoke test yine geçer.
-- `bunx eslint .` — yine 0 hata.
+## 8. Testler (`src/**/__tests__/`)
 
-## 5. Kapsam dışı (bu fazda yapılmaz)
+Vitest + RTL:
 
-- Hiçbir `src/` dosyası değişmez.
-- Paket eklenmez/silinmez.
-- Veritabanı şeması, migration, RLS politikası YAZILMAZ (yalnızca metin olarak gereksinim belgelenir; SQL Faz 3'te yazılır).
-- Supabase bağlanmaz, publish yapılmaz, secret kullanılmaz.
+- `MoneyDisplay.test.tsx` — TRY formatlama, 0, 100000 (1000₺), kompakt notation, negatif.
+- `CampaignProgress.test.tsx` — goal=0 → %0 ve crash yok; raised<goal; raised=goal; raised>goal görsel clamp + metin.
+- `ThemeToggle.test.tsx` — seçim localStorage'a yazılır, `<html>.dark` class değişir.
+- `CampaignCard.test.tsx` — başlık, kategori, raised + goal metni, link href, accessible name.
+- `MobileNavigation.test.tsx` — trigger ile açılır, ESC ile kapanır, focus trap içinde kalır (klavye ile Tab edildiğinde dış element odak almaz).
 
-## 6. Teslim edilecekler
+## 9. Kapsam dışı (bu fazda YOK)
 
-9 yeni doküman + son cevapta: değişen dosyalar listesi, çalıştırılan doğrulamalar, Karar Gerektiren Konular, yoğunlaştırılmış Project Knowledge metni, Definition of Done listesi, açık riskler.
+Supabase, auth, DB, storage, Edge Function, ödeme, gerçek API çağrıları, kampanya CRUD formları, admin paneli, i18n framework (Türkçe metinler doğrudan), email, bildirim.
+
+## 10. Doğrulama
+
+`bun run typecheck` + `bun run lint` + `bun run test:run` + `bun run build` — hepsi temiz olmadan tamamlandı denmez.
+
+## Teknik notlar
+
+- React Router DEĞİL — **TanStack Router** kullanılır (Faz 1 kararı). User prompt'taki "React Router" ifadesi proje knowledge'ı ile çelişir; TanStack Router ile devam edilir.
+- Tüm renkler `oklch` + semantic token; `text-white`, `bg-black` vb. yasak.
+- `localStorage` erişimi SSR-safe (`typeof window !== "undefined"`); FOUC için inline theme script `__root.tsx` head'inde.
+- Avatar/cover için harici resim YOK (lisans riski) — DiceBear sadece initials SVG (public domain), kampanya cover'ları CSS gradient.
+
+## Açık sorular (varsayımla ilerlenecek)
+
+1. "Proje Başlat" butonu Faz 3'te disabled placeholder mı, yoksa bilgilendirici modal mı? → **Varsayım: disabled + tooltip "Yakında".**
+2. Design-system route'u prod build'de tamamen kaldırılsın mı? → **Varsayım: route kalır ama nav'da listelenmez; ileride `import.meta.env.DEV` ile gate edilebilir.**
