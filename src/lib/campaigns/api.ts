@@ -55,13 +55,12 @@ export async function updateCampaignDraft(params: {
   const { data, error } = await supabase.rpc("update_campaign_draft", {
     _campaign_id: params.campaignId,
     _expected_lock_version: params.lockVersion,
-    _patch: params.patch as unknown as Database["public"]["Tables"]["campaigns"]["Row"]["short_description"] extends never
-      ? never
-      : Record<string, unknown>,
+    _patch: params.patch as Database["public"]["Functions"]["update_campaign_draft"]["Args"]["_patch"],
   });
   if (error) throw error;
   return data as unknown as CampaignRow;
 }
+
 
 export async function submitCampaignForReview(params: {
   campaignId: string;
