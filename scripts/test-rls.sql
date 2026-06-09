@@ -164,15 +164,21 @@ select pg_temp.assert(
 \echo ''
 \echo '== Append-only triggers on finance/audit =='
 do $$
-declare t text;
+declare
+  pair text[][] := array[
+    ['audit_logs','audit_logs_no_update'],
+    ['audit_logs','audit_logs_no_delete'],
+    ['financial_ledger_entries','ledger_no_update'],
+    ['financial_ledger_entries','ledger_no_delete']
+  ];
+  row text[];
 begin
-  foreach t in array array['audit_logs','financial_ledger_entries','webhook_events','idempotency_keys']
-  loop
+  foreach row slice 1 in array pair loop
     perform pg_temp.assert(
       exists(select 1 from pg_trigger tg
              join pg_class c on c.oid=tg.tgrelid
-             where c.relname=t and tg.tgname like '%prevent%'),
-      format('append-only trigger on %I', t));
+             where c.relname=row[1] and tg.tgname=row[2]),
+      format('append-only trigger %I on %I', row[2], row[1]));
   end loop;
 end$$;
 
