@@ -205,7 +205,7 @@ export function CommentsSection({ campaignId, creatorId, canComment }: Props) {
 
       <ReportDialog
         open={!!reportTarget}
-        onOpenChange={(o) => !o && setReportTargetState(null)}
+        onOpenChange={(o: boolean) => !o && setReportTargetState(null)}
         target={
           reportTarget
             ? { kind: "comment", commentId: reportTarget.commentId, label: reportTarget.label }
