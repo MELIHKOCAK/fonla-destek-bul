@@ -1026,6 +1026,41 @@ export type Database = {
         Returns: boolean
       }
       claim_username: { Args: { _username: string }; Returns: undefined }
+      create_campaign_draft: {
+        Args: { _category_id: string; _title: string }
+        Returns: {
+          approved_at: string | null
+          cancellation_reason: string | null
+          category_id: string
+          closed_at: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          end_at: string | null
+          funds_usage_content: string | null
+          goal_amount_minor: number
+          id: string
+          lock_version: number
+          published_at: string | null
+          risks_content: string | null
+          short_description: string | null
+          slug: string
+          start_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          story_content: string | null
+          submitted_at: string | null
+          suspension_reason: string | null
+          timeline_content: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       creator_campaign_reviews: {
         Args: { _campaign_id: string }
         Returns: {
@@ -1037,6 +1072,10 @@ export type Database = {
           id: string
           to_status: Database["public"]["Enums"]["campaign_status"]
         }[]
+      }
+      generate_unique_campaign_slug: {
+        Args: { _base: string }
+        Returns: string
       }
       has_role: {
         Args: {
@@ -1063,6 +1102,80 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      submit_campaign_for_review: {
+        Args: { _campaign_id: string; _expected_lock_version: number }
+        Returns: {
+          approved_at: string | null
+          cancellation_reason: string | null
+          category_id: string
+          closed_at: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          end_at: string | null
+          funds_usage_content: string | null
+          goal_amount_minor: number
+          id: string
+          lock_version: number
+          published_at: string | null
+          risks_content: string | null
+          short_description: string | null
+          slug: string
+          start_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          story_content: string | null
+          submitted_at: string | null
+          suspension_reason: string | null
+          timeline_content: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_campaign_draft: {
+        Args: {
+          _campaign_id: string
+          _expected_lock_version: number
+          _patch: Json
+        }
+        Returns: {
+          approved_at: string | null
+          cancellation_reason: string | null
+          category_id: string
+          closed_at: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          end_at: string | null
+          funds_usage_content: string | null
+          goal_amount_minor: number
+          id: string
+          lock_version: number
+          published_at: string | null
+          risks_content: string | null
+          short_description: string | null
+          slug: string
+          start_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          story_content: string | null
+          submitted_at: string | null
+          suspension_reason: string | null
+          timeline_content: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       campaign_media_type: "image" | "video" | "document"
