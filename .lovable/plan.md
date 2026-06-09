@@ -1,146 +1,103 @@
+## Faz: Admin Kampanya Review Workflow
 
-# Faz 10 — Creator Kampanya Sihirbazı
+Bu faz; admin role koruması, güvenli state transition RPC'leri, review queue/detail UI, audit timeline, creator review status görünümü ve scheduled publish altyapısını ekler. Ödeme akışı, ledger ve admin user yönetimi kapsam dışıdır.
 
-Bu faz creator'ın kampanya draft'ını oluşturup adım adım doldurabildiği,
-otomatik kaydeden, güvenli submit eden ve listeleyebildiği wizard'ı kurar.
-Admin review, ödeme ve canlı kampanya operasyonları bu fazda yok.
+### 1. Admin gate (route + RPC)
 
-## 1. Domain config
+`src/routes/_authenticated/_admin/route.tsx` (pathless layout):
+- `beforeLoad`: `getAdminContext()` server fn çağır → admin değilse `/unauthorized`'a redirect.
+- `component`: `<AdminLayout><Outlet/></AdminLayout>` — sidebar (Inceleme kuyruğu / Geçmiş), mevcut design tokens.
+- Mevcut `_authenticated/admin.tsx` silinir; admin index `/admin` artık `_admin/index.tsx`.
 
-`src/lib/campaign/config.ts` — domain kuralları tek yerde:
+Server fn katmanı `src/lib/admin/`:
+- `admin.functions.ts`: tüm RPC çağrıları `requireSupabaseAuth` + `assertAdmin(context)` ile sarılır. assertAdmin: `is_admin()` RPC → false ise `throw new Error('FORBIDDEN')`.
 
-- `MIN_TITLE=5`, `MAX_TITLE=80`
-- `MIN_SHORT_DESC=40`, `MAX_SHORT_DESC=200`
-- `MIN_STORY=300`, `MAX_STORY=20000` (markdown)
-- `MIN_FUNDS_USAGE=100`, `MIN_TIMELINE=100`, `MIN_RISKS=100`
-- `MIN_GOAL_MINOR=100000` (1.000 TL), `MAX_GOAL_MINOR=500000000` (5 mn TL)
-- `MIN_DURATION_DAYS=7`, `MAX_DURATION_DAYS=60`
-- `MAX_GALLERY_ITEMS=10`, `MAX_REWARD_TIERS=20`
-- Image: jpeg/png/webp, max 5MB, min 800x600
+### 2. Migration: state machine RPC'leri + scheduled status
 
-## 2. Veritabanı / SQL migration
+Tek migration:
+- `campaign_status` enum'a `scheduled` ekle (yoksa).
+- `campaigns`'e `reject_reason_code text`, `suspension_reason text` (varsa atla), `review_checklist jsonb` opsiyonel.
+- Tüm aşağıdaki fonksiyonlar `SECURITY DEFINER`, `search_path=public`, transaction güvenli, optimistic lock_version artırıcı, `campaign_reviews` + `audit_logs` + `notifications` insert ediyor:
 
-Yeni migration `..._campaign_wizard.sql`:
+  - `start_campaign_review(_campaign_id, _expected_lock_version)`
+    - admin check, status submitted → under_review, idempotent (under_review ise no-op, başka admin claim ettiyse "BFL_CONFLICT_REVIEWER" warning data döner ama yine de devam — claim soft).
+  - `request_campaign_revision(_campaign_id, _lock_version, _creator_note, _issues jsonb)`
+    - admin, status under_review, note zorunlu (min 10 char), under_review → revision_requested, creator'a notification.
+  - `approve_campaign(_campaign_id, _lock_version, _internal_note, _creator_note)`
+    - admin, status under_review. Validation: `submit_campaign_for_review` aynı kuralları + cover + ≥1 reward kontrolü tekrarla.
+    - start_at > now → status=`scheduled`, approved_at=now. Aksi → status=`live`, published_at=now.
+    - Creator notification.
+  - `reject_campaign(_campaign_id, _lock_version, _reason_code, _creator_note)`
+    - admin, status under_review, reason_code whitelist (`policy`, `incomplete`, `duplicate`, `risk`, `other`), creator_note zorunlu.
+  - `suspend_campaign(_campaign_id, _lock_version, _reason)`
+    - admin, status live, reason zorunlu, live → suspended, suspension_reason set.
+  - `publish_due_campaigns()` 
+    - SECURITY DEFINER, herkese GRANT EXECUTE yok (sadece service_role). approved/scheduled + start_at<=now olan kampanyaları FOR UPDATE SKIP LOCKED ile çekip live'a alır; her biri için audit + notification; idempotent (zaten live ise atla).
 
-1. **Slug generation**: kullanılan sluğun unique kalması için
-   `public.generate_unique_campaign_slug(_base text)` fonksiyonu
-   (SECURITY DEFINER, `slug-1`, `slug-2` …).
-2. **Draft create RPC** `public.create_campaign_draft(_category_id uuid, _title text)`:
-   - `auth.uid()` zorunlu
-   - kategori `is_active=true` doğrulanır
-   - title min/max validate
-   - slug üretilir
-   - INSERT `creator_id=auth.uid(), status='draft', goal_amount_minor=100000` placeholder
-   - return: `campaigns` satırı
-3. **Submit RPC** `public.submit_campaign_for_review(_campaign_id uuid, _lock_version int)`:
-   - ownership + status ∈ {draft, revision_requested}
-   - lock_version eşitliği (optimistic concurrency)
-   - tüm zorunlu metin / kategori / goal / tarih / cover media / en az 1 active reward tier doğrulanır
-   - typed error code: `BFL_VALIDATION` + JSON detay; `BFL_ALREADY_SUBMITTED` (idempotent: zaten submitted ise no-op)
-   - `audit_logs` insert + `notifications` event (admin için)
-   - SECURITY DEFINER, transaction içinde
-4. **Field locks**: mevcut `enforce_campaign_field_locks` korunur. Wizard yalnız
-   güvenli kolonları (title, short_description, story_content, funds_usage_content,
-   timeline_content, risks_content, goal_amount_minor, start_at, end_at,
-   category_id) update edebilir — RLS update policy zaten kilidi uyguluyor.
-5. **lock_version**: her wizard update'inde `+1` yapılır; concurrent edit için
-   `WHERE lock_version = expected` kontrolü RPC `update_campaign_draft(...)`
-   içinde merkezi yapılır.
+Tüm RPC'ler `BFL_FORBIDDEN`, `BFL_CONFLICT`, `BFL_INVALID_STATUS`, `BFL_REASON_REQUIRED`, `BFL_VALIDATION:<fields>` errcode'larıyla.
 
-## 3. Server functions (`src/lib/campaigns/`)
+`enforce_campaign_field_locks` zaten admin (is_admin) için bypass ediyor, bu RPC'ler admin context'inde çalışacak.
 
-Tümü `.functions.ts` + `requireSupabaseAuth`. Admin client KULLANILMAZ
-(RLS + creator session yeterli):
+GRANT EXECUTE: yukarıdaki 5 RPC `authenticated`, `publish_due_campaigns` sadece `service_role`.
 
-- `createCampaignDraft.functions.ts` — `create_campaign_draft` RPC çağrısı,
-  idempotency: aynı user'ın son 60 sn'de oluşturduğu boş draft varsa onu döner
-  (double-click koruması).
-- `updateCampaignDraft.functions.ts` — adım bazlı patch + lock_version check
-- `listMyCampaigns.functions.ts` — creator'ın tüm kampanyaları, status filtresi
-- `getCampaignForEdit.functions.ts` — owner-only kampanya + media + reward_tiers
-- `submitCampaign.functions.ts` — submit RPC çağrısı, hata mapping
-- `reward-tiers.functions.ts` — CRUD (create/update/reorder/deactivate)
-- `media.functions.ts` — upload sonrası DB row create, delete (storage object da temizler), reorder, set cover
+### 3. pg_cron + server route: publish_due_campaigns
 
-Tümü Zod input validation + typed error envelope.
+- `src/routes/api/public/hooks/publish-due-campaigns.ts` server route — POST, `apikey` header ile gelen anon key'i doğrular, `supabaseAdmin.rpc('publish_due_campaigns')` çağırır, sayım döner.
+- pg_cron job: her 5 dakikada bir `net.http_post` ile yukarıdaki URL'yi çağırır (cron job SQL ayrı `supabase--insert` çağrısı ile uygulanır, migration değil).
 
-## 4. Routes
+### 4. Server functions (`src/lib/admin/`)
 
-```
-src/routes/_authenticated/
-  creator.campaigns.tsx              (layout, Outlet)
-  creator.campaigns.index.tsx        (creator listing — sekmeler)
-  creator.campaigns.new.tsx          (kategori seç + başlık → draft create → redirect)
-  creator.campaigns.$campaignId.tsx  (wizard layout: sidebar + Outlet + ownership/status guard)
-  creator.campaigns.$campaignId.edit.$step.tsx
-  creator.campaigns.$campaignId.preview.tsx
-```
+- `listReviewQueue({ status[], categoryId?, search?, cursor, limit })` — projection: id, title, creator (display_name, username), category, submitted_at, goal_amount_minor, status, has_cover, rewards_count, lock_version. Server fn admin guard.
+- `getCampaignForReview(campaignId)` — kampanya + media + reward tiers + creator public profile + review_history + audit_history + computed validation summary.
+- `getCampaignAuditHistory(campaignId)` — audit_logs filter entity_type='campaign'.
+- `startReview`, `requestRevision`, `approve`, `reject`, `suspend` — RPC wrapper'ları, Zod input validation, hata normalizasyonu.
+- `getMyCampaignReviewSummary(campaignId)` — creator için `creator_campaign_reviews` view'ı + computed status/reason.
 
-`$step` ∈ `basics|funding|story|funds-usage|timeline|risks|media|rewards|submit`.
-Wizard layout loader getCampaignForEdit çağırır; non-owner / non-editable status
-için 403/redirect.
+### 5. Admin UI
 
-## 5. UI bileşenleri (`src/components/creator/`)
+`src/routes/_authenticated/_admin/`:
+- `index.tsx` — `/admin` özet: bekleyen sayıları (submitted, under_review), son aksiyonlar.
+- `campaign-reviews.index.tsx` — `/admin/campaign-reviews` queue: filter (status, category, search), pagination, "Eksik kapak/ödül" rozet, "Başka admin inceliyor" ipucu (son review row reviewer_id farklı ve <30dk).
+- `campaign-reviews.$campaignId.tsx` — `/admin/campaign-reviews/:id` detay: kampanya içerik tab'ları, media, rewards, creator özeti, validation panel, review history, audit timeline; aksiyonlar: "İncelemeye al" (status=submitted ise), "Düzeltme iste" (form: creator_note + issues checkbox listesi), "Onayla" (internal_note + creator_note + checklist tamam), "Reddet" (reason_code select + creator_note), "Askıya al" (yalnız live, iki aşamalı confirm dialog).
+- `campaigns.$campaignId.history.tsx` — `/admin/campaigns/:id/history` audit + review timeline.
 
-- `WizardLayout.tsx` — sidebar (adım listesi + completion ✓), top progress, "Önizleme" + "İncelemeye gönder" CTAs
-- `WizardStepNav.tsx` — Geri/İleri, "Kaydet ve devam et"
-- `SaveStatusIndicator.tsx` — Saving / Saved / Error / Conflict (lock_version)
-- `useCampaignAutosave.ts` — RHF + 800ms debounced patch, retry, conflict toast
-- Step formları:
-  - `BasicsStepForm.tsx` (title, short_description, category)
-  - `FundingStepForm.tsx` (goal TL input + kuruş conv, start_at, end_at)
-  - `StoryStepForm.tsx` (markdown textarea + preview)
-  - `FundsUsageStepForm.tsx` / `TimelineStepForm.tsx` / `RisksStepForm.tsx` (markdown)
-  - `MediaStepForm.tsx` (`CampaignMediaUploader` + galeri grid + reorder + cover seç + opsiyonel external video URL)
-  - `RewardsStepForm.tsx` + `RewardTierEditor.tsx` (add/edit/reorder/`is_active=false`)
-  - `SubmitStepForm.tsx` (eksik alan checklist, "İncelemeye gönder")
-- `CreatorCampaignList.tsx` — Tabs (Taslak, Düzeltme bekliyor, İncelemede, Yayında/planlı, Kapalı)
-- `CampaignStatusActions.tsx` — status'a göre action (Düzenle / Görüntüle / Yönet)
+Components `src/components/admin/`:
+- `AdminLayout`, `ReviewQueueTable`, `ReviewDetailTabs`, `ValidationSummary`, `ReviewHistoryList`, `AuditTimeline`, `RequestRevisionDialog`, `ApproveDialog`, `RejectDialog`, `SuspendDialog` (two-step), `ReviewerLockNotice`.
 
-## 6. Validation (`src/lib/campaigns/validation.ts`)
+### 6. Creator dashboard güncellemesi
 
-Adım bazlı Zod schema'ları + `submitCampaignSchema` (tüm alanlar). Aynı schema
-client form + server function input'unda kullanılır. TL ↔ kuruş dönüşümü
-`src/lib/money.ts` (`tryToMinor`, `minorToTry`) — integer math, hassasiyet
-kaybı olmadan.
+`src/components/creator/CreatorCampaignList.tsx` ve detay/edit ekranlarına:
+- Review status rozeti (submitted/under_review/revision_requested/approved/scheduled/rejected/live/suspended).
+- `revision_requested` veya `rejected` ise creator_visible_note + reason_code göster ("Düzenle ve tekrar gönder" CTA).
+- Mini review history (createReview row'ları, `creator_campaign_reviews` RPC).
+- Notification → ilgili route mapping (edit veya detail).
 
-## 7. Storage / media
+### 7. Testler (Vitest)
 
-- `campaign-media` bucket zaten private, RLS hazır.
-- Path: `<campaign_id>/<crypto.randomUUID()>.<ext>`. User filename `metadata.original_name`.
-- `CampaignMediaUploader.tsx`: client-side MIME/boyut check → signed upload →
-  başarıda DB row insert; başarısızsa storage object'i temizle.
-- Delete: DB row sil + storage object sil (server function transactional best-effort).
-- Reorder: `sort_order` toplu update. Cover seç: tek `is_cover=true` (partial unique index zaten var).
-- Video bu fazda sadece external URL (YouTube/Vimeo); direct upload kapsam dışı.
+`tests/admin/`:
+- `state-transitions.test.ts` — happy path submitted→under_review→revision_requested→submitted→under_review→approved + reject + suspend (mock supabase client'la).
+- `validation.test.ts` — reason zorunluluk, reason_code whitelist.
+- `route-guard.test.tsx` — non-admin `/admin` → unauthorized redirect.
+- `rls-attacker.sh` (mevcut script'i extend): non-admin user direkt RPC çağrısı → `BFL_FORBIDDEN`; creator kendi kampanyasını approve denemesi → fail; duplicate approve idempotent kontrolü.
+- `creator-visibility.test.ts` — creator internal_note alanını görmüyor.
 
-## 8. Preview
+### 8. Notifications
 
-`creator.campaigns.$campaignId.preview.tsx` mevcut Campaign Detail
-bileşenlerini (`src/components/common/`) draft data ile yeniden kullanır.
-Owner-only guard (loader 403). Eksik alanlar için belirgin placeholder
-("Hikâye henüz yazılmadı — `Hikâye` adımını tamamlayın").
+Yeni type'lar: `campaign_revision_requested`, `campaign_approved`, `campaign_rejected`, `campaign_suspended`, `campaign_scheduled`, `campaign_live`. Dedupe key: `<type>:<campaign_id>:<lock_version>`.
 
-## 9. Testler (`src/test/campaigns/`)
+### 9. Doğrulama (kapanışta)
 
-- `validation.test.ts` — her adım schema'sı + submit schema'sı
-- `money.test.ts` — TL↔kuruş edge case (0.01, büyük sayı, ondalık)
-- `wizard-autosave.test.tsx` — RTL: debounced save, error retry, conflict
-- `submit-rpc.test.ts` — backend (psql/RLS): eksik field reject, valid draft submit, idempotent re-submit, ownership
-- `creator-list.test.tsx` — sekme filtreleri
-- `media-uploader.test.tsx` — MIME/boyut reject, cover unique
+`bun run tsc --noEmit` (harness otomatik), `bunx vitest run tests/admin`, `scripts/test-rls-attacker.sh`, manuel: admin kullanıcı seed (test admin user_role insert SQL örneği komutta gösterilecek), preview'da queue → review → approve akışı.
 
-## 10. Tamamlanma / doğrulama
+### Kapsam dışı
 
-- `bunx tsc --noEmit`
-- `bunx vitest run src/test/campaigns`
-- Lint
-- Manuel preview smoke (yeni draft → adımlar → submit reddi → eksikleri doldur → submit kabul)
+- Payments/refund integration suspend sonrası
+- Admin user yönetimi UI (role assign)
+- Bulk approve/reject
+- Review SLA, otomatik atama
+- Audit detay diff viewer (sadece liste; ileride genişler)
 
-## Kapsam dışı (sonraki fazlar)
+### Manuel adımlar
 
-- Admin review UI
-- Ödeme / contribution akışı
-- Public campaign sayfası gerçek query'leri (Faz 11+)
-- Direct video upload
-- Slug değiştirme UI (otomatik üretilir, MVP'de sabit)
+- Admin user seed: `INSERT INTO user_roles (user_id, role) VALUES ('<uuid>', 'admin');` — kullanıcıya hatırlatılır.
+- pg_cron job'u migration sonrası `supabase--insert` ile kurulacak (anon key + preview URL).
