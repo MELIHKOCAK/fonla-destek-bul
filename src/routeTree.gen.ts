@@ -20,6 +20,7 @@ import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CategoriesSlugRouteImport } from './routes/categories.$slug'
 import { Route as CampaignsSlugRouteImport } from './routes/campaigns.$slug'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -91,6 +92,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesSlugRoute = CategoriesSlugRouteImport.update({
+  id: '/categories/$slug',
+  path: '/categories/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CampaignsSlugRoute = CampaignsSlugRouteImport.update({
@@ -212,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/campaigns/$slug': typeof CampaignsSlugRoute
+  '/categories/$slug': typeof CategoriesSlugRoute
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
@@ -241,6 +248,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/campaigns/$slug': typeof CampaignsSlugRoute
+  '/categories/$slug': typeof CategoriesSlugRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/campaigns/$slug': typeof CampaignsSlugRoute
+  '/categories/$slug': typeof CategoriesSlugRoute
   '/_authenticated/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
@@ -304,6 +313,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/callback'
     | '/campaigns/$slug'
+    | '/categories/$slug'
     | '/creator/campaigns'
     | '/settings/account'
     | '/settings/profile'
@@ -333,6 +343,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/callback'
     | '/campaigns/$slug'
+    | '/categories/$slug'
     | '/settings/account'
     | '/settings/profile'
     | '/admin'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/auth/callback'
     | '/campaigns/$slug'
+    | '/categories/$slug'
     | '/_authenticated/creator/campaigns'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/profile'
@@ -391,6 +403,7 @@ export interface RootRouteChildren {
   UnauthorizedRoute: typeof UnauthorizedRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   CampaignsSlugRoute: typeof CampaignsSlugRoute
+  CategoriesSlugRoute: typeof CategoriesSlugRoute
   ApiPublicHooksPublishDueCampaignsRoute: typeof ApiPublicHooksPublishDueCampaignsRoute
 }
 
@@ -471,6 +484,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories/$slug': {
+      id: '/categories/$slug'
+      path: '/categories/$slug'
+      fullPath: '/categories/$slug'
+      preLoaderRoute: typeof CategoriesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campaigns/$slug': {
@@ -695,6 +715,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnauthorizedRoute: UnauthorizedRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   CampaignsSlugRoute: CampaignsSlugRoute,
+  CategoriesSlugRoute: CategoriesSlugRoute,
   ApiPublicHooksPublishDueCampaignsRoute:
     ApiPublicHooksPublishDueCampaignsRoute,
 }
