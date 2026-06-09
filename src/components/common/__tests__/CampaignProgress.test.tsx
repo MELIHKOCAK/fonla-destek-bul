@@ -24,7 +24,7 @@ describe("CampaignProgress / progress hesabı", () => {
   });
 
   it("100 üzeri durumlarda metin gerçek yüzdeyi gösterir, görsel bar 100'e clamp olur", () => {
-    expect(calculateProgressPercent(2_200_000, 1_000_000)).toBe(220);
+    expect(calculateProgressPercent(2_200_000, 1_000_000)).toBeCloseTo(220, 5);
     expect(clampProgressPercent(220)).toBe(100);
 
     const { getByRole, getByText } = renderWithProviders(

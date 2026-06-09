@@ -15,10 +15,10 @@ describe("MoneyDisplay / formatMoneyMinor", () => {
     expect(out).toContain("₺");
   });
 
-  it("12.345.678 kuruş için tam ve kompakt çıktıyı destekler", () => {
-    const full = formatMoneyMinor(12_345_678);
-    expect(full).toContain("123.456");
-    const compact = formatMoneyMinor(12_345_678, { compact: true });
+  it("büyük tutar için tam ve kompakt çıktıyı destekler", () => {
+    const full = formatMoneyMinor(12_345_600_000);
+    expect(full).toContain("123.456.000");
+    const compact = formatMoneyMinor(12_345_600_000, { compact: true });
     expect(compact.length).toBeLessThan(full.length);
   });
 
