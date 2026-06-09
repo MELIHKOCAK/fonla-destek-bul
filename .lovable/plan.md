@@ -1,110 +1,144 @@
-# Faz 6 — Gerçek Authentication + Profil Akışı
+## Faz 8 — RLS/Yetkilendirme Sertleştirme Planı
 
-## Hedef
-Mock auth formlarını gerçek Lovable Cloud auth'a bağlamak; profiles şemasını canlı kullanmak; route guard altyapısı + onboarding + avatar yükleme kurmak. Kampanya/ödeme bağlanmayacak; admin paneli yapılmayacak (sadece guard hazırlanır).
+Bu faz **sadece güvenlik** içindir: yeni özellik yok, mevcut UI/akış değişmez. Hâlihazırda yalnız `categories`, `profiles`, `user_roles` için politika tanımlı; diğer 16 tabloda RLS açık ama **politika yok → deny-by-default**. Bu plan eksik politikaları doldurur, mevcutları sıkılaştırır, storage'ı tamamlar ve testler ekler.
 
-## Önkoşullar (manuel adımlar)
-1. **Auth ayarları**: `supabase--configure_auth` ile `auto_confirm_email: false` (e-posta doğrulama açık), `disable_signup: false`, `external_anonymous_users_enabled: false`, `password_hibp_enabled: true`.
-2. **Google sign-in**: `supabase--configure_social_auth` providers `["google"]` — yönetilen credentials.
-3. **Avatar bucket**: `supabase--storage_create_bucket` `avatars`, public=true (avatar görünürlüğü için, RLS write sahibi kontrolü).
-4. **Email confirm URL**: Cloud → Auth → URL Configuration; site URL = preview URL, redirect allowlist = `/auth/callback`, `/reset-password`. Kullanıcının dashboard'da bir kez kontrol etmesi gerekir.
+### 1. Dokümantasyon — `docs/security/rls-matrix.md`
 
-## Migration (V2 — auth bağlama)
+Her tablo için tablo: `guest | auth-owner | auth-non-owner | creator-owner | admin | service_role` × `SELECT/INSERT/UPDATE/DELETE`. Her hücre: policy adı, amaç, test ID. Storage bucket'ları için ayrı bölüm. Helper fonksiyonların execute matrisi.
 
-Tek migration:
+### 2. Role helper sertleştirme
 
-1. **Reserved usernames helper** + **handle_new_user trigger**:
-   - `public.is_username_reserved(text)` — sabit liste (admin, support, benifonla, api, auth, login, register, settings, profile, dashboard, root, system, help, info).
-   - `public.handle_new_user()` SECURITY DEFINER, search_path=public:
-     - Insert `profiles(id, display_name)` — display_name yalnızca `raw_user_meta_data->>'display_name'` (max 100), username ASLA trigger içinde set edilmez (atomik onboarding'de kullanıcı seçer).
-     - Insert hatalı olursa `EXCEPTION WHEN unique_violation THEN null`; auth user bozulmaz.
-   - Trigger `on auth.users after insert`.
-2. **Username availability RPC**: `public.check_username_available(_username citext) returns boolean` SECURITY DEFINER — reserved + tablo lookup. Authenticated rolüne grant.
-3. **Atomic username claim RPC**: `public.claim_username(_username citext) returns void` SECURITY DEFINER — caller `auth.uid()`; format check, reserved kontrol, profile UPDATE WHERE id = auth.uid() AND (username IS NULL OR username = _username). Çakışmada unique violation → "kullanılıyor" hatası.
-4. **Storage RLS policies** (`storage.objects`, bucket=`avatars`):
-   - SELECT: herkese açık (public bucket).
-   - INSERT/UPDATE/DELETE: `auth.uid()::text = (storage.foldername(name))[1]` (kullanıcı sadece kendi `<user_id>/...` klasörüne yazabilir).
-5. **profiles GRANT genişletme**: zaten OK; ekstra yok.
+Mevcut `public.has_role(uuid, user_role)` SECURITY DEFINER + `search_path=public` — yeterli. Ek:
+- `public.is_admin()` wrapper (`auth.uid()` kullanır, parametre almaz).
+- `revoke execute ... from public, anon` ve `grant execute ... to authenticated` — sadece bu iki helper.
+- `user_roles` tablosuna **INSERT/UPDATE/DELETE policy eklenmez** (deny-by-default kalır → client role atayamaz). `service_role` zaten RLS'i bypass eder. Mevcut self_read policy korunur.
 
-> RLS politikaları Faz 5'te tanımlı (`profiles_self_update`, `profiles_public_read`, `profiles_self_read`, `user_roles_self_read`). Yeniden yazılmayacak.
+### 3. Campaigns RLS
 
-## Frontend Mimarisi
+Policy seti (`campaigns_*`):
+- `public_read_visible` (SELECT, role `public`): `status IN ('live','successful')`.
+- `creator_read_own` (SELECT, `authenticated`): `creator_id = auth.uid()`.
+- `admin_read_all` (SELECT, `authenticated`): `public.is_admin()`.
+- `creator_insert_draft` (INSERT, `authenticated`): `WITH CHECK creator_id = auth.uid() AND status = 'draft' AND submitted_at IS NULL AND approved_at IS NULL AND published_at IS NULL AND closed_at IS NULL`.
+- `creator_update_editable` (UPDATE, `authenticated`): `USING creator_id = auth.uid() AND status IN ('draft','revision_requested')` + `WITH CHECK` aynı + status değişmez. **Status/timestamp/creator_id güvenliği** ek BEFORE UPDATE trigger `enforce_campaign_field_locks()` ile garanti (RLS WITH CHECK kolon-bazlı koruyamadığı için): trigger creator update'inde `status, creator_id, submitted_at, approved_at, published_at, closed_at, cancellation_reason, suspension_reason, lock_version` değişimini reddeder.
+- DELETE policy yok (kimse silemez; cancel state machine ile).
 
-### Auth merkez
-- `src/integrations/supabase/client.ts` (auto-gen) zaten mevcut — kullanılacak.
-- `src/hooks/use-auth.tsx` (React context provider):
-  - `onAuthStateChange` subscriber root'ta bir kez (`__root.tsx`).
-  - `session`, `user`, `profile`, `loading`, `signOut`, `refreshProfile`.
-  - Profil `profiles` tablosundan single-row fetch.
-  - **Sign-out hijyeni**: `cancelQueries → clear → signOut → navigate('/auth', replace)` (knowledge'tan).
-  - Auth state listener event'leri filtreli: SIGNED_IN/SIGNED_OUT/USER_UPDATED.
+### 4. Campaign child tabloları
 
-### Route grupları
-- `src/routes/_authenticated/route.tsx` — entegrasyon yönetiminde (mevcut değilse, ssr:false + getUser redirect /auth pattern).
-  - **NOT**: TanStack Supabase entegrasyon yönergesi bu dosyayı "managed" sayıyor; oluşturulurken auth-callback flow ile çakışmamalı. Bu projede henüz yok → oluşturulacak, knowledge'taki tam şablonla.
-- Yeni route dosyaları (flat dot-notation):
-  - `auth.tsx` — login/register sekmeli sayfa (TanStack Supabase yönergesi `/auth` redirect kullanıyor; mevcut `/login` ve `/register` linklerini de korumak için her ikisi de var olacak).
-  - `login.tsx`, `register.tsx`, `forgot-password.tsx`, `reset-password.tsx`, `auth.callback.tsx`, `unauthorized.tsx`.
-  - `_authenticated/route.tsx` (gate).
-  - `_authenticated/dashboard.tsx` (basit hoşgeldin + profil özeti).
-  - `_authenticated/onboarding.tsx` (username yoksa yönlendirilir).
-  - `_authenticated/settings.tsx` (layout, Outlet).
-  - `_authenticated/settings.profile.tsx`, `_authenticated/settings.account.tsx`.
-  - `_authenticated/_admin/route.tsx` — admin guard pathless layout (`has_role(uid, 'admin')` kontrolü; başarısız → `/unauthorized`). **İçi boş** — sadece guard altyapısı.
+Helper: `public.campaign_is_public(uuid)` (STABLE, `status IN ('live','successful')` lookup) ve `public.campaign_owned_by_me(uuid)` (creator_id check). Her ikisi SECURITY DEFINER, search_path sabit, sadece `authenticated`+`anon`'a execute.
 
-### Form bağlama (mevcut dosyalar güncellenir, gereksiz yeniden yazılmaz)
-- `LoginForm.tsx` → gerçek `supabase.auth.signInWithPassword`. `useDemoSubmit` kaldırılır. Google butonu eklenir (`lovable.auth.signInWithOAuth("google")`).
-- `RegisterForm.tsx` → schema güncellenir:
-  - `email`, `password` (min 10, en az 1 büyük + 1 küçük + 1 rakam), `passwordConfirmation`, `displayName` (2–100), `username` (^[a-z0-9_]{3,30}$ + reserved check via RPC debounced), `termsAccepted: literal(true)`, `marketingConsent: boolean default false`.
-  - `signUp({ email, password, options: { data: { display_name, marketing_consent }, emailRedirectTo: <origin>/auth/callback } })`.
-  - Submit sonrası "E-posta doğrulama gönderildi" ekranı (account enumeration sızdırmadan generic mesaj).
-- `ForgotPasswordForm.tsx` → `resetPasswordForEmail(email, { redirectTo: <origin>/reset-password })`. Generic başarı mesajı her durumda.
-- Yeni `ResetPasswordForm.tsx` → recovery token kontrolü, `updateUser({ password })`.
-- Yeni `OnboardingForm.tsx` → username + displayName, `claim_username` RPC çağrısı.
-- Yeni `ProfileForm.tsx` → display_name, bio, location, website, is_public, avatar.
-- Yeni `AvatarUploader.tsx` → MIME (image/jpeg|png|webp), max 5MB, path `<uid>/<uuid>.<ext>`, eski silme best-effort, hata yutmadan toast.
+**campaign_media**: 
+- SELECT public: `campaign_is_public(campaign_id)`.
+- SELECT creator: `campaign_owned_by_me(campaign_id)`.
+- SELECT admin.
+- INSERT/UPDATE/DELETE creator: own + parent status ∈ {draft, revision_requested}.
 
-### Korumalı bileşenler
-- `ProtectedRoute` — pratikte gerekmiyor; route gate yapıyor. Sadece component-level conditional render için `useAuth().user` kullanılır.
-- `AdminRoute` — admin layout `beforeLoad` server fn `has_role` çağırır.
+**reward_tiers**: aynı patern; public SELECT `is_active=true AND campaign_is_public`.
 
-### Server functions (createServerFn)
-- `src/lib/auth.functions.ts`:
-  - `checkUsernameAvailable({ username })` — public (anon ok); RPC çağrısı.
-  - `claimUsername({ username })` — `requireSupabaseAuth`, RPC.
-  - `isAdmin()` — `requireSupabaseAuth`, `has_role(uid, 'admin')`.
-- `src/lib/profile.functions.ts`:
-  - `getMyProfile()` — `requireSupabaseAuth`.
-  - `updateMyProfile(...)` — `requireSupabaseAuth`, profiles update WHERE id = auth.uid() (RLS de korur).
+**campaign_updates**:
+- SELECT public: `is_published=true AND campaign_is_public`.
+- SELECT creator: own.
+- INSERT/UPDATE/DELETE creator: own + `author_id=auth.uid()` + parent status live/successful (update'ler sadece yayınlanmış kampanya için).
 
-### Header güncellemesi
-- `AppHeader` — `useAuth()` ile signed-in durumda avatar dropdown (Profil, Ayarlar, Çıkış); aksi halde "Giriş Yap" + "Kayıt Ol".
+**campaign_reviews** (admin-internal):
+- `notes` alanı internal admin notu içerir → tabloya **public/creator hiçbir policy verilmez**. Creator-facing yayın notu için yeni alan **`creator_visible_notes text`** eklenir (migration). 
+- SELECT creator: sadece `creator_visible_notes` görmek için `public.creator_campaign_reviews` view'ı (security_invoker=on, `campaign_owned_by_me`). Base table'da creator policy yok.
+- SELECT admin.
+- INSERT/UPDATE/DELETE: yok (yalnız service_role / SECURITY DEFINER function).
 
-### Error UX
-- Tüm auth callbacks: invalid/expired token, already verified, rate limit, network → toast + sayfa içi panel. Teknik hata yutulmaz, kullanıcıya generic Türkçe mesaj + console'a debug log.
-- Forgot password ve register: "varsa e-posta gönderildi" (enumeration koruması).
+### 5. Profiles sertleştirme
 
-## Testler (vitest)
-- `useAuth` provider: loading → authenticated/unauthenticated geçişleri (mock supabase).
-- Register Zod schema (parola gücü, eşleşme, username format, reserved).
-- Onboarding form: username debouncing happy path.
-- Profile mapper (db row → UI type).
-- `_authenticated/route` guard birim testi: getUser null → redirect.
+Mevcut policies korunur. Public read'in PII sızdırmaması için:
+- `profiles` tablosunda `is_public=true` zaten gerekiyor; ancak email vs. yok (auth.users'ta). Yine de güvenlik için `public.profiles_public` view (security_invoker, kolonlar: id, username, display_name, bio, avatar_path, website_url, location, created_at) eklenir; UI bu view'ı kullanır.
+- `profiles_self_update` policy'sine kolon-lock trigger: `id, created_at, updated_at` (updated_at trigger by set_updated_at) değişemez (id zaten PK ama trigger ekstra savunma).
+- UPDATE policy'de `WITH CHECK` `auth.uid()=id` korunur. `username` zaten `claim_username()` RPC'sinden geliyor; manual UPDATE allow edilir ama reserved/format kontrolü için BEFORE UPDATE trigger.
+- INSERT/DELETE policy yok (trigger handle_new_user yapar).
 
-## Browser doğrulama (10 senaryo)
-1–10 (görev metnindeki tüm senaryolar) browser tool ile preview üzerinde çalıştırılacak. Test e-postası kullanıcının kendi adresi ile. E-posta doğrulama bağlantısı geliyorsa otomatik test edilemez → bilgi olarak raporlanır.
+### 6. Favorites
+- SELECT/INSERT/DELETE: `user_id = auth.uid()`.
+- UPDATE yok.
 
-## Faz dışı bırakılanlar
-- Admin paneli içeriği (sadece guard).
-- Kampanya/ödeme bağlama.
-- Hesap silme (danger zone yalnızca taslak, devre dışı buton).
-- E-posta adresi değiştirme akışı (placeholder UI).
-- 2FA, magic link.
+### 7. Notifications
+- SELECT: `user_id = auth.uid()`.
+- UPDATE: `user_id = auth.uid()` + kolon-lock trigger `notifications_lock_fields()` → yalnız `read_at` değişebilir.
+- INSERT/DELETE policy yok (sadece service_role).
 
-## Açık riskler
-- Lovable yönetimli `_authenticated` layout şablonu otomatik üretilmezse manuel oluşturulur (knowledge'tan birebir).
-- E-posta doğrulaması Lovable Emails domain'i kurulu değilse default şablonla gider. Bu fazda **özel auth email scaffold'u yapılmayacak**; gerekirse ayrı fazda.
-- Önceki Faz 4'ten kalan lint hataları ve 2 başarısız test bu faz scope'unda dokunulan dosyalarda kalmışsa düzeltilecek; geri kalanlar Faz 7'ye kalır.
+### 8. Admin/finans tabloları (deny-by-default + admin select)
 
-## Raporlanacak
-Çalışan ve çalışmayan browser senaryoları, eklenen route'lar, formlar, server fn'leri, migration özeti, manuel adımlar (auth ayarları, bucket onayı, redirect URL), açık riskler.
+`audit_logs`, `payment_transactions`, `refunds`, `payouts`, `platform_fees`, `financial_ledger_entries`, `idempotency_keys`, `webhook_events`:
+- SELECT admin policy (sadece `is_admin()`).
+- INSERT/UPDATE/DELETE policy YOK (service_role bypass).
+- `audit_logs`, `financial_ledger_entries`, `webhook_events`, `idempotency_keys` zaten append-only trigger korumalı; admin update/delete dahi yok.
+
+### 9. Contributions
+
+- Base tabloya client policy yok (PII şifreli alanlar var; tabloyu doğrudan açma).
+- `public.my_contributions` view (security_invoker): backer için `backer_id=auth.uid()`, kolonlar: id, campaign_id, reward_tier_id, amount_minor, currency, status, anonymous, created_at, updated_at (encrypted alanlar yok).
+- `public.campaign_contributions_for_creator` view: creator için sınırlı projection (id, campaign_id, reward_tier_id, amount_minor, status, anonymous, display_name_snapshot, created_at) — WHERE `campaign_owned_by_me(campaign_id)`. PII (email/address) yok.
+- Admin için ayrı bir admin view veya doğrudan admin SELECT policy: `is_admin()` (raw tablo).
+
+### 10. Database function grants audit
+
+Migration sonunda:
+```sql
+revoke execute on all functions in schema public from public, anon;
+grant execute on function public.has_role(uuid, user_role) to authenticated;
+grant execute on function public.is_admin() to authenticated;
+grant execute on function public.check_username_available(citext) to anon, authenticated;
+grant execute on function public.claim_username(citext) to authenticated;
+grant execute on function public.campaign_is_public(uuid) to anon, authenticated;
+```
+`handle_new_user`, `set_updated_at`, `prevent_mutation`, internal trigger fonksiyonları execute yetkisi alır almaz public'ten.
+
+### 11. Storage RLS
+
+**avatars** (private bucket — mevcut policies korunur):
+- Mevcut `avatars_select_own` SELECT-self yalnızca path-prefix `auth.uid()` izniyle. Avatar genel görünür olduğu için: `avatars_select_public` SELECT policy `public` rolüne (bucket private, signed URL kullanılacak) eklenmez — UI zaten signed URL kullanıyor (Faz 7). Mevcut self-policy yeterli.
+
+**campaign-media** (yeni bucket, private):
+- `storage_create_bucket(name='campaign-media', public=false)`.
+- Path konvansiyonu: `<campaign_id>/<uuid>.<ext>` (DB constraint dışı; policy `campaign_id`'yi `(storage.foldername(name))[1]::uuid` ile alır).
+- INSERT/UPDATE/DELETE: `campaign_owned_by_me(...)` + parent status `draft|revision_requested`.
+- SELECT public: `campaign_is_public(...)`.
+- SELECT creator/admin: ownership/is_admin.
+
+`campaign-documents` bu fazda **scope dışı** (henüz UI yok); ileri faza ertelenir, plan dokümantasyonuna not düşülür.
+
+### 12. RLS testleri
+
+pgTAP yerine **Node/Vitest + supabase-js** ile entegrasyon testleri (`src/test/security/rls.test.ts`):
+- Test setup: 4 auth context → `anon`, `user_a`, `user_b`, `admin` (`signInWithPassword` + admin için `user_roles`'a service_role insert).
+- Test fixture migration veya beforeAll'da minimal seed (draft + live kampanya per user).
+- Tüm 11 senaryo + ek finance/notification/storage spoof testleri.
+- Test komutu: `bun test src/test/security/rls.test.ts`.
+- `.env.test` doğrudan `SUPABASE_SERVICE_ROLE_KEY` kullanır (yalnızca local).
+
+Not: pgTAP Supabase shared cluster'da yok; supabase-js round-trip RLS'i gerçek Data API perspektifiyle doğrular — daha gerçekçi.
+
+### 13. Çıktılar / dosyalar
+
+**Yeni migration** `supabase/migrations/<ts>_rls_hardening.sql`:
+1. `creator_visible_notes` kolonu `campaign_reviews`'a.
+2. Helper fonksiyonlar: `is_admin()`, `campaign_is_public(uuid)`, `campaign_owned_by_me(uuid)`, trigger fonksiyonları `enforce_campaign_field_locks`, `notifications_lock_fields`, `enforce_profile_field_locks`.
+3. Triggerlar.
+4. Tüm tablolar için yukarıdaki policies (drop if exists + create).
+5. Storage `campaign-media` policies (bucket önce `storage_create_bucket` ile).
+6. View'lar: `profiles_public`, `my_contributions`, `campaign_contributions_for_creator`, `creator_campaign_reviews`.
+7. Grant/revoke blok.
+
+**Yeni dosyalar**:
+- `docs/security/rls-matrix.md`
+- `src/test/security/rls.test.ts` (+ küçük `src/test/security/helpers.ts`).
+
+**Tool çağrı sırası**:
+1. `supabase--storage_create_bucket` (campaign-media, public=false).
+2. `supabase--migration` (tek büyük migration).
+3. types regenere edilince frontend kodu **değişmez** (bu faz UI dokunmaz, sadece testler eklenir).
+4. `supabase--linter` ve test çalıştırma.
+
+### 14. Açık riskler
+
+- `campaign-media` bucket'ı için public SELECT policy `campaign_is_public` lookup'ı her dosya isteğinde DB query yapar — performans için ileride CDN/signed URL gerekebilir; bu fazda kabul.
+- Encrypted PII kolonları (`contact_email_encrypted` vs.) gerçek şifreleme henüz yok; sadece tablo erişimi kapatılıyor.
+- Admin paneli yok → admin testleri yalnız doğrudan supabase-js ile yapılır.
+- Workspace public-bucket policy'si `campaign-media`'yı private tutarsa Faz 9'da signed URL stratejisi gerekecek.
