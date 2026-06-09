@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/app/theme/ThemeProvider";
 import { themeInitScript } from "@/app/theme/theme-script";
 import { AppShell } from "@/components/layout/AppShell";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -132,16 +133,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Outlet />
-        <ToasterRoot />
+        <Toaster richColors closeButton />
       </ThemeProvider>
     </QueryClientProvider>
   );
-}
-
-function ToasterRoot() {
-  // Sonner client-only; dynamic import sırasında SSR'ı bozmamak için sade kullanım.
-  // import edildiğinde browser-only event listener register etmez.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Toaster } = require("@/components/ui/sonner") as typeof import("@/components/ui/sonner");
-  return <Toaster richColors closeButton />;
 }
