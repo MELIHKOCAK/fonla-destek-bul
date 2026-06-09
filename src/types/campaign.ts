@@ -29,13 +29,18 @@ export interface Category {
   id: string;
   slug: string;
   label: string;
+  description?: string;
 }
 
 export interface Creator {
   id: string;
+  username: string;
   displayName: string;
   avatarUrl?: string;
   verified: boolean;
+  bio?: string;
+  location?: string;
+  website?: string;
 }
 
 export interface Campaign {
@@ -43,10 +48,6 @@ export interface Campaign {
   slug: string;
   title: string;
   shortDescription: string;
-  /**
-   * CSS background değeri (gradient veya url). Faz 3'te lisans riskini
-   * sıfırlamak için gerçek fotoğraf yerine üretilmiş gradient kullanılır.
-   */
   coverImage: string;
   creator: Creator;
   category: Category;
@@ -55,6 +56,63 @@ export interface Campaign {
   backerCount: number;
   /** ISO 8601 */
   endDate: string;
+  /** ISO 8601 — yaratılış zamanı (sıralama için) */
+  createdAt: string;
   status: CampaignStatus;
   featured?: boolean;
+}
+
+export interface RewardTier {
+  id: string;
+  title: string;
+  description: string;
+  priceMinor: number;
+  estimatedDelivery: string;
+  limit?: number;
+  claimed: number;
+}
+
+export interface Milestone {
+  id: string;
+  date: string;
+  title: string;
+  description: string;
+}
+
+export interface CampaignUpdate {
+  id: string;
+  date: string;
+  title: string;
+  body: string;
+}
+
+export interface CampaignComment {
+  id: string;
+  authorName: string;
+  date: string;
+  body: string;
+}
+
+export interface CampaignFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface FundingPlanItem {
+  label: string;
+  /** 0–100, toplamı 100 olmalı */
+  percent: number;
+  description?: string;
+}
+
+export interface CampaignDetail extends Campaign {
+  story: string;
+  fundingPlan: ReadonlyArray<FundingPlanItem>;
+  milestones: ReadonlyArray<Milestone>;
+  risks: string;
+  rewardTiers: ReadonlyArray<RewardTier>;
+  updates: ReadonlyArray<CampaignUpdate>;
+  comments: ReadonlyArray<CampaignComment>;
+  faq: ReadonlyArray<CampaignFaqItem>;
 }
