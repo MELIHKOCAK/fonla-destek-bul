@@ -1,9 +1,15 @@
 import { Link } from "@tanstack/react-router";
 
-export const NAV_LINKS: ReadonlyArray<{ to: string; label: string }> = [
-  { to: "/", label: "Keşfet" },
-  { to: "/nasil-calisir", label: "Nasıl Çalışır" },
-  { to: "/proje-baslat", label: "Proje Başlat" },
+export interface NavLinkItem {
+  to: "/" | "/discover" | "/how-it-works" | "/about";
+  label: string;
+}
+
+export const NAV_LINKS: ReadonlyArray<NavLinkItem> = [
+  { to: "/", label: "Ana Sayfa" },
+  { to: "/discover", label: "Keşfet" },
+  { to: "/how-it-works", label: "Nasıl Çalışır" },
+  { to: "/about", label: "Hakkında" },
 ] as const;
 
 interface NavLinksProps {
@@ -22,35 +28,15 @@ export function NavLinks({ onNavigate, className, variant = "horizontal" }: NavL
     >
       {NAV_LINKS.map((link) => (
         <li key={link.to}>
-          {/*
-            Faz 3'te yalnızca / route'u mevcut. Diğer linkler placeholder;
-            tip-güvenli tutmak için <a href> kullanılır, gezinme yapılmaz.
-            Faz 5'te gerçek route'lara TanStack Link ile bağlanacak.
-          */}
-          {link.to === "/" ? (
-            <Link
-              to="/"
-              onClick={onNavigate}
-              className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              activeProps={{ className: "text-foreground bg-accent" }}
-              activeOptions={{ exact: true }}
-            >
-              {link.label}
-            </Link>
-          ) : (
-            <a
-              href={link.to}
-              onClick={(e) => {
-                e.preventDefault();
-                onNavigate?.();
-              }}
-              aria-disabled="true"
-              title="Yakında"
-              className="block cursor-not-allowed rounded-md px-3 py-2 text-sm font-medium text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {link.label}
-            </a>
-          )}
+          <Link
+            to={link.to}
+            onClick={onNavigate}
+            className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            activeProps={{ className: "text-foreground bg-accent" }}
+            activeOptions={{ exact: link.to === "/" }}
+          >
+            {link.label}
+          </Link>
         </li>
       ))}
     </ul>

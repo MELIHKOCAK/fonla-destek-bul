@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,13 +33,16 @@ export function MobileNavigation() {
           <NavLinks variant="vertical" onNavigate={() => setOpen(false)} />
         </nav>
         <div className="mt-6 space-y-2 border-t border-border pt-4">
-          <Button variant="outline" className="w-full" disabled aria-disabled="true">
-            Giriş yap
+          <Button asChild variant="outline" className="w-full">
+            <Link to="/login" onClick={() => setOpen(false)}>
+              Giriş yap
+            </Link>
           </Button>
-          <Button className="w-full" disabled aria-disabled="true">
-            Kayıt ol
+          <Button asChild className="w-full">
+            <Link to="/register" onClick={() => setOpen(false)}>
+              Kayıt ol
+            </Link>
           </Button>
-          <p className="text-center text-xs text-muted-foreground">Hesap özellikleri yakında</p>
         </div>
       </SheetContent>
     </Sheet>

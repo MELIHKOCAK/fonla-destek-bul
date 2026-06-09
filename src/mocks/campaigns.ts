@@ -1,4 +1,4 @@
-import type { Campaign } from "@/types/campaign";
+import type { Campaign, CampaignStatus } from "@/types/campaign";
 import { categories } from "./categories";
 import { creators } from "./creators";
 
@@ -15,8 +15,6 @@ const cr = (id: string) => {
 
 /**
  * Cover görseli için deterministik CSS gradient.
- * slug'dan üretilen tonla, gerçek fotoğraf kullanmadan
- * görsel çeşitlilik sağlanır.
  */
 export function coverGradient(seed: string): string {
   let hash = 0;
@@ -35,13 +33,23 @@ const daysFromNow = (days: number): string => {
   return d.toISOString();
 };
 
-// 12 kampanya — fonlama oranları, durumlar ve süreler çeşitli.
-const seed: Array<
-  Omit<Campaign, "coverImage" | "creator" | "category"> & {
-    categorySlug: string;
-    creatorId: string;
-  }
-> = [
+interface CampaignSeed {
+  id: string;
+  slug: string;
+  title: string;
+  shortDescription: string;
+  categorySlug: string;
+  creatorId: string;
+  raisedAmountMinor: number;
+  goalAmountMinor: number;
+  backerCount: number;
+  endInDays: number;
+  createdDaysAgo: number;
+  status: CampaignStatus;
+  featured?: boolean;
+}
+
+const seed: ReadonlyArray<CampaignSeed> = [
   {
     id: "cmp-01",
     slug: "akilli-bahce-sulama-cihazi",
@@ -53,7 +61,8 @@ const seed: Array<
     raisedAmountMinor: 4_500_000,
     goalAmountMinor: 10_000_000,
     backerCount: 312,
-    endDate: daysFromNow(18),
+    endInDays: 18,
+    createdDaysAgo: 12,
     status: "live",
     featured: true,
   },
@@ -68,7 +77,8 @@ const seed: Array<
     raisedAmountMinor: 7_800_000,
     goalAmountMinor: 10_000_000,
     backerCount: 524,
-    endDate: daysFromNow(7),
+    endInDays: 7,
+    createdDaysAgo: 23,
     status: "live",
     featured: true,
   },
@@ -83,7 +93,8 @@ const seed: Array<
     raisedAmountMinor: 1_200_000,
     goalAmountMinor: 10_000_000,
     backerCount: 89,
-    endDate: daysFromNow(25),
+    endInDays: 25,
+    createdDaysAgo: 5,
     status: "live",
   },
   {
@@ -97,7 +108,8 @@ const seed: Array<
     raisedAmountMinor: 22_000_000,
     goalAmountMinor: 10_000_000,
     backerCount: 1843,
-    endDate: daysFromNow(3),
+    endInDays: 3,
+    createdDaysAgo: 40,
     status: "live",
     featured: true,
   },
@@ -112,7 +124,8 @@ const seed: Array<
     raisedAmountMinor: 13_400_000,
     goalAmountMinor: 10_000_000,
     backerCount: 967,
-    endDate: daysFromNow(14),
+    endInDays: 14,
+    createdDaysAgo: 30,
     status: "live",
     featured: true,
   },
@@ -127,7 +140,8 @@ const seed: Array<
     raisedAmountMinor: 4_500_000,
     goalAmountMinor: 10_000_000,
     backerCount: 218,
-    endDate: daysFromNow(30),
+    endInDays: 30,
+    createdDaysAgo: 8,
     status: "live",
   },
   {
@@ -141,7 +155,8 @@ const seed: Array<
     raisedAmountMinor: 0,
     goalAmountMinor: 500_000,
     backerCount: 0,
-    endDate: daysFromNow(45),
+    endInDays: 45,
+    createdDaysAgo: 1,
     status: "scheduled",
   },
   {
@@ -155,7 +170,8 @@ const seed: Array<
     raisedAmountMinor: 6_000_000,
     goalAmountMinor: 6_000_000,
     backerCount: 412,
-    endDate: daysFromNow(-2),
+    endInDays: -2,
+    createdDaysAgo: 35,
     status: "successful",
   },
   {
@@ -169,7 +185,8 @@ const seed: Array<
     raisedAmountMinor: 980_000,
     goalAmountMinor: 8_000_000,
     backerCount: 64,
-    endDate: daysFromNow(-5),
+    endInDays: -5,
+    createdDaysAgo: 45,
     status: "failed",
   },
   {
@@ -183,7 +200,8 @@ const seed: Array<
     raisedAmountMinor: 9_200_000,
     goalAmountMinor: 10_000_000,
     backerCount: 488,
-    endDate: daysFromNow(5),
+    endInDays: 5,
+    createdDaysAgo: 28,
     status: "live",
   },
   {
@@ -197,7 +215,8 @@ const seed: Array<
     raisedAmountMinor: 2_700_000,
     goalAmountMinor: 6_000_000,
     backerCount: 178,
-    endDate: daysFromNow(21),
+    endInDays: 21,
+    createdDaysAgo: 10,
     status: "live",
   },
   {
@@ -210,8 +229,186 @@ const seed: Array<
     raisedAmountMinor: 0,
     goalAmountMinor: 4_000_000,
     backerCount: 0,
-    endDate: daysFromNow(60),
+    endInDays: 60,
+    createdDaysAgo: 2,
     status: "draft",
+  },
+  // Ek 12 kampanya — başarılı, yakın bitiş, yeni dağılımı
+  {
+    id: "cmp-13",
+    slug: "tasiyici-bisiklet-prototipi",
+    title: "Taşıyıcı Bisiklet Prototipi",
+    shortDescription:
+      "Şehir içi yük taşımacılığı için elektrikli destekli taşıyıcı bisiklet prototipi.",
+    categorySlug: "teknoloji",
+    creatorId: "cr-1",
+    raisedAmountMinor: 18_500_000,
+    goalAmountMinor: 15_000_000,
+    backerCount: 642,
+    endInDays: -10,
+    createdDaysAgo: 55,
+    status: "successful",
+  },
+  {
+    id: "cmp-14",
+    slug: "kirsal-okul-bilgisayar-laboratuvari",
+    title: "Kırsal Okul Bilgisayar Laboratuvarı",
+    shortDescription: "Bir kırsal okula 12 öğrenci kapasiteli ikinci el bilgisayar laboratuvarı.",
+    categorySlug: "egitim",
+    creatorId: "cr-7",
+    raisedAmountMinor: 4_800_000,
+    goalAmountMinor: 4_500_000,
+    backerCount: 287,
+    endInDays: -20,
+    createdDaysAgo: 70,
+    status: "successful",
+  },
+  {
+    id: "cmp-15",
+    slug: "minimal-deri-cuzdan",
+    title: "Minimal Deri Cüzdan",
+    shortDescription: "Tek parça bitkisel tabaklanmış deriden, üç kart bölmeli minimal cüzdan.",
+    categorySlug: "tasarim",
+    creatorId: "cr-3",
+    raisedAmountMinor: 3_400_000,
+    goalAmountMinor: 3_000_000,
+    backerCount: 421,
+    endInDays: 4,
+    createdDaysAgo: 20,
+    status: "live",
+  },
+  {
+    id: "cmp-16",
+    slug: "podcast-stuyosu-akustik-iyilestirme",
+    title: "Podcast Stüdyosu Akustik İyileştirme",
+    shortDescription:
+      "Bağımsız podcast yapımcıları için ortak kullanıma açılacak akustik stüdyo.",
+    categorySlug: "muzik",
+    creatorId: "cr-5",
+    raisedAmountMinor: 1_650_000,
+    goalAmountMinor: 5_000_000,
+    backerCount: 102,
+    endInDays: 12,
+    createdDaysAgo: 6,
+    status: "live",
+  },
+  {
+    id: "cmp-17",
+    slug: "cocuk-resimli-kitabi",
+    title: "Çocuk Resimli Kitabı",
+    shortDescription: "5-8 yaş için arkadaşlık temalı, el çizimi resimli çocuk kitabı.",
+    categorySlug: "yayincilik",
+    creatorId: "cr-7",
+    raisedAmountMinor: 9_400_000,
+    goalAmountMinor: 4_000_000,
+    backerCount: 612,
+    endInDays: -30,
+    createdDaysAgo: 90,
+    status: "paid_out",
+  },
+  {
+    id: "cmp-18",
+    slug: "kompost-kovasi-balkon-icin",
+    title: "Balkon İçin Kompost Kovası",
+    shortDescription: "Apartman balkonlarına uygun, kokusuz tasarlanmış kapalı kompost kovası.",
+    categorySlug: "tasarim",
+    creatorId: "cr-6",
+    raisedAmountMinor: 2_300_000,
+    goalAmountMinor: 2_000_000,
+    backerCount: 198,
+    endInDays: 9,
+    createdDaysAgo: 14,
+    status: "live",
+    featured: true,
+  },
+  {
+    id: "cmp-19",
+    slug: "bagimsiz-belgesel-film",
+    title: "Bağımsız Belgesel Film",
+    shortDescription:
+      "Anadolu'da kaybolmakta olan zanaatları kayıt altına alan 70 dakikalık belgesel.",
+    categorySlug: "sanat",
+    creatorId: "cr-4",
+    raisedAmountMinor: 6_700_000,
+    goalAmountMinor: 12_000_000,
+    backerCount: 245,
+    endInDays: 16,
+    createdDaysAgo: 18,
+    status: "live",
+  },
+  {
+    id: "cmp-20",
+    slug: "masa-ustu-strateji-oyunu",
+    title: "Masa Üstü Strateji Oyunu",
+    shortDescription:
+      "2-4 oyunculu, 60-90 dakika oynanış süreli orta zorlukta bir masa üstü strateji oyunu.",
+    categorySlug: "oyun",
+    creatorId: "cr-2",
+    raisedAmountMinor: 11_900_000,
+    goalAmountMinor: 8_000_000,
+    backerCount: 731,
+    endInDays: 2,
+    createdDaysAgo: 33,
+    status: "live",
+  },
+  {
+    id: "cmp-21",
+    slug: "atik-plastikten-mobilya",
+    title: "Atık Plastikten Mobilya",
+    shortDescription: "Geri dönüştürülmüş plastikten üretilmiş hafif ve modüler dış mekan mobilyası.",
+    categorySlug: "tasarim",
+    creatorId: "cr-1",
+    raisedAmountMinor: 800_000,
+    goalAmountMinor: 7_000_000,
+    backerCount: 41,
+    endInDays: 27,
+    createdDaysAgo: 4,
+    status: "live",
+  },
+  {
+    id: "cmp-22",
+    slug: "yerel-uretici-tarifleri-kitabi",
+    title: "Yerel Üretici Tarifleri Kitabı",
+    shortDescription:
+      "Türkiye'nin farklı bölgelerinden 60 küçük üreticinin geleneksel tariflerini derleyen kitap.",
+    categorySlug: "yayincilik",
+    creatorId: "cr-4",
+    raisedAmountMinor: 5_200_000,
+    goalAmountMinor: 5_000_000,
+    backerCount: 387,
+    endInDays: -8,
+    createdDaysAgo: 50,
+    status: "successful",
+  },
+  {
+    id: "cmp-23",
+    slug: "ogrenci-mentorluk-platformu",
+    title: "Öğrenci Mentörlük Platformu",
+    shortDescription:
+      "Üniversite öğrencilerini sektör profesyonelleriyle eşleştiren ücretsiz mentörlük programı.",
+    categorySlug: "egitim",
+    creatorId: "cr-6",
+    raisedAmountMinor: 1_400_000,
+    goalAmountMinor: 6_000_000,
+    backerCount: 94,
+    endInDays: 22,
+    createdDaysAgo: 7,
+    status: "live",
+  },
+  {
+    id: "cmp-24",
+    slug: "elle-dokunmus-hali-serisi",
+    title: "Elle Dokunmuş Halı Serisi",
+    shortDescription:
+      "Anadolu motifleriyle dokunan, sınırlı sayıda üretilmiş el dokuma halı koleksiyonu.",
+    categorySlug: "sanat",
+    creatorId: "cr-3",
+    raisedAmountMinor: 3_100_000,
+    goalAmountMinor: 9_000_000,
+    backerCount: 142,
+    endInDays: 19,
+    createdDaysAgo: 11,
+    status: "live",
   },
 ];
 
@@ -226,7 +423,8 @@ export const campaigns: readonly Campaign[] = seed.map((s) => ({
   raisedAmountMinor: s.raisedAmountMinor,
   goalAmountMinor: s.goalAmountMinor,
   backerCount: s.backerCount,
-  endDate: s.endDate,
+  endDate: daysFromNow(s.endInDays),
+  createdAt: daysFromNow(-s.createdDaysAgo),
   status: s.status,
   featured: s.featured,
 }));

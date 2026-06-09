@@ -1,11 +1,18 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Compass, ShieldCheck, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, Compass, FileCheck2, Sparkles, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/common/Container";
-import { CampaignCard } from "@/components/common/CampaignCard";
+import { CampaignGrid } from "@/components/common/CampaignGrid";
+import { SectionHeading } from "@/components/common/SectionHeading";
 import { Button } from "@/components/ui/button";
-import { listFeaturedCampaigns, listLiveCampaigns } from "@/mocks";
+import {
+  getFeaturedCampaigns,
+  getNewCampaigns,
+  getSuccessfulCampaigns,
+} from "@/services/campaigns.service";
+import { listCategories } from "@/services/categories.service";
 
-const VALUES: ReadonlyArray<{ icon: typeof ShieldCheck; title: string; description: string }> = [
+const VALUES = [
   {
     icon: ShieldCheck,
     title: "Şeffaf ve güvenli",
@@ -24,11 +31,27 @@ const VALUES: ReadonlyArray<{ icon: typeof ShieldCheck; title: string; descripti
     description:
       "Tüm tutarlar TL cinsindendir, Türkçe karakterler ve yerel iletişim biçimi gözetilir.",
   },
-];
+] as const;
+
+const CREATOR_STEPS = [
+  "Projenizi anlatın, hedef tutar ve süre belirleyin.",
+  "Ekibimiz kampanyanızı topluluk kurallarına göre inceler.",
+  "Onay sonrası kampanyanız yayına girer ve destek toplamaya başlar.",
+  "Hedefe ulaşılırsa fonlar, kullanım planına göre size aktarılır.",
+] as const;
+
+const BACKER_STEPS = [
+  "Projeleri kategoriye veya anahtar kelimeye göre keşfedin.",
+  "İlginizi çeken projenin detayını, planını ve risklerini inceleyin.",
+  "Reward tier seçin ve sandbox ödeme ile destek olun.",
+  "Hedef tutturulamazsa desteğiniz iade edilir; ek ücret alınmaz.",
+] as const;
 
 export function HomePage() {
-  const featured = listFeaturedCampaigns();
-  const live = listLiveCampaigns().slice(0, 6);
+  const featured = useQuery({ queryKey: ["campaigns", "featured"], queryFn: () => getFeaturedCampaigns(4) });
+  const fresh = useQuery({ queryKey: ["campaigns", "new"], queryFn: () => getNewCampaigns(6) });
+  const success = useQuery({ queryKey: ["campaigns", "successful"], queryFn: () => getSuccessfulCampaigns(3) });
+  const categoriesQ = useQuery({ queryKey: ["categories"], queryFn: listCategories });
 
   return (
     <>
@@ -50,15 +73,18 @@ export function HomePage() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button asChild size="lg">
-                <Link to="/">
-                  Kampanyaları keşfet
+                <Link to="/discover">
+                  Projeleri Keşfet
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
               </Button>
               <Button size="lg" variant="outline" disabled aria-disabled="true" title="Yakında">
-                Proje başlat
+                Proje Başlat
               </Button>
             </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Proje başlatma özelliği yakında. Şimdilik kampanyaları inceleyebilirsiniz.
+            </p>
           </div>
         </Container>
       </section>
@@ -79,39 +105,181 @@ export function HomePage() {
         </Container>
       </section>
 
-      {featured.length > 0 ? (
-        <section className="py-8 sm:py-12">
-          <Container>
-            <div className="mb-6 flex items-end justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-                  Öne çıkan kampanyalar
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Toplulukça desteklenen, ilgi çeken projeler.
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {featured.map((c) => (
-                <CampaignCard key={c.id} campaign={c} />
-              ))}
-            </div>
-          </Container>
-        </section>
-      ) : null}
+      <section className="py-8 sm:py-12">
+        <Container>
+          <SectionHeading
+            title="Öne çıkan kampanyalar"
+            description="Toplulukça desteklenen, ilgi çeken projeler."
+            actions={
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/discover">Tümünü gör</Link>
+              </Button>
+            }
+          />
+          <CampaignGrid
+            campaigns={featured.data ?? []}
+            isLoading={featured.isLoading}
+            isError={featured.isError}
+            onRetry={() => featured.refetch()}
+            skeletonCount={3}
+            emptyTitle="Şu an öne çıkan kampanya yok"
+            emptyDescription="Yakında yeni projeler burada listelenecek."
+          />
+        </Container>
+      </section>
 
       <section className="py-8 sm:py-12">
         <Container>
-          <div className="mb-6 flex items-end justify-between gap-4">
-            <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              Şu an yayında olan kampanyalar
-            </h2>
+          <SectionHeading title="Popüler kategoriler" />
+          {categoriesQ.isLoading ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-20 animate-pulse rounded-lg bg-muted" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {(categoriesQ.data ?? []).map((c) => (
+                <Link
+                  key={c.id}
+                  to="/categories/$slug"
+                  params={{ slug: c.slug }}
+                  className="group rounded-lg border border-border/60 bg-card p-4 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <p className="text-sm font-semibold text-foreground">{c.label}</p>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {c.description}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Container>
+      </section>
+
+      <section className="py-8 sm:py-12">
+        <Container>
+          <SectionHeading
+            title="Yeni kampanyalar"
+            description="Son günlerde yayına alınan projeler."
+            actions={
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/discover">Tümü</Link>
+              </Button>
+            }
+          />
+          <CampaignGrid
+            campaigns={fresh.data ?? []}
+            isLoading={fresh.isLoading}
+            isError={fresh.isError}
+            onRetry={() => fresh.refetch()}
+          />
+        </Container>
+      </section>
+
+      <section className="py-8 sm:py-12">
+        <Container>
+          <SectionHeading
+            title="Başarılı kampanyalar"
+            description="Toplulukça hedefine ulaştırılmış projeler."
+          />
+          <CampaignGrid
+            campaigns={success.data ?? []}
+            isLoading={success.isLoading}
+            isError={success.isError}
+            onRetry={() => success.refetch()}
+            skeletonCount={3}
+            emptyTitle="Henüz başarıyla tamamlanmış kampanya yok"
+          />
+        </Container>
+      </section>
+
+      <section className="border-y border-border/60 bg-muted/30 py-12 sm:py-16">
+        <Container>
+          <SectionHeading
+            title="BeniFonla nasıl çalışır?"
+            description="Yaratıcılar ve destekçiler için süreç şöyle ilerler."
+          />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="rounded-xl border border-border/60 bg-card p-6">
+              <h3 className="text-base font-semibold text-foreground">Yaratıcılar için</h3>
+              <ol className="mt-4 space-y-3 text-sm text-muted-foreground">
+                {CREATOR_STEPS.map((s, i) => (
+                  <li key={s} className="flex gap-3">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                      {i + 1}
+                    </span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-card p-6">
+              <h3 className="text-base font-semibold text-foreground">Destekçiler için</h3>
+              <ol className="mt-4 space-y-3 text-sm text-muted-foreground">
+                {BACKER_STEPS.map((s, i) => (
+                  <li key={s} className="flex gap-3">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                      {i + 1}
+                    </span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {live.map((c) => (
-              <CampaignCard key={c.id} campaign={c} />
-            ))}
+        </Container>
+      </section>
+
+      <section className="py-12 sm:py-16">
+        <Container>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="rounded-xl border border-border/60 bg-card p-5">
+              <FileCheck2 className="size-5 text-primary" aria-hidden="true" />
+              <h3 className="mt-3 text-base font-semibold text-foreground">İnceleme süreci</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Yayına alınan her kampanya temel topluluk kurallarına göre incelenir; uygun
+                bulunmayanlar yayınlanmaz.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-card p-5">
+              <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
+              <h3 className="mt-3 text-base font-semibold text-foreground">Açık riskler</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Kitle fonlama bir yatırım değildir. Üretim ve teslimatta gecikme ya da iptal
+                olasılığını her kampanya sayfasında açıkça paylaşıyoruz.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-card p-5">
+              <Sparkles className="size-5 text-primary" aria-hidden="true" />
+              <h3 className="mt-3 text-base font-semibold text-foreground">Ödeme güvenliği</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Ödemeler lisanslı ödeme altyapısı üzerinden işlenir. Demo aşamasında sandbox
+                ödeme kullanılır; hesap bilgileriniz saklanmaz.
+              </p>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      <section className="pb-16">
+        <Container>
+          <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-primary/15 to-accent/10 p-8 text-center sm:p-12">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+              Kendi projeni başlatmaya hazır mısın?
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
+              Proje başlatma özelliği yakında aktif olacak. Şu an demo aşamasındayız; geri
+              bildirimlerinizi bekliyoruz.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Button asChild>
+                <Link to="/contact">Bize ulaş</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/how-it-works">Nasıl çalıştığını oku</Link>
+              </Button>
+            </div>
           </div>
         </Container>
       </section>

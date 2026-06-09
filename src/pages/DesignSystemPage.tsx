@@ -195,7 +195,7 @@ export function DesignSystemPage() {
       <Section id="creator" title="CreatorBadge">
         <CreatorBadge creator={sample.creator} />
         <CreatorBadge
-          creator={{ id: "x", displayName: "Mehmet Kaya", verified: false }}
+          creator={{ id: "x", username: "demo", displayName: "Mehmet Kaya", verified: false }}
           size="md"
         />
       </Section>
