@@ -1,103 +1,134 @@
-## Faz: Admin Kampanya Review Workflow
+## Hedef
 
-Bu faz; admin role koruması, güvenli state transition RPC'leri, review queue/detail UI, audit timeline, creator review status görünümü ve scheduled publish altyapısını ekler. Ödeme akışı, ledger ve admin user yönetimi kapsam dışıdır.
+`src/services/{campaigns,categories,creators}.service.ts` içindeki mock repository'i public sayfalardan tamamen kaldır ve gerçek Supabase verisine bağla. Sadece güvenli, projeksiyonlu DTO döndüren RPC'ler üzerinden okuma yap; `select('*')` ile iç alanları sızdırma. Bu fazda yeni özellik eklemiyoruz — yalnızca veri katmanını değiştirip eksik public route'ları açıyoruz.
 
-### 1. Admin gate (route + RPC)
+## Kapsam dışı
 
-`src/routes/_authenticated/_admin/route.tsx` (pathless layout):
-- `beforeLoad`: `getAdminContext()` server fn çağır → admin değilse `/unauthorized`'a redirect.
-- `component`: `<AdminLayout><Outlet/></AdminLayout>` — sidebar (Inceleme kuyruğu / Geçmiş), mevcut design tokens.
-- Mevcut `_authenticated/admin.tsx` silinir; admin index `/admin` artık `_admin/index.tsx`.
+- Yeni ödeme/contribution/comment/FAQ feature'ları (bu faz mock CampaignDetail'in `comments`/`faq`/`updates` alanlarını boş diziyle döndürür; published `campaign_updates` haricinde DB'de bu tablolar henüz yok)
+- Admin & creator wizard akışlarının yeniden yazımı
+- i18n, SEO sitemap, OG image generation
+- Realtime/subscription
 
-Server fn katmanı `src/lib/admin/`:
-- `admin.functions.ts`: tüm RPC çağrıları `requireSupabaseAuth` + `assertAdmin(context)` ile sarılır. assertAdmin: `is_admin()` RPC → false ise `throw new Error('FORBIDDEN')`.
+## 1. Migration — güvenli public RPC'ler
 
-### 2. Migration: state machine RPC'leri + scheduled status
+`supabase/migrations/<ts>_public_campaign_projections.sql`:
 
-Tek migration:
-- `campaign_status` enum'a `scheduled` ekle (yoksa).
-- `campaigns`'e `reject_reason_code text`, `suspension_reason text` (varsa atla), `review_checklist jsonb` opsiyonel.
-- Tüm aşağıdaki fonksiyonlar `SECURITY DEFINER`, `search_path=public`, transaction güvenli, optimistic lock_version artırıcı, `campaign_reviews` + `audit_logs` + `notifications` insert ediyor:
+1. **Indexler** (varsa skip):
+   - `campaigns(status, published_at DESC)` partial `WHERE status IN ('live','successful')`
+   - `campaigns(end_at)` partial `WHERE status='live'`
+   - GIN `pg_trgm` on `campaigns.title`, `campaigns.short_description`
+2. **`get_public_campaigns(_q text, _category_slugs text[], _funded_min numeric, _funded_max numeric, _ending_within_days int, _statuses campaign_status[], _sort text, _limit int, _offset int)`** — `SECURITY DEFINER`, `STABLE`, `SET search_path = public`:
+   - `_statuses` whitelist edilir; izinli set yalnızca `{live, successful}`. Hariç olanlar atılır; boşsa `{live}` default.
+   - `_sort` whitelist: `newest|popular|ending-soon|near-goal`; default `newest`.
+   - `_limit` 1..48 clamp, `_offset >= 0`.
+   - `_q` trim, max 80 char; `unaccent` yok — `lower(title) LIKE '%'||lower(q)||'%' OR similarity > 0.2`.
+   - `RETURNS TABLE(id, slug, title, short_description, cover_url, creator_username, creator_display_name, creator_avatar_path, category_slug, category_name, goal_amount_minor, raised_amount_minor, backer_count, currency, start_at, end_at, status, total_count)` — total_count window function ile aynı çağrıda.
+   - `raised_amount_minor` / `backer_count`: bu fazda `contributions` tablosundan `status='paid'` agregasyonu. Yoksa 0.
+   - `cover_url`: `campaign_media` üzerinden `is_cover=true` satırı; `external_url` varsa onu, yoksa `storage_path` ile `'campaign-media/' || path` döner (signed URL üretimini server-fn katmanında yapacağız — RPC sadece relative path verir).
+3. **`get_public_campaign_by_slug(_slug text)`** — yukarıdaki alanlar + `story_content`, `funds_usage_content`, `timeline_content`, `risks_content`, `published_at`. Yalnız `status IN ('live','successful','paid_out')` döner; aksi halde `NULL` (NOT NULL row hiç dönmez).
+4. **`get_public_campaign_rewards(_campaign_id uuid)`** — sadece `is_active=true` reward tier'ları, kampanya public ise.
+5. **`get_public_campaign_updates(_campaign_id uuid)`** — sadece `is_published=true`, kampanya public ise.
+6. **`get_public_campaign_media(_campaign_id uuid)`** — tüm media (cover hariç ek görseller), kampanya public ise.
+7. **`get_public_creator_profile(_username citext)`** — `profiles` is_public=true filtresi; campaign listesi public statülere kısıtlı. Email, notification ayarları, role hiç dönmez.
+8. **`get_public_categories()`** — `is_active=true`, sort by `sort_order`. (`categories` zaten public read için kullanılabilir ama tutarlılık adına RPC.)
+9. **`GRANT EXECUTE ... TO anon, authenticated`** her RPC için. Tablolara doğrudan `anon` GRANT yok.
 
-  - `start_campaign_review(_campaign_id, _expected_lock_version)`
-    - admin check, status submitted → under_review, idempotent (under_review ise no-op, başka admin claim ettiyse "BFL_CONFLICT_REVIEWER" warning data döner ama yine de devam — claim soft).
-  - `request_campaign_revision(_campaign_id, _lock_version, _creator_note, _issues jsonb)`
-    - admin, status under_review, note zorunlu (min 10 char), under_review → revision_requested, creator'a notification.
-  - `approve_campaign(_campaign_id, _lock_version, _internal_note, _creator_note)`
-    - admin, status under_review. Validation: `submit_campaign_for_review` aynı kuralları + cover + ≥1 reward kontrolü tekrarla.
-    - start_at > now → status=`scheduled`, approved_at=now. Aksi → status=`live`, published_at=now.
-    - Creator notification.
-  - `reject_campaign(_campaign_id, _lock_version, _reason_code, _creator_note)`
-    - admin, status under_review, reason_code whitelist (`policy`, `incomplete`, `duplicate`, `risk`, `other`), creator_note zorunlu.
-  - `suspend_campaign(_campaign_id, _lock_version, _reason)`
-    - admin, status live, reason zorunlu, live → suspended, suspension_reason set.
-  - `publish_due_campaigns()` 
-    - SECURITY DEFINER, herkese GRANT EXECUTE yok (sadece service_role). approved/scheduled + start_at<=now olan kampanyaları FOR UPDATE SKIP LOCKED ile çekip live'a alır; her biri için audit + notification; idempotent (zaten live ise atla).
+Tüm RPC'ler `SECURITY DEFINER` + `SET search_path = public` + input validation.
 
-Tüm RPC'ler `BFL_FORBIDDEN`, `BFL_CONFLICT`, `BFL_INVALID_STATUS`, `BFL_REASON_REQUIRED`, `BFL_VALIDATION:<fields>` errcode'larıyla.
+## 2. Storage — cover URL stratejisi
 
-`enforce_campaign_field_locks` zaten admin (is_admin) için bypass ediyor, bu RPC'ler admin context'inde çalışacak.
+`campaign-media` bucket private. Bu faz için en basit ve cache uyumlu yol: live kampanyalar için bucket'ı `public=true` yapmak yerine, **server-fn katmanında `supabaseAdmin.storage.from('campaign-media').createSignedUrls(paths, 3600)`** ile 1 saatlik signed URL üretip TanStack Query `staleTime: 5dk` ile cache'le. `external_url` (placeholder dönem için) doğrudan kullanılır.
 
-GRANT EXECUTE: yukarıdaki 5 RPC `authenticated`, `publish_due_campaigns` sadece `service_role`.
+`get_public_campaign_by_slug` ve `_campaigns` yalnız `storage_path` döner; URL imzalama application katmanında.
 
-### 3. pg_cron + server route: publish_due_campaigns
+## 3. Server functions (TanStack Start)
 
-- `src/routes/api/public/hooks/publish-due-campaigns.ts` server route — POST, `apikey` header ile gelen anon key'i doğrular, `supabaseAdmin.rpc('publish_due_campaigns')` çağırır, sayım döner.
-- pg_cron job: her 5 dakikada bir `net.http_post` ile yukarıdaki URL'yi çağırır (cron job SQL ayrı `supabase--insert` çağrısı ile uygulanır, migration değil).
+Yeni dosyalar `src/lib/public/`:
 
-### 4. Server functions (`src/lib/admin/`)
+- `campaigns.functions.ts`:
+  - `listPublicCampaigns(query: PublicCampaignQuery)` → RPC çağrısı + cover signed URL batch
+  - `getPublicCampaignBySlug(slug)` → detail RPC + media/rewards/updates RPC'leri paralel
+  - `getPublicCategoryCampaigns(slug, query)`
+- `creators.functions.ts`: `getPublicCreatorProfile(username)`
+- `categories.functions.ts`: `listPublicCategories()`
 
-- `listReviewQueue({ status[], categoryId?, search?, cursor, limit })` — projection: id, title, creator (display_name, username), category, submitted_at, goal_amount_minor, status, has_cover, rewards_count, lock_version. Server fn admin guard.
-- `getCampaignForReview(campaignId)` — kampanya + media + reward tiers + creator public profile + review_history + audit_history + computed validation summary.
-- `getCampaignAuditHistory(campaignId)` — audit_logs filter entity_type='campaign'.
-- `startReview`, `requestRevision`, `approve`, `reject`, `suspend` — RPC wrapper'ları, Zod input validation, hata normalizasyonu.
-- `getMyCampaignReviewSummary(campaignId)` — creator için `creator_campaign_reviews` view'ı + computed status/reason.
+Her biri `createServerFn({ method: "GET" }).inputValidator(zodSchema).handler(...)`. Handler içinde `await import("@/integrations/supabase/client.server")` ile `supabaseAdmin` yüklenir; signed URL imzalama burada. RPC çağrılarında RLS bypass admin ile yapılır çünkü RPC'ler zaten güvenli projection sağlıyor — `anon` rolüyle de aynı sonuç döner; admin kullanmamızın tek nedeni signed URL.
 
-### 5. Admin UI
+**Alternatif**: signed URL'i ayrı server-fn'e `signCampaignMediaUrls(paths)` çıkarmak ve liste RPC'sini `anon` browser client ile çağırmak. Bu daha güvenli (admin yükünü azaltır). Bu yolu seçeceğiz:
 
-`src/routes/_authenticated/_admin/`:
-- `index.tsx` — `/admin` özet: bekleyen sayıları (submitted, under_review), son aksiyonlar.
-- `campaign-reviews.index.tsx` — `/admin/campaign-reviews` queue: filter (status, category, search), pagination, "Eksik kapak/ödül" rozet, "Başka admin inceliyor" ipucu (son review row reviewer_id farklı ve <30dk).
-- `campaign-reviews.$campaignId.tsx` — `/admin/campaign-reviews/:id` detay: kampanya içerik tab'ları, media, rewards, creator özeti, validation panel, review history, audit timeline; aksiyonlar: "İncelemeye al" (status=submitted ise), "Düzeltme iste" (form: creator_note + issues checkbox listesi), "Onayla" (internal_note + creator_note + checklist tamam), "Reddet" (reason_code select + creator_note), "Askıya al" (yalnız live, iki aşamalı confirm dialog).
-- `campaigns.$campaignId.history.tsx` — `/admin/campaigns/:id/history` audit + review timeline.
+- RPC çağrıları → `supabase` (browser client, anon) üzerinden direkt
+- `signCampaignMediaUrls` server-fn → `supabaseAdmin` ile batch sign
 
-Components `src/components/admin/`:
-- `AdminLayout`, `ReviewQueueTable`, `ReviewDetailTabs`, `ValidationSummary`, `ReviewHistoryList`, `AuditTimeline`, `RequestRevisionDialog`, `ApproveDialog`, `RejectDialog`, `SuspendDialog` (two-step), `ReviewerLockNotice`.
+## 4. Frontend — service katmanı
 
-### 6. Creator dashboard güncellemesi
+`src/services/campaigns.service.ts`, `categories.service.ts`, `creators.service.ts` tamamen yeniden yazılır:
 
-`src/components/creator/CreatorCampaignList.tsx` ve detay/edit ekranlarına:
-- Review status rozeti (submitted/under_review/revision_requested/approved/scheduled/rejected/live/suspended).
-- `revision_requested` veya `rejected` ise creator_visible_note + reason_code göster ("Düzenle ve tekrar gönder" CTA).
-- Mini review history (createReview row'ları, `creator_campaign_reviews` RPC).
-- Notification → ilgili route mapping (edit veya detail).
+- Mock import yok
+- `supabase.rpc("get_public_campaigns", {...})` çağırır
+- Sonra `useServerFn(signCampaignMediaUrls)` ile path'leri URL'e çevirir
+- Eski `Campaign`/`CampaignDetail`/`Creator`/`Category` shape'leri korunur (`CampaignCard` ve diğer komponentler aynı kalır); RPC sonucundan adapter ile dönüştürülür.
+- `CampaignDetail`'in DB'de karşılığı olmayan alanları (`fundingPlan`, `milestones`, `comments`, `faq`) boş dizi döner; `story` ← `story_content`, `risks` ← `risks_content`. `updates` published satırlardan, `rewardTiers` aktif satırlardan.
 
-### 7. Testler (Vitest)
+## 5. Route'lar (eksik public route'lar)
 
-`tests/admin/`:
-- `state-transitions.test.ts` — happy path submitted→under_review→revision_requested→submitted→under_review→approved + reject + suspend (mock supabase client'la).
-- `validation.test.ts` — reason zorunluluk, reason_code whitelist.
-- `route-guard.test.tsx` — non-admin `/admin` → unauthorized redirect.
-- `rls-attacker.sh` (mevcut script'i extend): non-admin user direkt RPC çağrısı → `BFL_FORBIDDEN`; creator kendi kampanyasını approve denemesi → fail; duplicate approve idempotent kontrolü.
-- `creator-visibility.test.ts` — creator internal_note alanını görmüyor.
+Bu sayfalar var ama route dosyaları yok — link'ler 404 vermiş:
 
-### 8. Notifications
+- `src/routes/discover.tsx` → `DiscoverPage`
+- `src/routes/campaigns.$slug.tsx` → `CampaignDetailPage` (loader prefetch + head meta)
+- `src/routes/categories.$slug.tsx` → `CategoryDetailPage`
+- `src/routes/u.$username.tsx` → `CreatorProfilePage`
 
-Yeni type'lar: `campaign_revision_requested`, `campaign_approved`, `campaign_rejected`, `campaign_suspended`, `campaign_scheduled`, `campaign_live`. Dedupe key: `<type>:<campaign_id>:<lock_version>`.
+Her route TanStack Query pattern: `loader` `ensureQueryData`, component `useSuspenseQuery`. `errorComponent` + `notFoundComponent` zorunlu. Detail/category/creator route'larında dynamic `head()` loader datasından title/description/og:image.
 
-### 9. Doğrulama (kapanışta)
+## 6. SearchPage / DiscoverPage / HomePage
 
-`bun run tsc --noEmit` (harness otomatik), `bunx vitest run tests/admin`, `scripts/test-rls-attacker.sh`, manuel: admin kullanıcı seed (test admin user_role insert SQL örneği komutta gösterilecek), preview'da queue → review → approve akışı.
+- `getCampaigns(query)` → yeni `listPublicCampaigns` çağrısı
+- Query key factory `src/lib/public/query-keys.ts`:
+  ```ts
+  publicQueryKeys = {
+    campaigns: { all: ['public','campaigns'], list: (q) => [...all, 'list', q], detail: (slug) => [...all, 'detail', slug] },
+    creators: { profile: (u) => ['public','creator', u] },
+    categories: { list: ['public','categories'] },
+  }
+  ```
+- `staleTime: 60_000` liste, `staleTime: 5*60_000` detail, `placeholderData: keepPreviousData` pagination geçişi
+- `retry: (count, err) => count < 2 && !isClientError(err)`
+- SearchPage URL state korunur; `search.cats`/`fundedMin`/`fundedMax`/`ending` parametreleri RPC argümanına map'lenir. Zod schema'ya ek `cats` whitelist filtresi yok (RPC zaten doğrular).
 
-### Kapsam dışı
+## 7. Mock kaldırma
 
-- Payments/refund integration suspend sonrası
-- Admin user yönetimi UI (role assign)
-- Bulk approve/reject
-- Review SLA, otomatik atama
-- Audit detay diff viewer (sadece liste; ileride genişler)
+- `src/mocks/`, `src/services/mock/` referansları yalnızca `DesignSystemPage` ve `src/components/**/__tests__/` içinde kalır. Public sayfalardan tüm import silinir.
+- ESLint kuralı: `src/routes/**`, `src/pages/{Home,Discover,Search,CampaignDetail,CategoryDetail,CreatorProfile}Page.tsx` içinden `@/mocks/*` ve `@/services/mock/*` importu yasak (eslint `no-restricted-imports`).
 
-### Manuel adımlar
+## 8. Testler
 
-- Admin user seed: `INSERT INTO user_roles (user_id, role) VALUES ('<uuid>', 'admin');` — kullanıcıya hatırlatılır.
-- pg_cron job'u migration sonrası `supabase--insert` ile kurulacak (anon key + preview URL).
+`src/test/public/`:
+
+- `public-rpc.test.sql` (psql script): anon connection ile
+  - `get_public_campaigns` yalnız `live`/`successful` döndürür
+  - draft/submitted/suspended kampanya hiç görünmez
+  - invalid `_sort='__hack__'` güvenli default'a düşer
+  - SQL injection denemesi `_q=' OR 1=1 --` literal arama
+- `validation.test.ts`: SearchPage zod schema invalid → safe default
+- `adapter.test.ts`: RPC row → `Campaign` DTO mapping
+- `no-mock-import.test.ts`: regex tarama, public sayfalarda `@/mocks` import yok
+- Mevcut `CampaignCard.test.tsx` mock fixture kullanmaya devam eder (komponent kontratı değişmiyor)
+
+## 9. Doğrulama
+
+- `bun x tsc --noEmit`
+- `bun x vitest run`
+- `bun run build`
+- Manuel: anon olarak `/discover`, `/search?q=...`, `/campaigns/<slug>`, `/categories/<slug>`, `/u/<username>` — network'te `select('*')` yok, sadece `rpc/get_public_*` çağrıları
+- supabase linter
+
+## Manuel adımlar
+
+- Migration onayı sonrası DB'de seed kampanya (live status) yoksa testler boş döner. Mevcut seed durumunu kontrol et; gerekirse manuel seed önerisi.
+- `campaign-media` bucket private kalır; signed URL stratejisi aktiftir.
+
+## Riskler
+
+- Signed URL TTL (1 saat) vs Query staleTime (5 dk) uyumsuzluğu: TTL > staleTime olduğu için sorun değil; ama tarayıcıda 1 saatten uzun açık kalan sekme `<img>` 403 alabilir. Bu fazda kabul edilebilir.
+- `raised_amount_minor`/`backer_count` agregasyonu her sorguda hesaplanıyor — küçük veri setinde sorun yok; ileride materialized view veya `campaigns` üzerinde counter kolonu gerekebilir.
+- Mock CampaignDetail'in `fundingPlan`/`milestones`/`comments`/`faq` alanları DB'de yok → public detay sayfası bu bölümleri boş gösterir. UI bunu empty-state olarak ele alacak.
