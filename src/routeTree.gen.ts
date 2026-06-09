@@ -30,11 +30,18 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as CampaignsSlugBackRouteImport } from './routes/campaigns.$slug.back'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings.account'
+import { Route as AuthenticatedDashboardContributionsRouteImport } from './routes/_authenticated/dashboard.contributions'
 import { Route as AuthenticatedCreatorCampaignsRouteImport } from './routes/_authenticated/creator.campaigns'
+import { Route as CampaignsSlugBackIndexRouteImport } from './routes/campaigns.$slug.back.index'
 import { Route as AuthenticatedCreatorCampaignsIndexRouteImport } from './routes/_authenticated/creator.campaigns.index'
 import { Route as AuthenticatedAdminCampaignReviewsIndexRouteImport } from './routes/_authenticated/admin.campaign-reviews.index'
+import { Route as CampaignsSlugBackRewardRouteImport } from './routes/campaigns.$slug.back.reward'
+import { Route as CampaignsSlugBackReviewRouteImport } from './routes/campaigns.$slug.back.review'
+import { Route as CampaignsSlugBackResultRouteImport } from './routes/campaigns.$slug.back.result'
+import { Route as CampaignsSlugBackDetailsRouteImport } from './routes/campaigns.$slug.back.details'
 import { Route as ApiPublicHooksPublishDueCampaignsRouteImport } from './routes/api/public/hooks/publish-due-campaigns'
 import { Route as AuthenticatedCreatorCampaignsNewRouteImport } from './routes/_authenticated/creator.campaigns.new'
 import { Route as AuthenticatedAdminCampaignReviewsCampaignIdRouteImport } from './routes/_authenticated/admin.campaign-reviews.$campaignId'
@@ -148,6 +155,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const CampaignsSlugBackRoute = CampaignsSlugBackRouteImport.update({
+  id: '/back',
+  path: '/back',
+  getParentRoute: () => CampaignsSlugRoute,
+} as any)
 const AuthenticatedSettingsProfileRoute =
   AuthenticatedSettingsProfileRouteImport.update({
     id: '/profile',
@@ -160,12 +172,23 @@ const AuthenticatedSettingsAccountRoute =
     path: '/account',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedDashboardContributionsRoute =
+  AuthenticatedDashboardContributionsRouteImport.update({
+    id: '/contributions',
+    path: '/contributions',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedCreatorCampaignsRoute =
   AuthenticatedCreatorCampaignsRouteImport.update({
     id: '/creator/campaigns',
     path: '/creator/campaigns',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const CampaignsSlugBackIndexRoute = CampaignsSlugBackIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CampaignsSlugBackRoute,
+} as any)
 const AuthenticatedCreatorCampaignsIndexRoute =
   AuthenticatedCreatorCampaignsIndexRouteImport.update({
     id: '/',
@@ -177,6 +200,27 @@ const AuthenticatedAdminCampaignReviewsIndexRoute =
     id: '/campaign-reviews/',
     path: '/campaign-reviews/',
     getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const CampaignsSlugBackRewardRoute = CampaignsSlugBackRewardRouteImport.update({
+  id: '/reward',
+  path: '/reward',
+  getParentRoute: () => CampaignsSlugBackRoute,
+} as any)
+const CampaignsSlugBackReviewRoute = CampaignsSlugBackReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => CampaignsSlugBackRoute,
+} as any)
+const CampaignsSlugBackResultRoute = CampaignsSlugBackResultRouteImport.update({
+  id: '/result',
+  path: '/result',
+  getParentRoute: () => CampaignsSlugBackRoute,
+} as any)
+const CampaignsSlugBackDetailsRoute =
+  CampaignsSlugBackDetailsRouteImport.update({
+    id: '/details',
+    path: '/details',
+    getParentRoute: () => CampaignsSlugBackRoute,
   } as any)
 const ApiPublicHooksPublishDueCampaignsRoute =
   ApiPublicHooksPublishDueCampaignsRouteImport.update({
@@ -233,23 +277,30 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
-  '/campaigns/$slug': typeof CampaignsSlugRoute
+  '/campaigns/$slug': typeof CampaignsSlugRouteWithChildren
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
+  '/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
+  '/campaigns/$slug/back/details': typeof CampaignsSlugBackDetailsRoute
+  '/campaigns/$slug/back/result': typeof CampaignsSlugBackResultRoute
+  '/campaigns/$slug/back/review': typeof CampaignsSlugBackReviewRoute
+  '/campaigns/$slug/back/reward': typeof CampaignsSlugBackRewardRoute
   '/admin/campaign-reviews/': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
+  '/campaigns/$slug/back/': typeof CampaignsSlugBackIndexRoute
   '/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
   '/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
   '/creator/campaigns/$campaignId/updates': typeof AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute
@@ -266,22 +317,28 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/unauthorized': typeof UnauthorizedRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
-  '/campaigns/$slug': typeof CampaignsSlugRoute
+  '/campaigns/$slug': typeof CampaignsSlugRouteWithChildren
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
+  '/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
+  '/campaigns/$slug/back/details': typeof CampaignsSlugBackDetailsRoute
+  '/campaigns/$slug/back/result': typeof CampaignsSlugBackResultRoute
+  '/campaigns/$slug/back/review': typeof CampaignsSlugBackReviewRoute
+  '/campaigns/$slug/back/reward': typeof CampaignsSlugBackRewardRoute
   '/admin/campaign-reviews': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsIndexRoute
+  '/campaigns/$slug/back': typeof CampaignsSlugBackIndexRoute
   '/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
   '/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
   '/creator/campaigns/$campaignId/updates': typeof AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute
@@ -301,23 +358,30 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
-  '/campaigns/$slug': typeof CampaignsSlugRoute
+  '/campaigns/$slug': typeof CampaignsSlugRouteWithChildren
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
   '/_authenticated/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
+  '/_authenticated/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
+  '/campaigns/$slug/back/details': typeof CampaignsSlugBackDetailsRoute
+  '/campaigns/$slug/back/result': typeof CampaignsSlugBackResultRoute
+  '/campaigns/$slug/back/review': typeof CampaignsSlugBackReviewRoute
+  '/campaigns/$slug/back/reward': typeof CampaignsSlugBackRewardRoute
   '/_authenticated/admin/campaign-reviews/': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/_authenticated/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
+  '/campaigns/$slug/back/': typeof CampaignsSlugBackIndexRoute
   '/_authenticated/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
   '/_authenticated/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
   '/_authenticated/creator/campaigns/$campaignId/updates': typeof AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute
@@ -346,14 +410,21 @@ export interface FileRouteTypes {
     | '/categories/$slug'
     | '/creators/$username'
     | '/creator/campaigns'
+    | '/dashboard/contributions'
     | '/settings/account'
     | '/settings/profile'
+    | '/campaigns/$slug/back'
     | '/admin/'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/api/public/hooks/publish-due-campaigns'
+    | '/campaigns/$slug/back/details'
+    | '/campaigns/$slug/back/result'
+    | '/campaigns/$slug/back/review'
+    | '/campaigns/$slug/back/reward'
     | '/admin/campaign-reviews/'
     | '/creator/campaigns/'
+    | '/campaigns/$slug/back/'
     | '/admin/campaigns/$campaignId/history'
     | '/creator/campaigns/$campaignId/preview'
     | '/creator/campaigns/$campaignId/updates'
@@ -378,14 +449,20 @@ export interface FileRouteTypes {
     | '/campaigns/$slug'
     | '/categories/$slug'
     | '/creators/$username'
+    | '/dashboard/contributions'
     | '/settings/account'
     | '/settings/profile'
     | '/admin'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/api/public/hooks/publish-due-campaigns'
+    | '/campaigns/$slug/back/details'
+    | '/campaigns/$slug/back/result'
+    | '/campaigns/$slug/back/review'
+    | '/campaigns/$slug/back/reward'
     | '/admin/campaign-reviews'
     | '/creator/campaigns'
+    | '/campaigns/$slug/back'
     | '/admin/campaigns/$campaignId/history'
     | '/creator/campaigns/$campaignId/preview'
     | '/creator/campaigns/$campaignId/updates'
@@ -413,14 +490,21 @@ export interface FileRouteTypes {
     | '/categories/$slug'
     | '/creators/$username'
     | '/_authenticated/creator/campaigns'
+    | '/_authenticated/dashboard/contributions'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/profile'
+    | '/campaigns/$slug/back'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/campaign-reviews/$campaignId'
     | '/_authenticated/creator/campaigns/new'
     | '/api/public/hooks/publish-due-campaigns'
+    | '/campaigns/$slug/back/details'
+    | '/campaigns/$slug/back/result'
+    | '/campaigns/$slug/back/review'
+    | '/campaigns/$slug/back/reward'
     | '/_authenticated/admin/campaign-reviews/'
     | '/_authenticated/creator/campaigns/'
+    | '/campaigns/$slug/back/'
     | '/_authenticated/admin/campaigns/$campaignId/history'
     | '/_authenticated/creator/campaigns/$campaignId/preview'
     | '/_authenticated/creator/campaigns/$campaignId/updates'
@@ -440,7 +524,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
-  CampaignsSlugRoute: typeof CampaignsSlugRoute
+  CampaignsSlugRoute: typeof CampaignsSlugRouteWithChildren
   CategoriesSlugRoute: typeof CategoriesSlugRoute
   CreatorsUsernameRoute: typeof CreatorsUsernameRoute
   ApiPublicHooksPublishDueCampaignsRoute: typeof ApiPublicHooksPublishDueCampaignsRoute
@@ -595,6 +679,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/campaigns/$slug/back': {
+      id: '/campaigns/$slug/back'
+      path: '/back'
+      fullPath: '/campaigns/$slug/back'
+      preLoaderRoute: typeof CampaignsSlugBackRouteImport
+      parentRoute: typeof CampaignsSlugRoute
+    }
     '/_authenticated/settings/profile': {
       id: '/_authenticated/settings/profile'
       path: '/profile'
@@ -609,12 +700,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAccountRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/dashboard/contributions': {
+      id: '/_authenticated/dashboard/contributions'
+      path: '/contributions'
+      fullPath: '/dashboard/contributions'
+      preLoaderRoute: typeof AuthenticatedDashboardContributionsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/creator/campaigns': {
       id: '/_authenticated/creator/campaigns'
       path: '/creator/campaigns'
       fullPath: '/creator/campaigns'
       preLoaderRoute: typeof AuthenticatedCreatorCampaignsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/campaigns/$slug/back/': {
+      id: '/campaigns/$slug/back/'
+      path: '/'
+      fullPath: '/campaigns/$slug/back/'
+      preLoaderRoute: typeof CampaignsSlugBackIndexRouteImport
+      parentRoute: typeof CampaignsSlugBackRoute
     }
     '/_authenticated/creator/campaigns/': {
       id: '/_authenticated/creator/campaigns/'
@@ -629,6 +734,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/campaign-reviews/'
       preLoaderRoute: typeof AuthenticatedAdminCampaignReviewsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/campaigns/$slug/back/reward': {
+      id: '/campaigns/$slug/back/reward'
+      path: '/reward'
+      fullPath: '/campaigns/$slug/back/reward'
+      preLoaderRoute: typeof CampaignsSlugBackRewardRouteImport
+      parentRoute: typeof CampaignsSlugBackRoute
+    }
+    '/campaigns/$slug/back/review': {
+      id: '/campaigns/$slug/back/review'
+      path: '/review'
+      fullPath: '/campaigns/$slug/back/review'
+      preLoaderRoute: typeof CampaignsSlugBackReviewRouteImport
+      parentRoute: typeof CampaignsSlugBackRoute
+    }
+    '/campaigns/$slug/back/result': {
+      id: '/campaigns/$slug/back/result'
+      path: '/result'
+      fullPath: '/campaigns/$slug/back/result'
+      preLoaderRoute: typeof CampaignsSlugBackResultRouteImport
+      parentRoute: typeof CampaignsSlugBackRoute
+    }
+    '/campaigns/$slug/back/details': {
+      id: '/campaigns/$slug/back/details'
+      path: '/details'
+      fullPath: '/campaigns/$slug/back/details'
+      preLoaderRoute: typeof CampaignsSlugBackDetailsRouteImport
+      parentRoute: typeof CampaignsSlugBackRoute
     }
     '/api/public/hooks/publish-due-campaigns': {
       id: '/api/public/hooks/publish-due-campaigns'
@@ -702,6 +835,21 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardContributionsRoute: typeof AuthenticatedDashboardContributionsRoute
+}
+
+const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
+  {
+    AuthenticatedDashboardContributionsRoute:
+      AuthenticatedDashboardContributionsRoute,
+  }
+
+const AuthenticatedDashboardRouteWithChildren =
+  AuthenticatedDashboardRoute._addFileChildren(
+    AuthenticatedDashboardRouteChildren,
+  )
+
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
   AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
@@ -746,7 +894,7 @@ const AuthenticatedCreatorCampaignsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
@@ -755,7 +903,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
@@ -765,6 +913,37 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+interface CampaignsSlugBackRouteChildren {
+  CampaignsSlugBackDetailsRoute: typeof CampaignsSlugBackDetailsRoute
+  CampaignsSlugBackResultRoute: typeof CampaignsSlugBackResultRoute
+  CampaignsSlugBackReviewRoute: typeof CampaignsSlugBackReviewRoute
+  CampaignsSlugBackRewardRoute: typeof CampaignsSlugBackRewardRoute
+  CampaignsSlugBackIndexRoute: typeof CampaignsSlugBackIndexRoute
+}
+
+const CampaignsSlugBackRouteChildren: CampaignsSlugBackRouteChildren = {
+  CampaignsSlugBackDetailsRoute: CampaignsSlugBackDetailsRoute,
+  CampaignsSlugBackResultRoute: CampaignsSlugBackResultRoute,
+  CampaignsSlugBackReviewRoute: CampaignsSlugBackReviewRoute,
+  CampaignsSlugBackRewardRoute: CampaignsSlugBackRewardRoute,
+  CampaignsSlugBackIndexRoute: CampaignsSlugBackIndexRoute,
+}
+
+const CampaignsSlugBackRouteWithChildren =
+  CampaignsSlugBackRoute._addFileChildren(CampaignsSlugBackRouteChildren)
+
+interface CampaignsSlugRouteChildren {
+  CampaignsSlugBackRoute: typeof CampaignsSlugBackRouteWithChildren
+}
+
+const CampaignsSlugRouteChildren: CampaignsSlugRouteChildren = {
+  CampaignsSlugBackRoute: CampaignsSlugBackRouteWithChildren,
+}
+
+const CampaignsSlugRouteWithChildren = CampaignsSlugRoute._addFileChildren(
+  CampaignsSlugRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -779,7 +958,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   AuthCallbackRoute: AuthCallbackRoute,
-  CampaignsSlugRoute: CampaignsSlugRoute,
+  CampaignsSlugRoute: CampaignsSlugRouteWithChildren,
   CategoriesSlugRoute: CategoriesSlugRoute,
   CreatorsUsernameRoute: CreatorsUsernameRoute,
   ApiPublicHooksPublishDueCampaignsRoute:
