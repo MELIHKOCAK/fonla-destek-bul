@@ -36,10 +36,12 @@ const daysFromNow = (days: number): string => {
 };
 
 // 12 kampanya — fonlama oranları, durumlar ve süreler çeşitli.
-const seed: Array<Omit<Campaign, "coverImage" | "creator" | "category"> & {
-  categorySlug: string;
-  creatorId: string;
-}> = [
+const seed: Array<
+  Omit<Campaign, "coverImage" | "creator" | "category"> & {
+    categorySlug: string;
+    creatorId: string;
+  }
+> = [
   {
     id: "cmp-01",
     slug: "akilli-bahce-sulama-cihazi",
@@ -202,8 +204,7 @@ const seed: Array<Omit<Campaign, "coverImage" | "creator" | "category"> & {
     id: "cmp-12",
     slug: "akustik-stuyo-albumu",
     title: "Akustik Stüdyo Albümü",
-    shortDescription:
-      "Yedi şarkıdan oluşan, tamamen analog kaydedilmiş akustik bir ilk albüm.",
+    shortDescription: "Yedi şarkıdan oluşan, tamamen analog kaydedilmiş akustik bir ilk albüm.",
     categorySlug: "muzik",
     creatorId: "cr-5",
     raisedAmountMinor: 0,

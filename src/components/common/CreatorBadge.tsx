@@ -22,18 +22,12 @@ export function CreatorBadge({ creator, size = "sm", className }: CreatorBadgePr
   return (
     <div className={cn("flex items-center gap-2 text-sm", className)}>
       <Avatar className={avatarSize}>
-        {creator.avatarUrl ? (
-          <AvatarImage src={creator.avatarUrl} alt="" />
-        ) : null}
+        {creator.avatarUrl ? <AvatarImage src={creator.avatarUrl} alt="" /> : null}
         <AvatarFallback className="text-xs">{initialsOf(creator.displayName)}</AvatarFallback>
       </Avatar>
       <span className="font-medium text-foreground">{creator.displayName}</span>
       {creator.verified ? (
-        <BadgeCheck
-          className="size-4 text-primary"
-          aria-label="Doğrulanmış creator"
-          role="img"
-        />
+        <BadgeCheck className="size-4 text-primary" aria-label="Doğrulanmış creator" role="img" />
       ) : null}
     </div>
   );

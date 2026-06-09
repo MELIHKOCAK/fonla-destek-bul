@@ -54,7 +54,6 @@ export function StatusBadge(props: StatusBadgeProps) {
   const safe = meta ?? FALLBACK_META;
 
   if (!meta && import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
     console.warn(`StatusBadge: bilinmeyen ${props.type} status:`, props.status);
   }
 

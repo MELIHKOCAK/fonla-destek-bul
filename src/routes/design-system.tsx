@@ -3,10 +3,7 @@ import { DesignSystemPage } from "@/pages/DesignSystemPage";
 
 export const Route = createFileRoute("/design-system")({
   head: () => ({
-    meta: [
-      { title: "Design System — BeniFonla" },
-      { name: "robots", content: "noindex,nofollow" },
-    ],
+    meta: [{ title: "Design System — BeniFonla" }, { name: "robots", content: "noindex,nofollow" }],
   }),
   component: DesignSystemPage,
 });

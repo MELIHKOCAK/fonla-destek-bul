@@ -44,9 +44,7 @@ export function CampaignProgress({
           <span className={cn("font-medium", overFunded ? "text-success" : "text-foreground")}>
             {labelPercent}
           </span>
-          {overFunded ? (
-            <span className="text-xs text-success">Hedef aşıldı</span>
-          ) : null}
+          {overFunded ? <span className="text-xs text-success">Hedef aşıldı</span> : null}
         </div>
       ) : null}
     </div>

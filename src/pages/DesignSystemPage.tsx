@@ -12,10 +12,7 @@ import { CreatorBadge } from "@/components/common/CreatorBadge";
 import { CampaignCard } from "@/components/common/CampaignCard";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ErrorState } from "@/components/common/ErrorState";
-import {
-  CampaignCardSkeleton,
-  LineSkeleton,
-} from "@/components/common/LoadingSkeleton";
+import { CampaignCardSkeleton, LineSkeleton } from "@/components/common/LoadingSkeleton";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Pagination } from "@/components/common/Pagination";
 import { SearchInput } from "@/components/common/SearchInput";
@@ -68,9 +65,7 @@ function Section({
     <section id={id} className="space-y-4 border-t border-border/60 pt-10">
       <header>
         <h2 className="text-xl font-semibold tracking-tight text-foreground">{title}</h2>
-        {description ? (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        ) : null}
+        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
       </header>
       {children}
     </section>
@@ -171,8 +166,7 @@ export function DesignSystemPage() {
             0 kuruş → <MoneyDisplay amountMinor={0} className="font-medium" />
           </li>
           <li>
-            100.000 kuruş (1.000₺) →{" "}
-            <MoneyDisplay amountMinor={100_000} className="font-medium" />
+            100.000 kuruş (1.000₺) → <MoneyDisplay amountMinor={100_000} className="font-medium" />
           </li>
           <li>
             12.345.678 kuruş (123.456,78₺) →{" "}
@@ -183,8 +177,7 @@ export function DesignSystemPage() {
             <MoneyDisplay amountMinor={12_345_678} variant="compact" className="font-medium" />
           </li>
           <li>
-            Negatif -1.000 →{" "}
-            <MoneyDisplay amountMinor={-100_000} className="font-medium" />
+            Negatif -1.000 → <MoneyDisplay amountMinor={-100_000} className="font-medium" />
           </li>
         </ul>
       </Section>

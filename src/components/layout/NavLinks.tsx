@@ -12,11 +12,7 @@ interface NavLinksProps {
   variant?: "horizontal" | "vertical";
 }
 
-export function NavLinks({
-  onNavigate,
-  className,
-  variant = "horizontal",
-}: NavLinksProps) {
+export function NavLinks({ onNavigate, className, variant = "horizontal" }: NavLinksProps) {
   return (
     <ul
       className={

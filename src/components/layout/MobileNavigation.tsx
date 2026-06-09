@@ -17,12 +17,7 @@ export function MobileNavigation() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          aria-label="Menüyü aç"
-        >
+        <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menüyü aç">
           <Menu className="size-5" aria-hidden="true" />
         </Button>
       </SheetTrigger>
@@ -43,9 +38,7 @@ export function MobileNavigation() {
           <Button className="w-full" disabled aria-disabled="true">
             Kayıt ol
           </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            Hesap özellikleri yakında
-          </p>
+          <p className="text-center text-xs text-muted-foreground">Hesap özellikleri yakında</p>
         </div>
       </SheetContent>
     </Sheet>

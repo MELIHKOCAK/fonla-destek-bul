@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CampaignProgress } from "@/components/common/CampaignProgress";
 import { renderWithProviders } from "@/test/render";
-import {
-  calculateProgressPercent,
-  clampProgressPercent,
-} from "@/lib/format";
+import { calculateProgressPercent, clampProgressPercent } from "@/lib/format";
 
 describe("CampaignProgress / progress hesabı", () => {
   it("goal=0 olduğunda %0 döner ve hata atmaz", () => {

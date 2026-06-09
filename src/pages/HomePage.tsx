@@ -55,13 +55,7 @@ export function HomePage() {
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                disabled
-                aria-disabled="true"
-                title="Yakında"
-              >
+              <Button size="lg" variant="outline" disabled aria-disabled="true" title="Yakında">
                 Proje başlat
               </Button>
             </div>
@@ -73,10 +67,7 @@ export function HomePage() {
         <Container>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             {VALUES.map(({ icon: Icon, title, description }) => (
-              <div
-                key={title}
-                className="rounded-xl border border-border/60 bg-card p-5"
-              >
+              <div key={title} className="rounded-xl border border-border/60 bg-card p-5">
                 <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Icon className="size-5" aria-hidden="true" />
                 </div>

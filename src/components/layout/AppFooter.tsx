@@ -1,6 +1,9 @@
 import { Container } from "@/components/common/Container";
 
-const GROUPS: ReadonlyArray<{ title: string; links: ReadonlyArray<{ label: string; href: string }> }> = [
+const GROUPS: ReadonlyArray<{
+  title: string;
+  links: ReadonlyArray<{ label: string; href: string }>;
+}> = [
   {
     title: "Ürün",
     links: [
@@ -61,8 +64,8 @@ export function AppFooter() {
 
         <div className="mt-10 space-y-2 border-t border-border/60 pt-6 text-xs text-muted-foreground">
           <p>
-            BeniFonla bir ödül temelli kitle fonlama platformudur. Yatırım, hisse satışı,
-            faiz veya finansal getiri ürünü değildir.
+            BeniFonla bir ödül temelli kitle fonlama platformudur. Yatırım, hisse satışı, faiz veya
+            finansal getiri ürünü değildir.
           </p>
           <p>© {new Date().getFullYear()} BeniFonla. Tüm hakları saklıdır.</p>
         </div>
