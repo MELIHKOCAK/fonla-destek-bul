@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 import { CampaignProgress } from "./CampaignProgress";
 import { CategoryBadge } from "./CategoryBadge";
@@ -12,21 +13,18 @@ import type { Campaign } from "@/types/campaign";
 export interface CampaignCardProps {
   campaign: Campaign;
   className?: string;
-  /** Karta sarılan link bileşeni. Varsayılan: <a>. Test/SSR'da Link enjekte edilebilir. */
-  href?: string;
 }
 
 const backerFormatter = new Intl.NumberFormat("tr-TR");
 
-export function CampaignCard({ campaign, className, href }: CampaignCardProps) {
-  const linkHref = href ?? `/kampanyalar/${campaign.slug}`;
+export function CampaignCard({ campaign, className }: CampaignCardProps) {
   const showCountdown = campaign.status === "live" || campaign.status === "scheduled";
   const endLabel = showCountdown ? formatRelativeTime(campaign.endDate) : null;
 
   return (
     <Card
       className={cn(
-        "group flex h-full flex-col overflow-hidden border-border/60 transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-ring",
+        "group relative flex h-full flex-col overflow-hidden border-border/60 transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-ring",
         className,
       )}
     >
@@ -44,12 +42,15 @@ export function CampaignCard({ campaign, className, href }: CampaignCardProps) {
       </div>
 
       <CardContent className="flex flex-1 flex-col gap-3 p-5">
-        <a
-          href={linkHref}
-          className="text-base font-semibold leading-snug text-foreground outline-none after:absolute after:inset-0 after:content-[''] focus-visible:underline"
-        >
-          <span className="line-clamp-2">{campaign.title}</span>
-        </a>
+        <h3 className="text-base font-semibold leading-snug text-foreground">
+          <Link
+            to="/campaigns/$slug"
+            params={{ slug: campaign.slug }}
+            className="outline-none after:absolute after:inset-0 after:content-[''] focus-visible:underline"
+          >
+            <span className="line-clamp-2">{campaign.title}</span>
+          </Link>
+        </h3>
         <p className="line-clamp-2 text-sm text-muted-foreground">{campaign.shortDescription}</p>
 
         <CreatorBadge creator={campaign.creator} className="mt-auto" />
@@ -84,3 +85,4 @@ export function CampaignCard({ campaign, className, href }: CampaignCardProps) {
     </Card>
   );
 }
+

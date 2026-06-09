@@ -1,39 +1,42 @@
+import { Link } from "@tanstack/react-router";
 import { Container } from "@/components/common/Container";
+
+type FooterLink = { label: string; to: string };
 
 const GROUPS: ReadonlyArray<{
   title: string;
-  links: ReadonlyArray<{ label: string; href: string }>;
+  links: ReadonlyArray<FooterLink>;
 }> = [
   {
     title: "Ürün",
     links: [
-      { label: "Keşfet", href: "/" },
-      { label: "Nasıl Çalışır", href: "#" },
-      { label: "Proje Başlat", href: "#" },
+      { label: "Keşfet", to: "/discover" },
+      { label: "Nasıl Çalışır", to: "/how-it-works" },
+      { label: "Hakkında", to: "/about" },
     ],
   },
   {
     title: "Kaynaklar",
     links: [
-      { label: "Yardım Merkezi", href: "#" },
-      { label: "Creator Rehberi", href: "#" },
-      { label: "Topluluk Kuralları", href: "#" },
+      { label: "Sık Sorulan Sorular", to: "/faq" },
+      { label: "İletişim", to: "/contact" },
+      { label: "Risk Açıklaması", to: "/risk-disclosure" },
     ],
   },
   {
     title: "Yasal",
     links: [
-      { label: "Kullanım Şartları", href: "#" },
-      { label: "Gizlilik Politikası", href: "#" },
-      { label: "KVKK Aydınlatma", href: "#" },
+      { label: "Kullanım Şartları", to: "/terms" },
+      { label: "Gizlilik Politikası", to: "/privacy" },
+      { label: "İade Politikası", to: "/refund-policy" },
     ],
   },
   {
-    title: "Sosyal",
+    title: "Hesap",
     links: [
-      { label: "X / Twitter", href: "#" },
-      { label: "Instagram", href: "#" },
-      { label: "LinkedIn", href: "#" },
+      { label: "Giriş yap", to: "/login" },
+      { label: "Kayıt ol", to: "/register" },
+      { label: "Şifremi unuttum", to: "/forgot-password" },
     ],
   },
 ];
@@ -49,12 +52,12 @@ export function AppFooter() {
               <ul className="mt-3 space-y-2">
                 {group.links.map((link) => (
                   <li key={link.label}>
-                    <a
-                      href={link.href}
+                    <Link
+                      to={link.to}
                       className="text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {link.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>

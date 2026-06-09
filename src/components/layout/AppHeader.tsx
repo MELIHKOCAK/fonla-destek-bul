@@ -30,11 +30,11 @@ export function AppHeader() {
 
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-2 md:flex">
-            <Button variant="ghost" size="sm" disabled aria-disabled="true" title="Yakında">
-              Giriş yap
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/login">Giriş yap</Link>
             </Button>
-            <Button size="sm" disabled aria-disabled="true" title="Yakında">
-              Kayıt ol
+            <Button asChild size="sm">
+              <Link to="/register">Kayıt ol</Link>
             </Button>
           </div>
           <ThemeToggle />
