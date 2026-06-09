@@ -1,111 +1,152 @@
+# Faz 4 — Public User Journey (Mock-Only)
 
-# Faz 3 — Tasarım Sistemi ve Uygulama İskeleti (Mock Data)
+Bu faz **yalnızca frontend**. Supabase, gerçek auth, network çağrısı, ödeme YOK. Tüm veri `src/mocks` üzerinde typed async repository üzerinden okunur.
 
-Bu faz tamamen frontend: backend, Supabase, auth, ödeme YOK. Sadece tema, layout, ortak bileşenler, mock veri ve `/design-system` showcase.
+## 1. Mock Repository Katmanı (`src/services/mock/`)
 
-## 1. Tema sistemi (`src/styles.css`)
+Mevcut `src/mocks/index.ts` sync helper'ları korunur; üzerine async servis katmanı eklenir.
 
-Mevcut shadcn token bloğunu BeniFonla marka paletine göre yeniden yaz:
+- `src/services/mock/delay.ts` — `simulateDelay(ms?: number)`, `MOCK_LATENCY` sabiti (~250–600ms random).
+- `src/services/mock/errors.ts` — `MockError` sınıfı, `shouldSimulateError(key)` (dev flag `import.meta.env.DEV` + `localStorage` debug; production'da daima `false`).
+- `src/services/campaigns.service.ts`
+  - `getFeaturedCampaigns(): Promise<Campaign[]>`
+  - `getCampaigns(filters, page): Promise<{ items, total, page, pageSize, totalPages }>`
+  - `getCampaignBySlug(slug): Promise<Campaign | null>`
+  - `getNewCampaigns(limit)`, `getSuccessfulCampaigns(limit)`
+- `src/services/categories.service.ts` — `listCategories`, `getCategoryBySlug`, `countCampaignsInCategory`
+- `src/services/creators.service.ts` — `getCreatorByUsername`, `getCampaignsByCreator`
 
-- **Ana ton:** gece mavisi (`--background` dark: derin navy oklch; light: kırık beyaz)
-- **Primary:** kontrollü turkuaz/emerald (güven + ilerleme)
-- **Accent (warm):** amber (ödül/başarı) — yeni token `--accent-warm`
-- **Semantic ek tokenlar:** `--success`, `--warning`, `--info`, `--campaign-progress`, `--campaign-progress-track`
-- `:root` (light) ve `.dark` (dark) eksiksiz tanımlanır; `@theme inline` içine yeni tokenlar map edilir (`--color-success`, `--color-warning`, `--color-info`, `--color-accent-warm`, `--color-campaign-progress`, …).
-- Tüm renkler `oklch()`. Bileşenler renkleri hardcode etmez — sadece semantic util kullanır.
-
-## 2. Tema yönetimi
-
-- `src/app/theme/ThemeProvider.tsx`: context (`theme: "light" | "dark" | "system"`, `resolvedTheme`, `setTheme`). `prefers-color-scheme` dinler, seçim varsa `localStorage("benifonla-theme")` saklar, `<html>` üzerine `.dark` toggle eder.
-- `src/app/theme/theme-script.ts`: senkron inline script string'i export eder; `__root.tsx` `head()` içine `scripts: [{ children: themeInitScript }]` olarak basılır → FOUC engellenir.
-- `src/components/common/ThemeToggle.tsx`: erişilebilir dropdown (Sistem / Açık / Koyu), `aria-label`, ikon (`Sun`/`Moon`/`Monitor`).
-
-## 3. AppShell ve navigation
-
-- `src/components/layout/AppHeader.tsx`: logo (text mark "BeniFonla"), masaüstü nav (`Keşfet`, `Nasıl Çalışır`, `Proje Başlat`), giriş/kayıt placeholder buton (henüz route yok → disabled veya `#` + `aria-disabled`), `ThemeToggle`, mobilde hamburger.
-- `src/components/layout/MobileNavigation.tsx`: shadcn `Sheet` tabanlı; focus trap (Radix verir), ESC kapanır, aynı linkler.
-- `src/components/layout/AppFooter.tsx`: 4 grup (Ürün, Kaynaklar, Yasal, Sosyal) + copyright + KVKK/yatırım uyarı notu.
-- `src/components/layout/AppShell.tsx`: header + `<main>` + footer wrapper; `Container` ile ortak max-width.
-- `Container` mevcut — gerekirse `narrow/default/wide` variantları eklenir.
-- `__root.tsx`: `ThemeProvider` ile sar, `AppShell` outlet'i sarar. `/design-system` route'u header nav listesinde GÖRÜNMEZ (nav listesi sabit array, design-system orada yok).
-
-## 4. Domain tipleri (`src/types/`)
-
+Filtre tipi:
 ```ts
-// campaign.ts
-export type CampaignStatus =
-  | "draft" | "in_review" | "rejected" | "scheduled"
-  | "live" | "successful" | "failed" | "cancelled"
-  | "paid_out" | "refunded";
-
-export interface Money { amountMinor: number; currency: "TRY" }
-export interface Creator { id; displayName; avatarUrl?; verified }
-export interface Category { id; slug; label }
-export interface Campaign { id; slug; title; shortDescription; coverImage;
-  creator; category; raisedAmountMinor; goalAmountMinor; backerCount;
-  endDate: string; status: CampaignStatus; featured?: boolean }
+interface CampaignQuery {
+  q?: string;
+  categorySlugs?: string[];
+  fundedMin?: number; // 0-200 (%)
+  fundedMax?: number;
+  endingWithinDays?: number; // 7, 14, 30
+  sort?: "newest" | "popular" | "near-goal" | "ending-soon";
+  page?: number;
+  pageSize?: number;
+}
 ```
 
-## 5. Ortak bileşenler (`src/components/common/`)
+Mock veri yetersizse `src/mocks/campaigns.ts` 12 → ~24 kampanyaya genişletilir (yeni/başarılı/biten yelpazesi için).
 
-Hepsi typed props, hiç hardcoded renk yok, light+dark uyumlu.
+## 2. Route Yapısı (`src/routes/`)
 
-- **MoneyDisplay** — props: `amountMinor: number`, `currency?: "TRY"`, `variant?: "full" | "compact"`. `Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 })`. Compact için `notation: "compact"`. Sıfır ve negatif güvenli. Float yok — `amountMinor / 100` integer bölme bilgisi ama formatter'a number verilir; precision testle korunur.
-- **CampaignProgress** — props: `raisedMinor`, `goalMinor`, `showLabel?`. Yüzde `goal > 0 ? min(raised/goal*100, ∞) : 0`. Progress bar görseli `clamp(0, 100)`; metin gerçek yüzdeyi (`%124`) gösterir. `--campaign-progress` token.
-- **StatusBadge** — `type: "campaign" | "contribution"`, `status: string`. Typed record (`CAMPAIGN_STATUS_META: Record<CampaignStatus, {label; tone}>`). Bilinmeyen status → muted fallback + `console.warn` dev'de.
-- **CategoryBadge** — `category: Category`, varyant: outline.
-- **CreatorBadge** — `creator: Creator`, avatar + isim + verified ikon.
-- **CampaignCard** — TEK component, variant yok. Yukarıdaki props. Cover üstte (aspect 16/9, fallback gradient placeholder), kategori chip, başlık (line-clamp-2), creator, MoneyDisplay (raised), CampaignProgress, backerCount + kalan süre (`Intl.RelativeTimeFormat("tr")`). Hover/focus state, keyboard erişilebilir link (`<Link>` ile sar).
-- **EmptyState / ErrorState** — `title`, `description`, `action?: {label; onClick}`, ikon. ErrorState `retry` aksiyonu.
-- **LoadingSkeleton** — primitive: `CampaignCardSkeleton`, `LineSkeleton`, `AvatarSkeleton`. Gerçek layout ölçüleri.
-- **ConfirmDialog** — shadcn `AlertDialog` üzerine wrapper: `title`, `description`, `confirmLabel`, `cancelLabel`, `variant: "default" | "destructive"`, `onConfirm`.
-- **Pagination** — `page`, `pageCount`, `onPageChange`. Klavye ile gezilebilir.
-- **SearchInput** — controlled, `aria-label`, clear butonu, debounce hook yok (parent kontrol).
-- **FilterPanel** — generic shell: kategori multi-select, status select, sıralama. Mock veri üzerinde çalışır.
+TanStack file-based routing, flat dot-separated. Mevcut `__root.tsx`, `index.tsx`, `$.tsx`, `design-system.tsx` korunur.
 
-## 6. Mock veri (`src/mocks/`)
+Yeni route dosyaları:
+- `discover.tsx`
+- `search.tsx`
+- `categories.$slug.tsx`
+- `campaigns.$slug.tsx`
+- `creators.$username.tsx`
+- `how-it-works.tsx`
+- `about.tsx`
+- `contact.tsx`
+- `faq.tsx`
+- `terms.tsx`
+- `privacy.tsx`
+- `refund-policy.tsx`
+- `risk-disclosure.tsx`
+- `login.tsx`
+- `register.tsx`
+- `forgot-password.tsx`
 
-- `categories.ts` — 8 kategori (Teknoloji, Tasarım, Sanat, Müzik, Yayıncılık, Oyun, Topluluk, Eğitim).
-- `creators.ts` — 8 creator, Türkçe isimler, generated avatar (DiceBear `https://api.dicebear.com/7.x/initials/svg?seed=...` — public, lisanslı, kişi fotoğrafı değil).
-- `campaigns.ts` — **12 kampanya**, farklı:
-  - fonlama oranları: %12, %45, %78, %100, %134, %220
-  - statuslar: live (çoğu), scheduled, successful, failed, draft (1 örnek)
-  - süreler: 3 gün, 14 gün, 30 gün, bitmiş
-  - cover: lokal gradient placeholder util (`coverGradient(slug)` → `linear-gradient` CSS string) — gerçek fotoğraf yok, lisans riski sıfır.
-- `index.ts` — re-export + helper'lar (`getCampaignBySlug`, `listFeaturedCampaigns`, `filterCampaigns`). Sayfalar mocks'u doğrudan import etmez; bu helper'ları kullanır.
+`$.tsx` (mevcut) catch-all NotFound zaten var; korunur.
 
-## 7. Sayfalar
+Her route ince bir kabuk olur; gerçek içerik `src/pages/` altında PascalCase sayfa bileşeni. Mevcut konvansiyon (`HomePage`, `NotFoundPage`) sürdürülür.
 
-- `src/routes/index.tsx` → `HomePage` güncelle: hero (marka mesajı, CTA "Keşfet" / "Proje Başlat"), featured kampanyalar grid (CampaignCard × mock).
-- `src/routes/design-system.tsx` (YENİ) → `DesignSystemPage`. Bölümler: Renkler (token swatches), Tipografi, Buttons, Form inputs, Badges, MoneyDisplay (full/compact/edge), CampaignProgress (0/45/100/134), CampaignCard grid, EmptyState, ErrorState, LoadingSkeleton, ConfirmDialog tetikleyici, Pagination, SearchInput, FilterPanel, AppHeader/Footer preview. Nav'da listelenmez.
-- Mevcut `NotFoundPage` ve `$.tsx` korunur; AppShell içine düşer.
+## 3. Sayfa Bileşenleri (`src/pages/`)
 
-## 8. Testler (`src/**/__tests__/`)
+- `HomePage.tsx` — 9 bölümle yeniden yazılır (hero, featured, kategoriler, yeni, başarılı, nasıl çalışır, güven & şeffaflık, proje başlat CTA, footer mevcut shell'de).
+- `DiscoverPage.tsx` — featured + tüm kampanyalar; "Filtrele" CTA `/search`'e yönlendirir veya inline filtre paneliyle aynı bileşeni paylaşır.
+- `SearchPage.tsx` — sol sidebar (desktop) / Sheet drawer (mobil), `FilterPanel` + `SearchInput`, `Pagination`, aktif filtre chip listesi, "Tümünü temizle". URL query params kaynak.
+- `CategoryDetailPage.tsx` — header + kampanya grid; geçersiz slug → `notFound()`.
+- `CampaignDetailPage.tsx` — Mobil öncelikli tek sütun, desktopta sağda sticky support kartı. Bölümler: header, kapak, creator kartı, metrik bar, hikâye, fon kullanım planı, takvim/milestone, riskler, reward tier listesi, güncellemeler, yorumlar (read-only mock), SSS, paylaşım, "Şikâyet Et" Dialog. "Destek Ol" → `<Dialog>` "Demo aşaması" mesajı + `/login`'e Link.
+- `CreatorProfilePage.tsx` — avatar, display name, @username, bio, location, website link (rel=noopener), live + successful kampanyalar; özet metrikler (toplam kampanya, toplam destekçi).
+- `HowItWorksPage.tsx` — creator + backer akışı, her biri 3–4 adım kart.
+- `AboutPage.tsx`, `ContactPage.tsx` (form), `FaqPage.tsx` (Accordion).
+- `TermsPage.tsx`, `PrivacyPage.tsx`, `RefundPolicyPage.tsx`, `RiskDisclosurePage.tsx` — üstte uyarı banner'ı "Bu metin taslaktır; hukuki inceleme gerektirir." Sonra heading hiyerarşili içerik.
+- `LoginPage.tsx`, `RegisterPage.tsx`, `ForgotPasswordPage.tsx` — RHF + Zod, submit'te toast: "Demo aşaması — hesap işlemleri henüz etkin değil."
 
-Vitest + RTL:
+## 4. Ortak Yeni Bileşenler
 
-- `MoneyDisplay.test.tsx` — TRY formatlama, 0, 100000 (1000₺), kompakt notation, negatif.
-- `CampaignProgress.test.tsx` — goal=0 → %0 ve crash yok; raised<goal; raised=goal; raised>goal görsel clamp + metin.
-- `ThemeToggle.test.tsx` — seçim localStorage'a yazılır, `<html>.dark` class değişir.
-- `CampaignCard.test.tsx` — başlık, kategori, raised + goal metni, link href, accessible name.
-- `MobileNavigation.test.tsx` — trigger ile açılır, ESC ile kapanır, focus trap içinde kalır (klavye ile Tab edildiğinde dış element odak almaz).
+- `src/components/common/CampaignGrid.tsx` — responsive grid + skeleton/empty/error orchestration.
+- `src/components/common/PageHeader.tsx` — sayfa başlığı + alt başlık + breadcrumb opsiyonel.
+- `src/components/common/SectionHeading.tsx` — ana sayfa bölüm başlıkları.
+- `src/components/common/LegalNotice.tsx` — yasal sayfaların taslak uyarısı.
+- `src/components/common/SupportCtaDialog.tsx` — "Destek Ol" demo dialog.
+- `src/components/common/ReportDialog.tsx` — "Şikâyet Et" demo dialog (form + Zod, submit demo toast).
+- `src/components/common/ActiveFilterChips.tsx`.
+- `src/components/forms/` — `LoginForm.tsx`, `RegisterForm.tsx`, `ForgotPasswordForm.tsx`, `ContactForm.tsx`. Shared `useDemoSubmit` hook (`src/hooks/use-demo-submit.ts`).
 
-## 9. Kapsam dışı (bu fazda YOK)
+## 5. Data Fetching
 
-Supabase, auth, DB, storage, Edge Function, ödeme, gerçek API çağrıları, kampanya CRUD formları, admin paneli, i18n framework (Türkçe metinler doğrudan), email, bildirim.
+TanStack Query mevcut. Tüm async mock servis çağrıları `useQuery` ile sarılır:
+- `queryKey: ["campaigns", filters, page]`
+- Loading → `LoadingSkeleton`
+- Error → `ErrorState` + retry (`refetch`)
+- Empty → `EmptyState`
 
-## 10. Doğrulama
+`loader` kullanılmaz (auth/SSR karmaşıklığı yok), client-side `useQuery` yeterli ve faz hedefine uygun.
 
-`bun run typecheck` + `bun run lint` + `bun run test:run` + `bun run build` — hepsi temiz olmadan tamamlandı denmez.
+## 6. URL Query Params (Search Page)
 
-## Teknik notlar
+Zod schema + TanStack Router `validateSearch` + `fallback`:
+```ts
+const searchSchema = z.object({
+  q: fallback(z.string(), "").default(""),
+  cats: fallback(z.array(z.string()), []).default([]),
+  fundedMin: fallback(z.number().min(0).max(500), 0).default(0),
+  fundedMax: fallback(z.number().min(0).max(500), 500).default(500),
+  ending: fallback(z.enum(["7","14","30","any"]), "any").default("any"),
+  sort: fallback(z.enum(["newest","popular","near-goal","ending-soon"]), "newest").default("newest"),
+  page: fallback(z.number().int().min(1), 1).default(1),
+});
+```
 
-- React Router DEĞİL — **TanStack Router** kullanılır (Faz 1 kararı). User prompt'taki "React Router" ifadesi proje knowledge'ı ile çelişir; TanStack Router ile devam edilir.
-- Tüm renkler `oklch` + semantic token; `text-white`, `bg-black` vb. yasak.
-- `localStorage` erişimi SSR-safe (`typeof window !== "undefined"`); FOUC için inline theme script `__root.tsx` head'inde.
-- Avatar/cover için harici resim YOK (lisans riski) — DiceBear sadece initials SVG (public domain), kampanya cover'ları CSS gradient.
+## 7. Navigation Güncellemesi
 
-## Açık sorular (varsayımla ilerlenecek)
+`AppHeader` nav linkleri TanStack `<Link>` ile güncel route'lara bağlanır:
+- Keşfet → `/discover`
+- Nasıl Çalışır → `/how-it-works`
+- Proje Başlat → disabled, tooltip "Yakında"
+- Giriş → `/login`, Kayıt → `/register`
 
-1. "Proje Başlat" butonu Faz 3'te disabled placeholder mı, yoksa bilgilendirici modal mı? → **Varsayım: disabled + tooltip "Yakında".**
-2. Design-system route'u prod build'de tamamen kaldırılsın mı? → **Varsayım: route kalır ama nav'da listelenmez; ileride `import.meta.env.DEV` ile gate edilebilir.**
+`AppFooter` linkleri ilgili yasal/statik route'lara bağlanır.
+
+## 8. Testler (`__tests__/`)
+
+Mevcut testler korunur. Eklenenler:
+- `services/campaigns.service.test.ts` — filter/sort/pagination doğruluğu.
+- `pages/SearchPage.test.tsx` — query param parse, chip clear, empty state.
+- `pages/CampaignDetailPage.test.tsx` — geçersiz slug 404, support dialog açılıp `/login` linkini gösterir.
+- `forms/LoginForm.test.tsx` — invalid input network çağrısı yapmaz; submit demo toast tetikler.
+
+## 9. Doğrulama (build mode'da)
+
+1. `bunx tsc --noEmit`
+2. `bunx vitest run`
+3. `bunx eslint .`
+4. Browser: `/`, `/discover`, `/search?q=...`, `/campaigns/<slug>`, `/categories/<slug>`, `/creators/<username>`, `/login`, geçersiz slug. Console clean, 320px overflow yok.
+
+## 10. Kapsam Dışı (bu faz YAPMAZ)
+
+Supabase enable, auth state, gerçek API çağrısı, ödeme, kampanya yaratma/CRUD, admin, i18n framework, e-mail, bildirim, görsel upload.
+
+## Varsayımlar
+
+1. "Şikâyet Et" formu mock toast ile sonlanır; veritabanı yok.
+2. Yorumlar read-only mock; ekleme formu disabled placeholder.
+3. Search'te `fundedMax` üst sınır 500 (%) — %220 gibi aşırı fonlanmış mock kampanyalar için.
+4. Reward tier limit/stok mock alanlarda yer alır; checkout yok.
+5. `MockError` simülasyonu sadece `localStorage.setItem("benifonla:mock-error", "campaigns")` ile dev'de tetiklenir; UI debug switch yok.
+
+## Açık Riskler
+
+- TanStack Router `validateSearch` array param (kategori multi-select) URL serialization formatı: virgülle değil, default JSON-stringify ile. Bu kullanıcıya çirkin URL üretebilir — kabul edilebilir varsayım.
+- Mock kampanya sayısı genişletilse de "başarılı kampanya" çeşitliliği sınırlı kalabilir.
+
+Onay sonrası build mode'da uygularım.
