@@ -110,7 +110,7 @@ function Filters({ search, categories, onChange, onReset }: FilterPanelProps) {
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">Kategoriler</legend>
         <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
-          {categories.map((c) => {
+          {categories.map((c: { id: string; slug: string; label: string }) => {
             const id = `cat-${c.slug}`;
             const checked = search.cats.includes(c.slug);
             return (
@@ -147,7 +147,7 @@ export function SearchPage({ search }: { search: SearchParams }) {
   const cats = useQuery({ queryKey: ["categories"], queryFn: listCategories });
 
   const update = (next: Partial<SearchParams>) => {
-    navigate({ search: (prev) => ({ ...prev, ...next }) });
+    navigate({ search: (prev: SearchParams) => ({ ...prev, ...next }) });
   };
 
   const reset = () =>
@@ -184,7 +184,7 @@ export function SearchPage({ search }: { search: SearchParams }) {
       arr.push({ id: "q", label: `"${search.q}"`, onRemove: () => update({ q: "", page: 1 }) });
     }
     for (const slug of search.cats) {
-      const c = cats.data?.find((x) => x.slug === slug);
+      const c = cats.data?.find((x: { slug: string; label: string }) => x.slug === slug);
       arr.push({
         id: `cat-${slug}`,
         label: c?.label ?? slug,
