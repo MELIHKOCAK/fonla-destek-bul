@@ -30,6 +30,7 @@ import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_auth
 import { Route as AuthenticatedCreatorCampaignsRouteImport } from './routes/_authenticated/creator.campaigns'
 import { Route as AuthenticatedCreatorCampaignsIndexRouteImport } from './routes/_authenticated/creator.campaigns.index'
 import { Route as AuthenticatedAdminCampaignReviewsIndexRouteImport } from './routes/_authenticated/admin.campaign-reviews.index'
+import { Route as ApiPublicHooksPublishDueCampaignsRouteImport } from './routes/api/public/hooks/publish-due-campaigns'
 import { Route as AuthenticatedCreatorCampaignsNewRouteImport } from './routes/_authenticated/creator.campaigns.new'
 import { Route as AuthenticatedAdminCampaignReviewsCampaignIdRouteImport } from './routes/_authenticated/admin.campaign-reviews.$campaignId'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.preview'
@@ -145,6 +146,12 @@ const AuthenticatedAdminCampaignReviewsIndexRoute =
     path: '/campaign-reviews/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const ApiPublicHooksPublishDueCampaignsRoute =
+  ApiPublicHooksPublishDueCampaignsRouteImport.update({
+    id: '/api/public/hooks/publish-due-campaigns',
+    path: '/api/public/hooks/publish-due-campaigns',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedCreatorCampaignsNewRoute =
   AuthenticatedCreatorCampaignsNewRouteImport.update({
     id: '/new',
@@ -197,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
   '/admin/campaign-reviews/': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
   '/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
@@ -222,6 +230,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
   '/admin/campaign-reviews': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsIndexRoute
   '/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
@@ -251,6 +260,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
   '/_authenticated/admin/campaign-reviews/': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/_authenticated/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
   '/_authenticated/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
+    | '/api/public/hooks/publish-due-campaigns'
     | '/admin/campaign-reviews/'
     | '/creator/campaigns/'
     | '/admin/campaigns/$campaignId/history'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
+    | '/api/public/hooks/publish-due-campaigns'
     | '/admin/campaign-reviews'
     | '/creator/campaigns'
     | '/admin/campaigns/$campaignId/history'
@@ -333,6 +345,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/admin/campaign-reviews/$campaignId'
     | '/_authenticated/creator/campaigns/new'
+    | '/api/public/hooks/publish-due-campaigns'
     | '/_authenticated/admin/campaign-reviews/'
     | '/_authenticated/creator/campaigns/'
     | '/_authenticated/admin/campaigns/$campaignId/history'
@@ -352,6 +365,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  ApiPublicHooksPublishDueCampaignsRoute: typeof ApiPublicHooksPublishDueCampaignsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -503,6 +517,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCampaignReviewsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/api/public/hooks/publish-due-campaigns': {
+      id: '/api/public/hooks/publish-due-campaigns'
+      path: '/api/public/hooks/publish-due-campaigns'
+      fullPath: '/api/public/hooks/publish-due-campaigns'
+      preLoaderRoute: typeof ApiPublicHooksPublishDueCampaignsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/creator/campaigns/new': {
       id: '/_authenticated/creator/campaigns/new'
       path: '/new'
@@ -632,7 +653,19 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  ApiPublicHooksPublishDueCampaignsRoute:
+    ApiPublicHooksPublishDueCampaignsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
