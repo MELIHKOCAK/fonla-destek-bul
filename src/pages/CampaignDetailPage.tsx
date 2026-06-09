@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, notFound } from "@tanstack/react-router";
+import { Link, notFound, useNavigate } from "@tanstack/react-router";
 import { CalendarDays, Flag, Heart, Share2, Users } from "lucide-react";
 import { Container } from "@/components/common/Container";
 import { PageHeader } from "@/components/common/PageHeader";
