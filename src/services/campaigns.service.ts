@@ -1,22 +1,18 @@
-import { campaigns } from "@/mocks/campaigns";
-import type { Campaign, CampaignDetail, CampaignStatus } from "@/types/campaign";
-import { simulateDelay } from "./mock/delay";
-import { MockServiceError, shouldSimulateError } from "./mock/errors";
-import { buildCampaignDetail } from "@/mocks/campaign-details";
+import { supabase } from "@/integrations/supabase/client";
+import type { Campaign, CampaignDetail } from "@/types/campaign";
+import {
+  toCampaign,
+  toCampaignDetail,
+  type PublicCampaignRow,
+  type PublicDetailRow,
+  type PublicRewardRow,
+  type PublicUpdateRow,
+} from "@/lib/public/adapters";
+import { resolveCoverUrl, signCampaignMediaPaths } from "@/lib/public/media";
+import type { PublicCampaignQuery, PublicCampaignSort } from "@/lib/public/types";
 
-export type CampaignSort = "newest" | "popular" | "near-goal" | "ending-soon";
-
-export interface CampaignQuery {
-  q?: string;
-  categorySlugs?: ReadonlyArray<string>;
-  fundedMin?: number;
-  fundedMax?: number;
-  endingWithinDays?: number | null;
-  statuses?: ReadonlyArray<CampaignStatus>;
-  sort?: CampaignSort;
-  page?: number;
-  pageSize?: number;
-}
+export type CampaignSort = PublicCampaignSort;
+export type CampaignQuery = PublicCampaignQuery;
 
 export interface PaginatedResult<T> {
   items: ReadonlyArray<T>;
@@ -26,117 +22,108 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
-const DEFAULT_PAGE_SIZE = 9;
+const DEFAULT_PAGE_SIZE = 12;
 
-function fundingPercent(c: Campaign): number {
-  if (c.goalAmountMinor <= 0) return 0;
-  return (c.raisedAmountMinor / c.goalAmountMinor) * 100;
-}
-
-function daysUntil(iso: string, now = new Date()): number {
-  const target = new Date(iso).getTime();
-  return Math.ceil((target - now.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function applyFilters(list: ReadonlyArray<Campaign>, q: CampaignQuery): Campaign[] {
-  const term = q.q?.trim().toLowerCase();
-  return list.filter((c) => {
-    if (term) {
-      const hay = `${c.title} ${c.shortDescription} ${c.creator.displayName}`.toLowerCase();
-      if (!hay.includes(term)) return false;
-    }
-    if (q.categorySlugs && q.categorySlugs.length > 0) {
-      if (!q.categorySlugs.includes(c.category.slug)) return false;
-    }
-    if (q.statuses && q.statuses.length > 0) {
-      if (!q.statuses.includes(c.status)) return false;
-    }
-    const pct = fundingPercent(c);
-    if (typeof q.fundedMin === "number" && pct < q.fundedMin) return false;
-    if (typeof q.fundedMax === "number" && pct > q.fundedMax) return false;
-    if (typeof q.endingWithinDays === "number" && q.endingWithinDays > 0) {
-      const remaining = daysUntil(c.endDate);
-      if (remaining < 0 || remaining > q.endingWithinDays) return false;
-    }
-    return true;
-  });
-}
-
-function applySort(list: Campaign[], sort: CampaignSort): Campaign[] {
-  const copy = [...list];
-  switch (sort) {
-    case "newest":
-      return copy.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-    case "popular":
-      return copy.sort((a, b) => b.backerCount - a.backerCount);
-    case "near-goal":
-      return copy.sort((a, b) => {
-        const aPct = Math.min(100, fundingPercent(a));
-        const bPct = Math.min(100, fundingPercent(b));
-        return bPct - aPct;
-      });
-    case "ending-soon":
-      return copy.sort((a, b) => +new Date(a.endDate) - +new Date(b.endDate));
+class PublicCampaignServiceError extends Error {
+  constructor(message: string, public readonly cause?: unknown) {
+    super(message);
+    this.name = "PublicCampaignServiceError";
   }
 }
 
-const PUBLIC_STATUSES: ReadonlyArray<CampaignStatus> = ["live", "successful", "paid_out"];
+async function attachCovers(rows: PublicCampaignRow[]): Promise<Campaign[]> {
+  const paths = rows
+    .map((r) => r.cover_storage_path)
+    .filter((p): p is string => Boolean(p));
+  const signed = paths.length > 0 ? await signCampaignMediaPaths(paths) : new Map<string, string | null>();
+  return rows.map((r) => toCampaign(r, resolveCoverUrl(r.cover_storage_path, r.cover_external_url, signed)));
+}
 
-function publicCampaigns(): Campaign[] {
-  return campaigns.filter((c) => PUBLIC_STATUSES.includes(c.status));
+async function callListRpc(query: CampaignQuery, pageSize: number, page: number) {
+  const { data, error } = await supabase.rpc("get_public_campaigns", {
+    _q: query.q?.trim() || undefined,
+    _category_slugs: query.categorySlugs && query.categorySlugs.length > 0 ? [...query.categorySlugs] : undefined,
+    _funded_min: typeof query.fundedMin === "number" ? query.fundedMin : undefined,
+    _funded_max: typeof query.fundedMax === "number" ? query.fundedMax : undefined,
+    _ending_within_days:
+      typeof query.endingWithinDays === "number" && query.endingWithinDays > 0
+        ? query.endingWithinDays
+        : undefined,
+    _statuses: query.statuses && query.statuses.length > 0 ? [...query.statuses] : undefined,
+    _sort: query.sort ?? "newest",
+    _limit: pageSize,
+    _offset: (page - 1) * pageSize,
+  });
+  if (error) throw new PublicCampaignServiceError(error.message, error);
+  return (data ?? []) as unknown as PublicCampaignRow[];
+}
+
+export async function getCampaigns(query: CampaignQuery = {}): Promise<PaginatedResult<Campaign>> {
+  const page = Math.max(1, query.page ?? 1);
+  const pageSize = Math.max(1, Math.min(48, query.pageSize ?? DEFAULT_PAGE_SIZE));
+  const rows = await callListRpc(query, pageSize, page);
+  const total = rows.length > 0 ? Number((rows[0] as PublicCampaignRow & { total_count?: number }).total_count ?? 0) : 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const items = await attachCovers(rows);
+  return { items, total, page, pageSize, totalPages };
 }
 
 export async function getFeaturedCampaigns(limit = 4): Promise<ReadonlyArray<Campaign>> {
-  await simulateDelay();
-  if (shouldSimulateError("campaigns")) throw new MockServiceError();
-  return publicCampaigns()
-    .filter((c) => c.featured && c.status === "live")
-    .slice(0, limit);
+  // No featured flag in DB yet — surface "popular live" as featured.
+  const rows = await callListRpc({ sort: "popular" }, Math.max(1, Math.min(12, limit)), 1);
+  return attachCovers(rows);
 }
 
 export async function getNewCampaigns(limit = 6): Promise<ReadonlyArray<Campaign>> {
-  await simulateDelay();
-  if (shouldSimulateError("campaigns")) throw new MockServiceError();
-  return publicCampaigns()
-    .filter((c) => c.status === "live")
-    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
-    .slice(0, limit);
+  const rows = await callListRpc({ sort: "newest" }, Math.max(1, Math.min(12, limit)), 1);
+  return attachCovers(rows);
 }
 
 export async function getSuccessfulCampaigns(limit = 6): Promise<ReadonlyArray<Campaign>> {
-  await simulateDelay();
-  if (shouldSimulateError("campaigns")) throw new MockServiceError();
-  return publicCampaigns()
-    .filter((c) => c.status === "successful" || c.status === "paid_out")
-    .sort((a, b) => b.backerCount - a.backerCount)
-    .slice(0, limit);
-}
-
-export async function getCampaigns(
-  query: CampaignQuery = {},
-): Promise<PaginatedResult<Campaign>> {
-  await simulateDelay();
-  if (shouldSimulateError("campaigns")) throw new MockServiceError();
-
-  const page = Math.max(1, query.page ?? 1);
-  const pageSize = Math.max(1, query.pageSize ?? DEFAULT_PAGE_SIZE);
-  const sort = query.sort ?? "newest";
-
-  const filtered = applyFilters(publicCampaigns(), query);
-  const sorted = applySort(filtered, sort);
-  const total = sorted.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const start = (safePage - 1) * pageSize;
-  const items = sorted.slice(start, start + pageSize);
-
-  return { items, total, page: safePage, pageSize, totalPages };
+  const rows = await callListRpc(
+    { sort: "popular", statuses: ["successful"] },
+    Math.max(1, Math.min(12, limit)),
+    1,
+  );
+  return attachCovers(rows);
 }
 
 export async function getCampaignBySlug(slug: string): Promise<CampaignDetail | null> {
-  await simulateDelay();
-  if (shouldSimulateError("campaigns")) throw new MockServiceError();
-  const c = campaigns.find((x) => x.slug === slug);
-  if (!c) return null;
-  return buildCampaignDetail(c);
+  const safe = (slug ?? "").trim();
+  if (!safe) return null;
+
+  const [detailRes, rewardsRes, updatesRes] = await Promise.all([
+    supabase.rpc("get_public_campaign_by_slug", { _slug: safe }),
+    // campaign_id is not known yet; fetch after detail
+    Promise.resolve({ data: null as PublicRewardRow[] | null, error: null as null | { message: string } }),
+    Promise.resolve({ data: null as PublicUpdateRow[] | null, error: null as null | { message: string } }),
+  ]);
+
+  if (detailRes.error) throw new PublicCampaignServiceError(detailRes.error.message, detailRes.error);
+  const rows = (detailRes.data ?? []) as unknown as PublicDetailRow[];
+  if (rows.length === 0) return null;
+  const row = rows[0];
+
+  const [rewards, updates] = await Promise.all([
+    supabase.rpc("get_public_campaign_rewards", { _campaign_id: row.id }),
+    supabase.rpc("get_public_campaign_updates", { _campaign_id: row.id }),
+  ]);
+  if (rewards.error) throw new PublicCampaignServiceError(rewards.error.message, rewards.error);
+  if (updates.error) throw new PublicCampaignServiceError(updates.error.message, updates.error);
+
+  const signed = row.cover_storage_path
+    ? await signCampaignMediaPaths([row.cover_storage_path])
+    : new Map<string, string | null>();
+  const coverUrl = resolveCoverUrl(row.cover_storage_path, row.cover_external_url, signed);
+
+  // Suppress unused destructure warnings
+  void rewardsRes;
+  void updatesRes;
+
+  return toCampaignDetail(
+    row,
+    coverUrl,
+    (rewards.data ?? []) as unknown as PublicRewardRow[],
+    (updates.data ?? []) as unknown as PublicUpdateRow[],
+  );
 }
