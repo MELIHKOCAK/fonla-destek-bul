@@ -133,8 +133,10 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <Outlet />
-        <Toaster richColors closeButton />
+        <AuthProvider>
+          <Outlet />
+          <Toaster richColors closeButton />
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
