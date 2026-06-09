@@ -102,9 +102,11 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             {/* Mobil metrik kartı (sticky support sağda olduğunda gizlenir) */}
             <section className="rounded-xl border border-border/60 bg-card p-5 lg:hidden">
               <MetricBlock c={c} percent={percent} endLabel={endLabel} />
-              <Button className="mt-4 w-full" onClick={() => setSupportOpen(true)}>
-                <Heart className="size-4" aria-hidden="true" />
-                Destek Ol
+              <Button asChild className="mt-4 w-full">
+                <Link to="/campaigns/$slug/back" params={{ slug }}>
+                  <Heart className="size-4" aria-hidden="true" />
+                  Destek Ol
+                </Link>
               </Button>
             </section>
 
