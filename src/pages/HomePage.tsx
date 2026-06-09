@@ -164,9 +164,7 @@ export function HomePage() {
             description="Son günlerde yayına alınan projeler."
             actions={
               <Button asChild variant="ghost" size="sm">
-                <Link to="/discover" search={{ sort: "newest" } as never}>
-                  Tümü
-                </Link>
+                <Link to="/discover">Tümü</Link>
               </Button>
             }
           />
