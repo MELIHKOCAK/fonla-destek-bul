@@ -5,8 +5,11 @@ import { Container } from "@/components/common/Container";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { MobileNavigation } from "./MobileNavigation";
 import { NavLinks } from "./NavLinks";
+import { UserMenu } from "./UserMenu";
+import { useAuth } from "@/hooks/use-auth";
 
 export function AppHeader() {
+  const { status, user } = useAuth();
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">
       <Container className="flex h-16 items-center justify-between gap-4">
@@ -30,13 +33,24 @@ export function AppHeader() {
 
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-2 md:flex">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/login">Giriş yap</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link to="/register">Kayıt ol</Link>
-            </Button>
+            {status === "authenticated" && user ? (
+              <UserMenu />
+            ) : status === "unauthenticated" ? (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/login">Giriş yap</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link to="/register">Kayıt ol</Link>
+                </Button>
+              </>
+            ) : null}
           </div>
+          {status === "authenticated" && user ? (
+            <div className="md:hidden">
+              <UserMenu />
+            </div>
+          ) : null}
           <ThemeToggle />
           <MobileNavigation />
         </div>

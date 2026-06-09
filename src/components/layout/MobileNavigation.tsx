@@ -32,19 +32,21 @@ export function MobileNavigation() {
         <nav aria-label="Mobil ana navigasyon" className="mt-6">
           <NavLinks variant="vertical" onNavigate={() => setOpen(false)} />
         </nav>
-        <div className="mt-6 space-y-2 border-t border-border pt-4">
-          <Button asChild variant="outline" className="w-full">
-            <Link to="/login" onClick={() => setOpen(false)}>
-              Giriş yap
-            </Link>
-          </Button>
-          <Button asChild className="w-full">
-            <Link to="/register" onClick={() => setOpen(false)}>
-              Kayıt ol
-            </Link>
-          </Button>
-        </div>
+        <MobileAuthActions onNavigate={() => setOpen(false)} />
       </SheetContent>
     </Sheet>
+  );
+}
+
+function MobileAuthActions({ onNavigate }: { onNavigate: () => void }) {
+  return (
+    <div className="mt-6 space-y-2 border-t border-border pt-4">
+      <Button asChild variant="outline" className="w-full">
+        <Link to="/login" onClick={onNavigate}>Giriş yap</Link>
+      </Button>
+      <Button asChild className="w-full">
+        <Link to="/register" onClick={onNavigate}>Kayıt ol</Link>
+      </Button>
+    </div>
   );
 }
