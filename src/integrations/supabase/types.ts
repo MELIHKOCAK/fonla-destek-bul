@@ -468,7 +468,9 @@ export type Database = {
           anonymous: boolean
           backer_id: string
           campaign_id: string
+          contact_email: string | null
           contact_email_encrypted: string | null
+          contact_phone: string | null
           created_at: string
           currency: string
           display_name_snapshot: string | null
@@ -478,6 +480,12 @@ export type Database = {
           reward_tier_id: string | null
           risk_acknowledged_at: string | null
           shipping_address_encrypted: string | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_line1: string | null
+          shipping_line2: string | null
+          shipping_postal_code: string | null
+          shipping_recipient_name: string | null
           status: Database["public"]["Enums"]["contribution_status"]
           updated_at: string
         }
@@ -486,7 +494,9 @@ export type Database = {
           anonymous?: boolean
           backer_id: string
           campaign_id: string
+          contact_email?: string | null
           contact_email_encrypted?: string | null
+          contact_phone?: string | null
           created_at?: string
           currency?: string
           display_name_snapshot?: string | null
@@ -496,6 +506,12 @@ export type Database = {
           reward_tier_id?: string | null
           risk_acknowledged_at?: string | null
           shipping_address_encrypted?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_line1?: string | null
+          shipping_line2?: string | null
+          shipping_postal_code?: string | null
+          shipping_recipient_name?: string | null
           status?: Database["public"]["Enums"]["contribution_status"]
           updated_at?: string
         }
@@ -504,7 +520,9 @@ export type Database = {
           anonymous?: boolean
           backer_id?: string
           campaign_id?: string
+          contact_email?: string | null
           contact_email_encrypted?: string | null
+          contact_phone?: string | null
           created_at?: string
           currency?: string
           display_name_snapshot?: string | null
@@ -514,6 +532,12 @@ export type Database = {
           reward_tier_id?: string | null
           risk_acknowledged_at?: string | null
           shipping_address_encrypted?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_line1?: string | null
+          shipping_line2?: string | null
+          shipping_postal_code?: string | null
+          shipping_recipient_name?: string | null
           status?: Database["public"]["Enums"]["contribution_status"]
           updated_at?: string
         }
@@ -1001,6 +1025,7 @@ export type Database = {
         Row: {
           amount_minor: number
           campaign_id: string
+          claimed_count: number
           created_at: string
           description: string | null
           estimated_delivery_date: string | null
@@ -1015,6 +1040,7 @@ export type Database = {
         Insert: {
           amount_minor: number
           campaign_id: string
+          claimed_count?: number
           created_at?: string
           description?: string | null
           estimated_delivery_date?: string | null
@@ -1029,6 +1055,7 @@ export type Database = {
         Update: {
           amount_minor?: number
           campaign_id?: string
+          claimed_count?: number
           created_at?: string
           description?: string | null
           estimated_delivery_date?: string | null
@@ -1202,6 +1229,41 @@ export type Database = {
     }
     Functions: {
       _assert_admin: { Args: never; Returns: undefined }
+      _finalize_contribution_paid: {
+        Args: { _contribution_id: string; _payment_transaction_id: string }
+        Returns: {
+          amount_minor: number
+          anonymous: boolean
+          backer_id: string
+          campaign_id: string
+          contact_email: string | null
+          contact_email_encrypted: string | null
+          contact_phone: string | null
+          created_at: string
+          currency: string
+          display_name_snapshot: string | null
+          environment: Database["public"]["Enums"]["financial_environment"]
+          id: string
+          idempotency_key: string | null
+          reward_tier_id: string | null
+          risk_acknowledged_at: string | null
+          shipping_address_encrypted: string | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_line1: string | null
+          shipping_line2: string | null
+          shipping_postal_code: string | null
+          shipping_recipient_name: string | null
+          status: Database["public"]["Enums"]["contribution_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "contributions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_hide_comment: {
         Args: { _comment_id: string; _reason: string }
         Returns: {
@@ -1346,6 +1408,49 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_contribution: {
+        Args: {
+          _amount_minor: number
+          _anonymous: boolean
+          _campaign_id: string
+          _idempotency_key: string
+          _reward_tier_id: string
+          _risk_ack: boolean
+          _shipping: Json
+        }
+        Returns: {
+          amount_minor: number
+          anonymous: boolean
+          backer_id: string
+          campaign_id: string
+          contact_email: string | null
+          contact_email_encrypted: string | null
+          contact_phone: string | null
+          created_at: string
+          currency: string
+          display_name_snapshot: string | null
+          environment: Database["public"]["Enums"]["financial_environment"]
+          id: string
+          idempotency_key: string | null
+          reward_tier_id: string | null
+          risk_acknowledged_at: string | null
+          shipping_address_encrypted: string | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_line1: string | null
+          shipping_line2: string | null
+          shipping_postal_code: string | null
+          shipping_recipient_name: string | null
+          status: Database["public"]["Enums"]["contribution_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "contributions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       creator_campaign_reviews: {
         Args: { _campaign_id: string }
         Returns: {
@@ -1383,6 +1488,48 @@ export type Database = {
       generate_unique_campaign_slug: {
         Args: { _base: string }
         Returns: string
+      }
+      get_campaign_progress: {
+        Args: { _campaign_id: string }
+        Returns: {
+          backer_count: number
+          contribution_count: number
+          funded_pct: number
+          goal_amount_minor: number
+          raised_amount_minor: number
+        }[]
+      }
+      get_contribution_status: {
+        Args: { _id: string }
+        Returns: {
+          amount_minor: number
+          campaign_id: string
+          created_at: string
+          currency: string
+          environment: Database["public"]["Enums"]["financial_environment"]
+          id: string
+          latest_attempt_number: number
+          latest_payment_status: Database["public"]["Enums"]["payment_status"]
+          reward_tier_id: string
+          status: Database["public"]["Enums"]["contribution_status"]
+        }[]
+      }
+      get_my_contributions: {
+        Args: never
+        Returns: {
+          amount_minor: number
+          campaign_id: string
+          campaign_slug: string
+          campaign_title: string
+          created_at: string
+          currency: string
+          environment: Database["public"]["Enums"]["financial_environment"]
+          id: string
+          latest_payment_status: Database["public"]["Enums"]["payment_status"]
+          reward_tier_id: string
+          reward_title: string
+          status: Database["public"]["Enums"]["contribution_status"]
+        }[]
       }
       get_public_campaign_by_slug: {
         Args: { _slug: string }
@@ -1668,6 +1815,32 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      simulate_test_payment: {
+        Args: { _contribution_id: string; _scenario: string }
+        Returns: {
+          amount_minor: number
+          attempt_number: number
+          contribution_id: string
+          created_at: string
+          currency: string
+          environment: Database["public"]["Enums"]["financial_environment"]
+          error_code: string | null
+          error_message: string | null
+          id: string
+          provider: string
+          provider_payment_id: string | null
+          provider_reference: string | null
+          sanitized_metadata: Json
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payment_transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       soft_delete_comment: {
         Args: { _comment_id: string }
         Returns: {
