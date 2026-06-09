@@ -61,7 +61,7 @@ export async function createComment(input: {
 }): Promise<CommentRow> {
   const { data, error } = await supabase.rpc("create_comment", {
     _campaign_id: input.campaignId,
-    _parent_id: input.parentId,
+    _parent_id: input.parentId as unknown as string,
     _body: input.body,
   });
   if (error) throw error;
