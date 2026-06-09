@@ -99,10 +99,10 @@ export async function reportTarget(input: {
   description: string | null;
 }): Promise<ReportRow> {
   const { data, error } = await supabase.rpc("report_target", {
-    _campaign_id: input.campaignId,
-    _comment_id: input.commentId,
+    _campaign_id: input.campaignId as unknown as string,
+    _comment_id: input.commentId as unknown as string,
     _reason_code: input.reasonCode,
-    _description: input.description,
+    _description: input.description as unknown as string,
   });
   if (error) throw error;
   return data as unknown as ReportRow;
