@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { MobileNavigation } from "./MobileNavigation";
 import { NavLinks } from "./NavLinks";
 import { UserMenu } from "./UserMenu";
+import { NotificationBell } from "@/components/social/NotificationBell";
 import { useAuth } from "@/hooks/use-auth";
 
 export function AppHeader() {
