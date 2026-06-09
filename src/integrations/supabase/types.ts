@@ -107,6 +107,7 @@ export type Database = {
         Row: {
           campaign_id: string
           created_at: string
+          creator_visible_notes: string | null
           decision: Database["public"]["Enums"]["review_decision"]
           from_status: Database["public"]["Enums"]["campaign_status"] | null
           id: string
@@ -117,6 +118,7 @@ export type Database = {
         Insert: {
           campaign_id: string
           created_at?: string
+          creator_visible_notes?: string | null
           decision: Database["public"]["Enums"]["review_decision"]
           from_status?: Database["public"]["Enums"]["campaign_status"] | null
           id?: string
@@ -127,6 +129,7 @@ export type Database = {
         Update: {
           campaign_id?: string
           created_at?: string
+          creator_visible_notes?: string | null
           decision?: Database["public"]["Enums"]["review_decision"]
           from_status?: Database["public"]["Enums"]["campaign_status"] | null
           id?: string
@@ -963,14 +966,78 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_public: {
+        Row: {
+          avatar_path: string | null
+          bio: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          location: string | null
+          username: string | null
+          website_url: string | null
+        }
+        Insert: {
+          avatar_path?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          location?: string | null
+          username?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          avatar_path?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          location?: string | null
+          username?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      campaign_contributions_for_creator: {
+        Args: { _campaign_id: string }
+        Returns: {
+          amount_minor: number
+          anonymous: boolean
+          campaign_id: string
+          created_at: string
+          currency: string
+          display_name_snapshot: string
+          id: string
+          reward_tier_id: string
+          status: Database["public"]["Enums"]["contribution_status"]
+        }[]
+      }
+      campaign_is_public: { Args: { _campaign_id: string }; Returns: boolean }
+      campaign_owned_by_me: { Args: { _campaign_id: string }; Returns: boolean }
+      campaign_status: {
+        Args: { _campaign_id: string }
+        Returns: Database["public"]["Enums"]["campaign_status"]
+      }
       check_username_available: {
         Args: { _username: string }
         Returns: boolean
       }
       claim_username: { Args: { _username: string }; Returns: undefined }
+      creator_campaign_reviews: {
+        Args: { _campaign_id: string }
+        Returns: {
+          campaign_id: string
+          created_at: string
+          creator_visible_notes: string
+          decision: Database["public"]["Enums"]["review_decision"]
+          from_status: Database["public"]["Enums"]["campaign_status"]
+          id: string
+          to_status: Database["public"]["Enums"]["campaign_status"]
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
@@ -978,7 +1045,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
       is_username_reserved: { Args: { _username: string }; Returns: boolean }
+      my_contributions: {
+        Args: never
+        Returns: {
+          amount_minor: number
+          anonymous: boolean
+          campaign_id: string
+          created_at: string
+          currency: string
+          id: string
+          reward_tier_id: string
+          status: Database["public"]["Enums"]["contribution_status"]
+          updated_at: string
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
