@@ -9,7 +9,7 @@ describe("MobileNavigation", () => {
     const user = userEvent.setup();
     renderWithRouter(<MobileNavigation />);
 
-    const trigger = screen.getByRole("button", { name: /Menüyü aç/i });
+    const trigger = await screen.findByRole("button", { name: /Menüyü aç/i });
     await user.click(trigger);
 
     const dialog = await screen.findByRole("dialog");
