@@ -34,7 +34,10 @@ export function AppHeader() {
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-2 md:flex">
             {status === "authenticated" && user ? (
-              <UserMenu />
+              <>
+                <NotificationBell />
+                <UserMenu />
+              </>
             ) : status === "unauthenticated" ? (
               <>
                 <Button asChild variant="ghost" size="sm">
