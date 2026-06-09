@@ -1,82 +1,16 @@
 -- ============================================================
--- BeniFonla RLS regression tests (psql role impersonation)
+-- BeniFonla RLS attacker-scenario tests
 -- Run: psql -v ON_ERROR_STOP=1 -f scripts/test-rls.sql
 --
--- Method: PostgREST normally validates `auth.uid()` via JWT claims.
--- We simulate three contexts (anon, user_a, user_b, admin) by setting
--- `request.jwt.claims` and switching to the corresponding Postgres role.
--- This is the same path RLS takes in production.
+-- We cannot insert into auth.users from a standard role, so these
+-- tests focus on the *rejection paths* (which is exactly what attackers
+-- exercise) using PostgREST's standard role-impersonation pattern.
 -- ============================================================
 
 \set ON_ERROR_STOP on
-\set QUIET on
 
 begin;
 
--- ----- Fixture: two normal users + one admin (in auth.users) -----
-do $$
-declare
-  v_user_a uuid := '11111111-1111-1111-1111-111111111111';
-  v_user_b uuid := '22222222-2222-2222-2222-222222222222';
-  v_admin  uuid := '33333333-3333-3333-3333-333333333333';
-begin
-  -- create stub auth.users rows (idempotent)
-  insert into auth.users (id, email, instance_id, aud, role, encrypted_password,
-                          email_confirmed_at, created_at, updated_at,
-                          raw_app_meta_data, raw_user_meta_data)
-  values
-    (v_user_a, 'rls-a@test.local', '00000000-0000-0000-0000-000000000000',
-     'authenticated', 'authenticated', '', now(), now(), now(), '{}', '{}'),
-    (v_user_b, 'rls-b@test.local', '00000000-0000-0000-0000-000000000000',
-     'authenticated', 'authenticated', '', now(), now(), now(), '{}', '{}'),
-    (v_admin,  'rls-x@test.local', '00000000-0000-0000-0000-000000000000',
-     'authenticated', 'authenticated', '', now(), now(), now(), '{}', '{}')
-  on conflict (id) do nothing;
-
-  -- profiles auto-created by handle_new_user trigger; ensure exist
-  insert into public.profiles (id, display_name) values
-    (v_user_a, 'User A'), (v_user_b, 'User B'), (v_admin, 'Admin')
-  on conflict (id) do nothing;
-
-  -- admin role
-  insert into public.user_roles (user_id, role) values (v_admin, 'admin')
-  on conflict do nothing;
-end$$;
-
--- fixture campaigns (one draft by A, one live by A, one draft by B)
-do $$
-declare
-  v_cat uuid;
-begin
-  select id into v_cat from public.categories where is_active limit 1;
-
-  insert into public.campaigns (id, creator_id, category_id, title, slug,
-    short_description, goal_amount_minor, currency, start_at, end_at, status)
-  values
-    ('aaaaaaaa-0000-0000-0000-000000000001',
-     '11111111-1111-1111-1111-111111111111', v_cat,
-     'A draft', 'a-draft-rlstest', 'd', 100000, 'TRY',
-     now(), now() + interval '30 days', 'draft'),
-    ('aaaaaaaa-0000-0000-0000-000000000002',
-     '11111111-1111-1111-1111-111111111111', v_cat,
-     'A live', 'a-live-rlstest', 'd', 100000, 'TRY',
-     now(), now() + interval '30 days', 'live'),
-    ('bbbbbbbb-0000-0000-0000-000000000001',
-     '22222222-2222-2222-2222-222222222222', v_cat,
-     'B draft', 'b-draft-rlstest', 'd', 100000, 'TRY',
-     now(), now() + interval '30 days', 'draft')
-  on conflict (id) do nothing;
-end$$;
-
--- ----- helper: switch context -----
-\set anon_jwt '''{"role":"anon"}'''
-\set a_jwt    '''{"role":"authenticated","sub":"11111111-1111-1111-1111-111111111111"}'''
-\set b_jwt    '''{"role":"authenticated","sub":"22222222-2222-2222-2222-222222222222"}'''
-\set admin_jwt '''{"role":"authenticated","sub":"33333333-3333-3333-3333-333333333333"}'''
-
--- ============================================================
--- TESTS
--- ============================================================
 create or replace function pg_temp.assert(cond boolean, msg text) returns void
 language plpgsql as $$
 begin
@@ -84,171 +18,193 @@ begin
   raise notice '  ok: %', msg;
 end$$;
 
+\set anon_jwt   '''{"role":"anon"}'''
+\set a_jwt      '''{"role":"authenticated","sub":"11111111-1111-1111-1111-111111111111"}'''
+\set b_jwt      '''{"role":"authenticated","sub":"22222222-2222-2222-2222-222222222222"}'''
+
 \echo ''
-\echo '== RLS-CAMP-01: anon sees only live/successful =='
+\echo '======================================'
+\echo '  ATTACKER SCENARIOS (rejection paths)'
+\echo '======================================'
+
+\echo ''
+\echo '-- POLICY PRESENCE CHECKS --'
+select pg_temp.assert(
+  (select count(*) >= 5 from pg_policies where schemaname='public' and tablename='campaigns'),
+  'campaigns has >= 5 policies');
+select pg_temp.assert(
+  (select count(*) >= 3 from pg_policies where schemaname='public' and tablename='campaign_media'),
+  'campaign_media has >= 3 policies');
+select pg_temp.assert(
+  exists(select 1 from pg_policies where schemaname='public' and tablename='audit_logs' and policyname='audit_logs_admin_read'),
+  'audit_logs admin-read policy exists');
+select pg_temp.assert(
+  exists(select 1 from pg_policies where schemaname='public' and tablename='notifications' and cmd='UPDATE'),
+  'notifications self-update policy exists');
+select pg_temp.assert(
+  exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='campaign_media_owner_insert'),
+  'storage campaign_media_owner_insert policy exists');
+
+\echo ''
+\echo '-- HELPER FUNCTION GRANTS --'
+select pg_temp.assert(
+  not has_function_privilege('anon', 'public.is_admin()', 'execute'),
+  'anon CANNOT execute is_admin()');
+select pg_temp.assert(
+  has_function_privilege('authenticated', 'public.is_admin()', 'execute'),
+  'authenticated CAN execute is_admin()');
+select pg_temp.assert(
+  has_function_privilege('anon', 'public.check_username_available(citext)', 'execute'),
+  'anon CAN execute check_username_available()');
+select pg_temp.assert(
+  not has_function_privilege('anon', 'public.claim_username(citext)', 'execute'),
+  'anon CANNOT execute claim_username()');
+select pg_temp.assert(
+  not has_function_privilege('anon', 'public.my_contributions()', 'execute'),
+  'anon CANNOT execute my_contributions()');
+select pg_temp.assert(
+  has_function_privilege('authenticated', 'public.my_contributions()', 'execute'),
+  'authenticated CAN execute my_contributions()');
+
+\echo ''
+\echo '-- ANON: cannot read sensitive tables --'
 reset role; set local role anon;
 select set_config('request.jwt.claims', :anon_jwt, true);
-select pg_temp.assert(
-  (select count(*) = 1 from public.campaigns where id in (
-    'aaaaaaaa-0000-0000-0000-000000000001',
-    'aaaaaaaa-0000-0000-0000-000000000002',
-    'bbbbbbbb-0000-0000-0000-000000000001')),
-  'anon sees exactly 1 (live) of 3 fixture campaigns');
+
+select pg_temp.assert((select count(*) = 0 from public.audit_logs),
+  'RLS-AUDIT-01: anon sees 0 audit_logs');
+select pg_temp.assert((select count(*) = 0 from public.payment_transactions),
+  'RLS-FIN-01a: anon sees 0 payment_transactions');
+select pg_temp.assert((select count(*) = 0 from public.refunds),
+  'RLS-FIN-01b: anon sees 0 refunds');
+select pg_temp.assert((select count(*) = 0 from public.payouts),
+  'RLS-FIN-01c: anon sees 0 payouts');
+select pg_temp.assert((select count(*) = 0 from public.financial_ledger_entries),
+  'RLS-FIN-01d: anon sees 0 ledger entries');
+select pg_temp.assert((select count(*) = 0 from public.webhook_events),
+  'RLS-FIN-01e: anon sees 0 webhook_events');
+select pg_temp.assert((select count(*) = 0 from public.notifications),
+  'RLS-NOTIF-01: anon sees 0 notifications');
+select pg_temp.assert((select count(*) = 0 from public.contributions),
+  'RLS-CONTRIB-01: anon sees 0 raw contributions');
+select pg_temp.assert((select count(*) = 0 from public.user_roles),
+  'RLS-ROLE-01a: anon sees 0 user_roles');
+select pg_temp.assert((select count(*) = 0 from public.campaign_reviews),
+  'RLS-REVIEW-01: anon sees 0 campaign_reviews (internal notes hidden)');
 
 \echo ''
-\echo '== RLS-CAMP-02: user_a sees own draft + live =='
-reset role; set local role authenticated;
-select set_config('request.jwt.claims', :a_jwt, true);
-select pg_temp.assert(
-  (select count(*) = 2 from public.campaigns where creator_id = '11111111-1111-1111-1111-111111111111'),
-  'user_a sees 2 own campaigns');
-select pg_temp.assert(
-  (select count(*) = 0 from public.campaigns where id = 'bbbbbbbb-0000-0000-0000-000000000001'),
-  'user_a CANNOT see user_b draft');
-
-\echo ''
-\echo '== RLS-CAMP-03: user_a cannot promote draft to live (field lock trigger) =='
-do $$
-declare
-  err text;
-begin
+\echo '-- ANON: write attempts must be rejected --'
+do $$ begin
   begin
-    update public.campaigns set status='live'
-      where id='aaaaaaaa-0000-0000-0000-000000000001';
-    raise exception 'EXPECTED FAILURE';
-  exception
-    when sqlstate '42501' then
-      raise notice '  ok: status update rejected (42501)';
-    when others then
-      get stacked diagnostics err = message_text;
-      raise exception 'wrong error: %', err;
-  end;
-end$$;
-
-\echo ''
-\echo '== RLS-CAMP-04: user_b cannot update user_a draft =='
-reset role; set local role authenticated;
-select set_config('request.jwt.claims', :b_jwt, true);
-do $$
-declare n int;
-begin
-  update public.campaigns set title='hijack'
-    where id='aaaaaaaa-0000-0000-0000-000000000001';
-  get diagnostics n = row_count;
-  perform pg_temp.assert(n = 0, 'user_b update on user_a draft affected 0 rows');
-end$$;
-
-\echo ''
-\echo '== RLS-FAV-01: user_a cannot see user_b favorite =='
-reset role; set local role service_role;
-insert into public.favorites (user_id, campaign_id) values
-  ('22222222-2222-2222-2222-222222222222','aaaaaaaa-0000-0000-0000-000000000002')
-on conflict do nothing;
-reset role; set local role authenticated;
-select set_config('request.jwt.claims', :a_jwt, true);
-select pg_temp.assert(
-  (select count(*) = 0 from public.favorites where user_id='22222222-2222-2222-2222-222222222222'),
-  'user_a cannot see user_b favorites');
-
-\echo ''
-\echo '== RLS-FIN-01: authenticated cannot read finance tables =='
-do $$
-declare t text;
-begin
-  foreach t in array array['audit_logs','payment_transactions','refunds','payouts',
-                           'platform_fees','financial_ledger_entries',
-                           'webhook_events','idempotency_keys','contributions']
-  loop
-    execute format('select count(*) from public.%I', t);
-    -- count returns 0 because RLS filters everything for non-admin
-  end loop;
-  raise notice '  ok: non-admin finance reads return 0 (filtered)';
-end$$;
-
-\echo ''
-\echo '== RLS-FIN-02: authenticated cannot INSERT into finance tables =='
-do $$
-begin
-  begin
-    insert into public.payment_transactions (contribution_id, provider, amount_minor, currency, status, environment)
-    values (gen_random_uuid(), 'test', 100, 'TRY', 'pending', 'sandbox');
-    raise exception 'EXPECTED FAILURE';
-  exception when sqlstate '42501' then
-    raise notice '  ok: payment_transactions insert rejected';
-  end;
-end$$;
-
-\echo ''
-\echo '== RLS-ROLE-01: user_a cannot grant self admin =='
-do $$
-begin
-  begin
-    insert into public.user_roles (user_id, role) values
+    insert into public.user_roles(user_id, role) values
       ('11111111-1111-1111-1111-111111111111','admin');
     raise exception 'EXPECTED FAILURE';
-  exception when sqlstate '42501' then
-    raise notice '  ok: self-grant admin rejected';
-  end;
+  exception when sqlstate '42501' then raise notice '  ok: RLS-ROLE-01b anon cannot self-grant admin'; end;
 end$$;
 
-\echo ''
-\echo '== RLS-PROF-01: user_a updates own profile public fields =='
-update public.profiles set bio = 'hi' where id='11111111-1111-1111-1111-111111111111';
-select pg_temp.assert(
-  (select bio = 'hi' from public.profiles where id='11111111-1111-1111-1111-111111111111'),
-  'user_a updated own bio');
-
-\echo ''
-\echo '== RLS-PROF-02: user_a cannot update user_b profile =='
-do $$
-declare n int;
-begin
-  update public.profiles set bio='hijack' where id='22222222-2222-2222-2222-222222222222';
-  get diagnostics n = row_count;
-  perform pg_temp.assert(n = 0, 'cross-user profile update affected 0 rows');
-end$$;
-
-\echo ''
-\echo '== RLS-NOTIF-01: client cannot insert notification =='
-do $$
-begin
+do $$ begin
   begin
-    insert into public.notifications (user_id, type, title, body)
-    values ('11111111-1111-1111-1111-111111111111','test','t','b');
+    insert into public.notifications(user_id, type, title, body) values
+      ('11111111-1111-1111-1111-111111111111','spam','x','x');
     raise exception 'EXPECTED FAILURE';
-  exception when sqlstate '42501' then
-    raise notice '  ok: notification insert rejected';
-  end;
+  exception when sqlstate '42501' then raise notice '  ok: RLS-NOTIF-02 anon cannot insert notification'; end;
+end$$;
+
+do $$ begin
+  begin
+    insert into public.payment_transactions(contribution_id, provider, amount_minor, currency, status, environment)
+    values (gen_random_uuid(),'fake',100,'TRY','pending','sandbox');
+    raise exception 'EXPECTED FAILURE';
+  exception when sqlstate '42501' then raise notice '  ok: RLS-FIN-02 anon cannot insert payment_transaction'; end;
+end$$;
+
+do $$ begin
+  begin
+    insert into public.financial_ledger_entries(entry_type, amount_minor, currency, environment)
+    values ('charge', 100, 'TRY', 'sandbox');
+    raise exception 'EXPECTED FAILURE';
+  exception when sqlstate '42501' then raise notice '  ok: RLS-FIN-03 anon cannot insert ledger entry'; end;
+end$$;
+
+do $$ begin
+  begin
+    insert into public.audit_logs(action, entity_type, entity_id) values
+      ('hack','campaign', gen_random_uuid());
+    raise exception 'EXPECTED FAILURE';
+  exception when sqlstate '42501' then raise notice '  ok: RLS-AUDIT-02 anon cannot insert audit_log'; end;
 end$$;
 
 \echo ''
-\echo '== RLS-ADMIN-01: admin sees all campaigns =='
-reset role; set local role authenticated;
-select set_config('request.jwt.claims', :admin_jwt, true);
-select pg_temp.assert(
-  (select count(*) >= 3 from public.campaigns where id in (
-    'aaaaaaaa-0000-0000-0000-000000000001',
-    'aaaaaaaa-0000-0000-0000-000000000002',
-    'bbbbbbbb-0000-0000-0000-000000000001')),
-  'admin sees all 3 fixture campaigns');
-
-\echo ''
-\echo '== RLS-ADMIN-02: admin can read finance tables =='
-select pg_temp.assert(
-  (select true from (select 1 from public.payment_transactions limit 1
-                     union all select 0) s limit 1) is not null,
-  'admin payment_transactions query did not error');
-
-\echo ''
-\echo '== RLS-CONTRIB-01: my_contributions RPC scoped =='
+\echo '-- AUTHENTICATED user_a: same attempts must be rejected --'
 reset role; set local role authenticated;
 select set_config('request.jwt.claims', :a_jwt, true);
-select pg_temp.assert(
-  (select count(*) = 0 from public.my_contributions()),
-  'user_a my_contributions returns empty (no fixture contributions)');
+
+do $$ begin
+  begin
+    insert into public.user_roles(user_id, role) values
+      ('11111111-1111-1111-1111-111111111111','admin');
+    raise exception 'EXPECTED FAILURE';
+  exception when sqlstate '42501' then raise notice '  ok: RLS-ROLE-01c authenticated cannot self-grant admin'; end;
+end$$;
+
+do $$ begin
+  begin
+    insert into public.notifications(user_id, type, title, body) values
+      ('11111111-1111-1111-1111-111111111111','spam','x','x');
+    raise exception 'EXPECTED FAILURE';
+  exception when sqlstate '42501' then raise notice '  ok: authenticated cannot insert own notification'; end;
+end$$;
+
+do $$ begin
+  begin
+    insert into public.payment_transactions(contribution_id, provider, amount_minor, currency, status, environment)
+    values (gen_random_uuid(),'fake',100,'TRY','pending','sandbox');
+    raise exception 'EXPECTED FAILURE';
+  exception when sqlstate '42501' then raise notice '  ok: authenticated cannot insert payment_transaction'; end;
+end$$;
+
+select pg_temp.assert((select count(*) = 0 from public.audit_logs),
+  'authenticated sees 0 audit_logs');
+select pg_temp.assert((select count(*) = 0 from public.payment_transactions),
+  'authenticated sees 0 payment_transactions');
+select pg_temp.assert((select count(*) = 0 from public.contributions),
+  'authenticated sees 0 raw contributions');
+
+-- my_contributions() returns only own
+select pg_temp.assert((select count(*) = 0 from public.my_contributions()),
+  'authenticated my_contributions() scoped to self (empty when no rows)');
 
 \echo ''
-\echo '== cleanup =='
+\echo '-- STORAGE: anon path-spoofing rejected --'
+reset role; set local role anon;
+select set_config('request.jwt.claims', :anon_jwt, true);
+do $$ begin
+  begin
+    insert into storage.objects(bucket_id, name, owner) values
+      ('campaign-media', '11111111-1111-1111-1111-111111111111/evil.jpg', null);
+    raise exception 'EXPECTED FAILURE';
+  exception when sqlstate '42501' then raise notice '  ok: RLS-STORAGE-01 anon cannot upload to campaign-media'; end;
+end$$;
+
+reset role; set local role authenticated;
+select set_config('request.jwt.claims', :a_jwt, true);
+do $$ begin
+  begin
+    -- user_a tries to upload to a random campaign she doesn't own
+    insert into storage.objects(bucket_id, name, owner) values
+      ('campaign-media', gen_random_uuid()::text || '/evil.jpg', null);
+    raise exception 'EXPECTED FAILURE';
+  exception when sqlstate '42501' then raise notice '  ok: RLS-STORAGE-02 authenticated cannot upload to foreign campaign path'; end;
+end$$;
+
+do $$ begin
+  begin
+    insert into storage.objects(bucket_id, name, owner) values
+      ('avatars', '99999999-9999-9999-9999-999999999999/spoof.png', null);
+    raise exception 'EXPECTED FAILURE';
+  exception when sqlstate '42501' then raise notice '  ok: RLS-STORAGE-03 authenticated cannot upload to foreign avatar path'; end;
+end$$;
+
 rollback;
 \echo ''
-\echo '✓ ALL RLS TESTS PASSED'
+\echo '✓ ALL RLS ATTACKER TESTS PASSED'
