@@ -31,6 +31,7 @@ import { Route as AuthenticatedCreatorCampaignsRouteImport } from './routes/_aut
 import { Route as AuthenticatedCreatorCampaignsIndexRouteImport } from './routes/_authenticated/creator.campaigns.index'
 import { Route as AuthenticatedAdminCampaignReviewsIndexRouteImport } from './routes/_authenticated/admin.campaign-reviews.index'
 import { Route as AuthenticatedCreatorCampaignsNewRouteImport } from './routes/_authenticated/creator.campaigns.new'
+import { Route as AuthenticatedAdminCampaignReviewsCampaignIdRouteImport } from './routes/_authenticated/admin.campaign-reviews.$campaignId'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.preview'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdEditStepRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.edit.$step'
 
@@ -149,6 +150,12 @@ const AuthenticatedCreatorCampaignsNewRoute =
     path: '/new',
     getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
   } as any)
+const AuthenticatedAdminCampaignReviewsCampaignIdRoute =
+  AuthenticatedAdminCampaignReviewsCampaignIdRouteImport.update({
+    id: '/campaign-reviews/$campaignId',
+    path: '/campaign-reviews/$campaignId',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedCreatorCampaignsCampaignIdPreviewRoute =
   AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport.update({
     id: '/$campaignId/preview',
@@ -181,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/admin/campaign-reviews/': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
@@ -204,6 +212,7 @@ export interface FileRoutesByTo {
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/admin/campaign-reviews': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsIndexRoute
@@ -231,6 +240,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/_authenticated/admin/campaign-reviews/': typeof AuthenticatedAdminCampaignReviewsIndexRoute
   '/_authenticated/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/profile'
     | '/admin/'
+    | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/admin/campaign-reviews/'
     | '/creator/campaigns/'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/profile'
     | '/admin'
+    | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/admin/campaign-reviews'
     | '/creator/campaigns'
@@ -307,6 +319,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/profile'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/campaign-reviews/$campaignId'
     | '/_authenticated/creator/campaigns/new'
     | '/_authenticated/admin/campaign-reviews/'
     | '/_authenticated/creator/campaigns/'
@@ -484,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCreatorCampaignsNewRouteImport
       parentRoute: typeof AuthenticatedCreatorCampaignsRoute
     }
+    '/_authenticated/admin/campaign-reviews/$campaignId': {
+      id: '/_authenticated/admin/campaign-reviews/$campaignId'
+      path: '/campaign-reviews/$campaignId'
+      fullPath: '/admin/campaign-reviews/$campaignId'
+      preLoaderRoute: typeof AuthenticatedAdminCampaignReviewsCampaignIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/creator/campaigns/$campaignId/preview': {
       id: '/_authenticated/creator/campaigns/$campaignId/preview'
       path: '/$campaignId/preview'
@@ -503,11 +523,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminCampaignReviewsCampaignIdRoute: typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   AuthenticatedAdminCampaignReviewsIndexRoute: typeof AuthenticatedAdminCampaignReviewsIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminCampaignReviewsCampaignIdRoute:
+    AuthenticatedAdminCampaignReviewsCampaignIdRoute,
   AuthenticatedAdminCampaignReviewsIndexRoute:
     AuthenticatedAdminCampaignReviewsIndexRoute,
 }
