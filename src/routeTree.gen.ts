@@ -26,6 +26,11 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings.account'
+import { Route as AuthenticatedCreatorCampaignsRouteImport } from './routes/_authenticated/creator.campaigns'
+import { Route as AuthenticatedCreatorCampaignsIndexRouteImport } from './routes/_authenticated/creator.campaigns.index'
+import { Route as AuthenticatedCreatorCampaignsNewRouteImport } from './routes/_authenticated/creator.campaigns.new'
+import { Route as AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.preview'
+import { Route as AuthenticatedCreatorCampaignsCampaignIdEditStepRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.edit.$step'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
   id: '/unauthorized',
@@ -113,6 +118,36 @@ const AuthenticatedSettingsAccountRoute =
     path: '/account',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedCreatorCampaignsRoute =
+  AuthenticatedCreatorCampaignsRouteImport.update({
+    id: '/creator/campaigns',
+    path: '/creator/campaigns',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCreatorCampaignsIndexRoute =
+  AuthenticatedCreatorCampaignsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
+  } as any)
+const AuthenticatedCreatorCampaignsNewRoute =
+  AuthenticatedCreatorCampaignsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
+  } as any)
+const AuthenticatedCreatorCampaignsCampaignIdPreviewRoute =
+  AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport.update({
+    id: '/$campaignId/preview',
+    path: '/$campaignId/preview',
+    getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
+  } as any)
+const AuthenticatedCreatorCampaignsCampaignIdEditStepRoute =
+  AuthenticatedCreatorCampaignsCampaignIdEditStepRouteImport.update({
+    id: '/$campaignId/edit/$step',
+    path: '/$campaignId/edit/$step',
+    getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -129,8 +164,13 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
+  '/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
+  '/creator/campaigns/$campaignId/edit/$step': typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -149,6 +189,10 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/creator/campaigns': typeof AuthenticatedCreatorCampaignsIndexRoute
+  '/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
+  '/creator/campaigns/$campaignId/edit/$step': typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -167,8 +211,13 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/_authenticated/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/_authenticated/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
+  '/_authenticated/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
+  '/_authenticated/creator/campaigns/$campaignId/edit/$step': typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -187,8 +236,13 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/settings'
     | '/auth/callback'
+    | '/creator/campaigns'
     | '/settings/account'
     | '/settings/profile'
+    | '/creator/campaigns/new'
+    | '/creator/campaigns/'
+    | '/creator/campaigns/$campaignId/preview'
+    | '/creator/campaigns/$campaignId/edit/$step'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -207,6 +261,10 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/settings/account'
     | '/settings/profile'
+    | '/creator/campaigns/new'
+    | '/creator/campaigns'
+    | '/creator/campaigns/$campaignId/preview'
+    | '/creator/campaigns/$campaignId/edit/$step'
   id:
     | '__root__'
     | '/'
@@ -224,8 +282,13 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/_authenticated/settings'
     | '/auth/callback'
+    | '/_authenticated/creator/campaigns'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/profile'
+    | '/_authenticated/creator/campaigns/new'
+    | '/_authenticated/creator/campaigns/'
+    | '/_authenticated/creator/campaigns/$campaignId/preview'
+    | '/_authenticated/creator/campaigns/$campaignId/edit/$step'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -363,6 +426,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAccountRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/creator/campaigns': {
+      id: '/_authenticated/creator/campaigns'
+      path: '/creator/campaigns'
+      fullPath: '/creator/campaigns'
+      preLoaderRoute: typeof AuthenticatedCreatorCampaignsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/creator/campaigns/': {
+      id: '/_authenticated/creator/campaigns/'
+      path: '/'
+      fullPath: '/creator/campaigns/'
+      preLoaderRoute: typeof AuthenticatedCreatorCampaignsIndexRouteImport
+      parentRoute: typeof AuthenticatedCreatorCampaignsRoute
+    }
+    '/_authenticated/creator/campaigns/new': {
+      id: '/_authenticated/creator/campaigns/new'
+      path: '/new'
+      fullPath: '/creator/campaigns/new'
+      preLoaderRoute: typeof AuthenticatedCreatorCampaignsNewRouteImport
+      parentRoute: typeof AuthenticatedCreatorCampaignsRoute
+    }
+    '/_authenticated/creator/campaigns/$campaignId/preview': {
+      id: '/_authenticated/creator/campaigns/$campaignId/preview'
+      path: '/$campaignId/preview'
+      fullPath: '/creator/campaigns/$campaignId/preview'
+      preLoaderRoute: typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport
+      parentRoute: typeof AuthenticatedCreatorCampaignsRoute
+    }
+    '/_authenticated/creator/campaigns/$campaignId/edit/$step': {
+      id: '/_authenticated/creator/campaigns/$campaignId/edit/$step'
+      path: '/$campaignId/edit/$step'
+      fullPath: '/creator/campaigns/$campaignId/edit/$step'
+      preLoaderRoute: typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRouteImport
+      parentRoute: typeof AuthenticatedCreatorCampaignsRoute
+    }
   }
 }
 
@@ -381,11 +479,36 @@ const AuthenticatedSettingsRouteWithChildren =
     AuthenticatedSettingsRouteChildren,
   )
 
+interface AuthenticatedCreatorCampaignsRouteChildren {
+  AuthenticatedCreatorCampaignsNewRoute: typeof AuthenticatedCreatorCampaignsNewRoute
+  AuthenticatedCreatorCampaignsIndexRoute: typeof AuthenticatedCreatorCampaignsIndexRoute
+  AuthenticatedCreatorCampaignsCampaignIdPreviewRoute: typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
+  AuthenticatedCreatorCampaignsCampaignIdEditStepRoute: typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
+}
+
+const AuthenticatedCreatorCampaignsRouteChildren: AuthenticatedCreatorCampaignsRouteChildren =
+  {
+    AuthenticatedCreatorCampaignsNewRoute:
+      AuthenticatedCreatorCampaignsNewRoute,
+    AuthenticatedCreatorCampaignsIndexRoute:
+      AuthenticatedCreatorCampaignsIndexRoute,
+    AuthenticatedCreatorCampaignsCampaignIdPreviewRoute:
+      AuthenticatedCreatorCampaignsCampaignIdPreviewRoute,
+    AuthenticatedCreatorCampaignsCampaignIdEditStepRoute:
+      AuthenticatedCreatorCampaignsCampaignIdEditStepRoute,
+  }
+
+const AuthenticatedCreatorCampaignsRouteWithChildren =
+  AuthenticatedCreatorCampaignsRoute._addFileChildren(
+    AuthenticatedCreatorCampaignsRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
+  AuthenticatedCreatorCampaignsRoute: typeof AuthenticatedCreatorCampaignsRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -393,6 +516,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
+  AuthenticatedCreatorCampaignsRoute:
+    AuthenticatedCreatorCampaignsRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -414,3 +539,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
