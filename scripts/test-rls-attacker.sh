@@ -82,8 +82,8 @@ echo ""
 echo "=== RLS-ANON-WRITE: insert attempts rejected ==="
 expect_denied "user_roles self-admin"   POST "user_roles"   '{"user_id":"11111111-1111-1111-1111-111111111111","role":"admin"}'
 expect_denied "notifications spam"      POST "notifications" '{"user_id":"11111111-1111-1111-1111-111111111111","type":"x","title":"x","body":"x"}'
-expect_denied "payment_transactions"    POST "payment_transactions" '{"contribution_id":"11111111-1111-1111-1111-111111111111","provider":"fake","amount_minor":100,"currency":"TRY","status":"pending","environment":"sandbox"}'
-expect_denied "ledger entry"            POST "financial_ledger_entries" '{"entry_type":"charge","amount_minor":100,"currency":"TRY","environment":"sandbox"}'
+expect_denied "payment_transactions"    POST "payment_transactions" '{"contribution_id":"11111111-1111-1111-1111-111111111111","provider":"fake","amount_minor":100,"currency":"TRY","status":"pending","environment":"test"}'
+expect_denied "ledger entry"            POST "financial_ledger_entries" '{"entry_type":"adjustment","amount_minor":100,"currency":"TRY","environment":"test"}'
 expect_denied "audit_logs"              POST "audit_logs" '{"action":"hack","entity_type":"campaign","entity_id":"11111111-1111-1111-1111-111111111111"}'
 expect_denied "favorites for other user" POST "favorites" '{"user_id":"11111111-1111-1111-1111-111111111111","campaign_id":"11111111-1111-1111-1111-111111111111"}'
 
