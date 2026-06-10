@@ -7,6 +7,8 @@ export const Route = createFileRoute("/reset-password")({
     meta: [
       { title: "Şifre belirle — BeniFonla" },
       { name: "description", content: "Yeni şifrenizi belirleyin." },
+      { name: "robots", content: "noindex, nofollow" },
+      { name: "googlebot", content: "noindex, nofollow" },
     ],
   }),
   component: ResetPasswordPage,
