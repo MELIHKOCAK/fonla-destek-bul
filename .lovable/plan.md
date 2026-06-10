@@ -1,116 +1,103 @@
-# Faz 15 — User & Creator Dashboard (Server-Side Projection)
+# Faz 16 — Admin Operasyon Paneli
 
-Mevcut iskelete (`dashboard.tsx`, `dashboard.contributions.tsx`, `creator.*`, `settings.*`, `notifications.tsx`, `creator.payment-account.tsx`) ek olarak eksik route'ları, server function'ları ve RPC'leri ekleyeceğim. Tüm aggregate/finansal hesaplar Postgres tarafında, RLS + `auth.uid()` ile.
+Kapsam çok geniş, riski düşük tutmak için onayınızla **4 alt-PR** olarak teslim ederim. Hiçbir adım finansal kayıtları doğrudan UPDATE eden bir CRUD üretmez — tüm kritik aksiyonlar mevcut state machine / Stripe komutları üzerinden, `reason` zorunlu, idempotent ve `audit_logs`'a yazılarak çalışır.
 
-## 1. Database — yeni RPC'ler (migration)
+## Ön koşul kapısı
 
-Tüm fonksiyonlar `security definer`, `search_path=public`, parametre olarak `user_id`/`campaign_id` ALMAZ — `auth.uid()` kullanır (creator versiyonları campaign_id alır + ownership doğrular). Aggregate exact column projeksiyonu döner.
+- `has_role(auth.uid(), 'admin')` zaten var (Faz 0). Tüm admin RPC ve route'lar bunu kullanır.
+- `audit_logs`, `idempotency_keys`, `creator_transfers`, `provider_payouts`, `refunds`, `payment_transactions`, `webhook_events`, `campaign_reports` tabloları mevcut — yeniden oluşturulmaz.
+- Mevcut state machine: `src/lib/payments/payment-state-machine.server.ts`, Stripe komutları `src/lib/payments/*.functions.ts`. Admin sadece bunları çağırır.
 
-- `get_user_dashboard_overview()` → total_paid_minor, active_supported_count, pending_refund_minor, expected_rewards_count, unread_notifications
-- `get_user_contributions(p_limit, p_offset, p_status_filter)` → campaign safe identity + amount + status + reward + payment safe state + sandbox/live flag
-- `get_user_payments(p_limit, p_offset)` → payment attempt safe state, NO provider internal IDs
-- `get_user_refunds(p_limit, p_offset)` → refund amount, status, requested_at
-- `get_user_rewards()` → reward tier + campaign + estimated_delivery + fulfillment_status (varsa)
-- `get_user_favorites(p_limit, p_offset)` (favori tablosu üzerinden)
-- `get_creator_overview()` → owned campaign status dağılımı, active summary, verified raised, backer count, recent contributions safe feed, review action items, connected account readiness özeti, transfer/refund/payout summary
-- `get_creator_campaign_overview(p_campaign_id)` (ownership check)
-- `get_creator_campaign_analytics(p_campaign_id, p_from, p_to)` → günlük verified funding series + backer series + reward tier distribution. Sorgu indexli.
-- `get_creator_campaign_backers(p_campaign_id, p_limit, p_offset)` → contribution amount, reward, public display name veya "Anonim Destekçi", safe status, fulfillment min info. Email/card/provider secret YOK.
-- `get_creator_campaign_finance(p_campaign_id)` → gross_confirmed, stripe_refunds, provider_fee_estimated, provider_fee_final, platform_fee, net_creator_transferable, latest_transfer{status, amount, created_at}, latest_provider_payout{status, arrival_date} (ayrı alan). Estimate vs finalized flag.
-- `get_creator_campaign_reviews(p_campaign_id)` → creator-facing revision notes + history (internal admin note FILTERED).
-- `mark_notification_read(p_id)` / `mark_all_notifications_read()`
-- `update_notification_preferences(p_prefs jsonb)`
-- Index ekleri: `contributions(campaign_id, status, created_at)`, `creator_transfers(campaign_id, created_at desc)`, `notifications(user_id, read_at)`, `provider_payouts(connected_account_id, arrival_date)`.
+## Alt-PR 1 — Admin shell, guard, dashboard, audit, system-alerts (read-only temel)
 
-Tüm RPC'lere `GRANT EXECUTE TO authenticated`; `revoke from anon`.
+**Migration:**
+- `is_admin()` SECURITY DEFINER helper (varsa atla).
+- `get_admin_dashboard_overview()` RPC: pending reviews, live campaigns, open reports, failed payment/refund/transfer/payout sayıları, unprocessed webhook, reconciliation mismatch, son 20 kritik audit.
+- `get_admin_system_alerts()` RPC: reconciliation mismatch + webhook tekrarlı fail + transfer overdue + payout fail.
+- `get_admin_audit_log(filters, cursor)` RPC: actor/action/entity/date filtre + maskeli before/after.
+- `admin_audit_logs_immutable` trigger: UPDATE/DELETE blokla.
 
-## 2. Server functions (`src/lib/dashboard/*.functions.ts`, `src/lib/creator/*.functions.ts`)
+**Routes / dosyalar:**
+- `src/routes/_authenticated/_admin/route.tsx` — pathless layout, `beforeLoad` `context.auth.hasRole('admin')` değilse `/unauthorized`.
+- `src/routes/_authenticated/_admin/admin.tsx` — `AdminShell` (sidebar + breadcrumb + risk bildirimi).
+- `src/routes/_authenticated/_admin/admin.index.tsx`, `admin.audit.tsx`, `admin.system-alerts.tsx`.
+- `src/components/admin/AdminShell.tsx`, `AdminSidebar.tsx`, `ConfirmActionDialog.tsx` (reason + type-to-confirm + irreversible warn + loading), `StatCard`, `EmptyState`.
+- `src/lib/admin/dashboard.functions.ts`, `audit.functions.ts`, `system-alerts.functions.ts` (hepsi `requireSupabaseAuth` + sunucuda `is_admin` kontrolü).
 
-Hepsi `.middleware([requireSupabaseAuth])` ve sadece yukarıdaki RPC'leri çağırır. Hiçbir client param `user_id` kabul etmez. Creator fn'leri `p_campaign_id` alır; RPC ownership doğrular ve yetkisizse `unauthorized` döner → route 404'e map eder.
+## Alt-PR 2 — Reviews, Users, Campaigns, Reports
 
-`src/lib/dashboard/queries.ts`, `src/lib/creator/queries.ts` — `queryOptions` tanımları (query key'ler implicit auth, user id YOK).
+**Migration (RPC + command fns):**
+- `get_admin_pending_reviews`, `admin_review_campaign(campaign_id, decision, reason)` — sadece `pending_review` → `approved|rejected`, audit.
+- `get_admin_users(query, cursor)` — güvenli alanlar (email maskesi, display_name, status, roles); password yok.
+- `admin_set_user_role(user_id, role, action, reason)` — son admin koruması (eğer kaldırılacaksa `count(admin)>1` kontrolü), audit.
+- `admin_set_user_status(user_id, status, reason)` — ban/suspend; `users_status` enum yoksa eklenir.
+- `get_admin_campaigns(filters)`, `admin_suspend_campaign(id, reason)`, `admin_cancel_campaign(id, reason)` — mevcut campaign state machine fonksiyonunu çağırır, dropdown ile status set ETMEZ.
+- `get_admin_reports(status)`, `admin_assign_report`, `admin_resolve_report(action, reason)`, `admin_hide_comment(comment_id, reason)`.
 
-## 3. Yeni route'lar (`src/routes/_authenticated/`)
+**Routes:** `admin.reviews.tsx`, `admin.users.tsx`, `admin.users.$id.tsx`, `admin.campaigns.tsx`, `admin.campaigns.$id.tsx`, `admin.reports.tsx`, `admin.reports.$id.tsx`.
 
-Eksik olanlar:
-- `dashboard.payments.tsx`
-- `dashboard.refunds.tsx`
-- `dashboard.rewards.tsx`
-- `dashboard.favorites.tsx`
-- `settings.security.tsx` (parola değiştir, oturum sonlandır)
-- `creator.index.tsx` (creator overview)
-- `creator.campaigns.$campaignId.overview.tsx`
-- `creator.campaigns.$campaignId.analytics.tsx`
-- `creator.campaigns.$campaignId.backers.tsx`
-- `creator.campaigns.$campaignId.finance.tsx`
-- `creator.campaigns.$campaignId.review.tsx`
+## Alt-PR 3 — Payments / Refunds / Transfers / Payouts / Webhooks (read-only tablo + komutlar)
 
-Mevcut `dashboard.tsx` overview kartlarına dönüştürülür; `dashboard.contributions.tsx`, `notifications.tsx`, `settings.*`, `creator.payment-account.tsx`, `creator.campaigns.*` korunur ve yeni projection RPC'leriyle güçlendirilir.
+**Sadece okuma RPC'leri** (maskeli, internal stripe id yok kullanıcıya):
+- `get_admin_payments`, `get_admin_refunds`, `get_admin_creator_transfers`, `get_admin_provider_payouts` (ayrı RPC), `get_admin_webhook_events`.
 
-Her route Query default şablonu: loader `ensureQueryData(queryOptions)`, component `useSuspenseQuery`. `errorComponent` + `notFoundComponent` zorunlu. Loader'lar `createServerFn` çağırır.
+**Komut fonksiyonları (hepsi mevcut Faz 13 komutlarını sarar, idempotency key zorunlu, reason zorunlu):**
+- `admin_retry_payment_sync(payment_id, reason)`
+- `admin_create_refund(payment_id, amount, reason)` / `admin_retry_refund(refund_id, reason)`
+- `admin_create_creator_transfer(campaign_id, reason)` / `admin_retry_creator_transfer(id, reason)`
+- `admin_create_transfer_reversal(transfer_id, amount, reason)`
+- `admin_replay_webhook(event_id, reason)` — sadece `signature_valid=true` ve idempotent path.
+- Provider Payout için `admin_reconcile_provider_payout(id, reason)` — manuel `completed` YOK; sadece Stripe'tan sync.
 
-Creator campaign route'larında ownership fail → `throw notFound()` (private campaign existence sızdırmamak için).
+**UI kuralı:** Hiçbir tabloda status dropdown YOK. Aksiyonlar `ConfirmActionDialog` ile.
 
-## 4. Shell & navigation (`src/components/dashboard/`)
+**Routes:** `admin.payments.tsx`, `admin.refunds.tsx`, `admin.transfers.tsx`, `admin.payouts.tsx`, `admin.webhooks.tsx`. Raw payload default gizli, "Reveal" butonu audit'e yazar.
 
-- `DashboardShell.tsx` — responsive sidebar (desktop) + `Sheet` (mobile), `Breadcrumb`.
-- `DashboardSidebar.tsx` — user link grubu + creator link grubu (creator role veya owned campaign varsa).
-- `CreatorCampaignTabs.tsx` — `$campaignId` route'ları arası tab navigation.
-- Klavye erişimi, görünür focus state, semantic `<nav>`, `aria-current="page"`.
+## Alt-PR 4 — Fees, Categories, Content
 
-## 5. UI bileşenleri
+- `platform_fee_configs` tablosu (varsa kullan, yoksa migrate): `effective_from`, `fee_bps`, `created_by`, `reason`. Future-dated; geçmiş `campaign_settlements` snapshot etkilenmez (zaten kayıtlı).
+- `admin_create_fee_config(effective_from, fee_bps, reason)` — `fee_bps 0..2000`, `effective_from > now()`, two-step confirm UI.
+- Categories: `admin_create_category`, `admin_update_category`, `admin_deactivate_category` (silme yok; referans varsa deactivate). Slug unique.
+- Static content: `static_pages` (slug, title, body, status: draft|published), `admin_save_static_page(reason)`. Legal "approved" Faz 20 onayına bağlı — UI'da uyarı.
 
-- `StatCard`, `EmptyState`, `LoadingSkeleton`, `ErrorState` — paylaşılan.
-- `FundingSeriesChart`, `BackerSeriesChart`, `RewardTierDistribution` — Recharts + erişilebilir `<table>` text summary (sr-only veya expandable).
-- `FinanceBreakdown` — Transfer / Payout AYRI başlık. Net etiketler: "Creator'a aktarılabilir net tutar", "Stripe hesabına Transfer", "Banka Payout'u". Estimate vs Finalized badge.
-- `ContributionStatusBadge`, `PaymentEnvironmentBadge` (sandbox/live).
-- `BackerRow` — anonymous handling.
-- `NotificationItem` — mark-as-read mutation + deep link.
+**Routes:** `admin.fees.tsx`, `admin.categories.tsx`, `admin.content.tsx`.
 
-Para gösterimi `formatMinorAmount` (mevcut `src/lib/money.ts`); kuruş → TRY.
+## Sidebar nav linkleri (tüm PR'larda büyüyen)
 
-## 6. Privacy guard'ları
+Dashboard, Reviews, Users, Campaigns, Reports, Payments, Refunds, Transfers, Payouts, Webhooks, Fees, Categories, Content, Audit, System Alerts.
 
-- Hiçbir response shape Stripe Checkout Session/PaymentIntent/Charge/Refund ID, webhook payload, fraud score, başka kullanıcı bilgisi, email içermez. TypeScript tip yalnız izinli alanları içerir.
-- `select` kolon listeleri SQL'de explicit; `select *` yok.
-- Backer list "Anonim Destekçi" label; anonymous contribution display_name döndürmez.
+## Testler (Vitest)
 
-## 7. Test'ler (`src/**/__tests__`)
+- Normal user her admin RPC'sini çağırdığında 403/permission denied.
+- `admin_review_campaign` reason boşsa reject; idempotent (aynı decision 2. çağrı no-op).
+- `admin_set_user_role` son admin'i kaldırmaya çalışırsa reject.
+- `admin_create_refund` aynı idempotency key ile 2. çağrı yeni Stripe call yapmaz, aynı refund_id döner.
+- `admin_create_creator_transfer` ve `admin_reconcile_provider_payout` ayrı RPC; transfer kaydı payout tablosuna yazılmaz.
+- `admin_replay_webhook` `signature_valid=false` reject; valid + zaten processed → ledger duplicate üretmez.
+- `admin_create_fee_config` `effective_from <= now()` reject; mevcut settlement snapshot değişmez.
+- Audit entry her başarılı/başarısız komutta yazılır (`status=success|failed`, masked diff).
+- `audit_logs` UPDATE/DELETE trigger ile bloklu.
+- Mobile: AdminShell drawer açılır, ConfirmActionDialog scroll'lanır.
 
-Vitest + RTL + mock Supabase RPC:
-- `user_a` `user_b` dashboard RPC'sini çağıramaz (mock auth değişimi → boş set).
-- `creator_a` kendi campaign analytics görür; `creator_b`'nin campaign_id'siyle çağrı 404.
-- Finance toplamı ledger fixture'ı ile birebir eşleşir.
-- Transfer vs Payout farklı kartlarda render.
-- Connected account readiness yalnız owner.
-- Anonymous contribution display_name "Anonim Destekçi".
-- Response object snapshot'larda Stripe internal alan YOK (anahtar denetimi).
-- Chart empty/loading/error state render.
-- Mobile nav (`Sheet`) açılır.
-- `mark_all_notifications_read` yalnız kendi notif'lerini etkiler.
+## Kapsam dışı (bu fazda yapılmaz)
 
-## 8. Out of scope
+- MFA zorunlu (Faz 20/21), CSV export, e-posta bildirim, real-time push, KYC override, manuel ledger insert UI.
 
-- Kargo entegrasyonu.
-- Admin raw ledger / webhook UI.
-- Yeni ödeme akışları, yeni state machine (Faz 13'ün üzerine inşa).
-- Sosyal paylaşım eklemeleri.
-- Realtime push (notification listener yalnız refetch on focus).
+## Doğrulama
 
-## 9. Doğrulama
+`bun run typecheck`, `bun run build`, `bun run lint`, `bunx vitest run src/lib/admin src/components/admin`.
 
-`bun run typecheck`, `bun run build`, `bun run lint`, `bunx vitest run src/lib/dashboard src/lib/creator src/components/dashboard`. Hatalar gizlenmeyecek.
+## Manuel yapılacaklar
 
-## 10. Manuel adımlar
+- Test kullanıcısına `admin` rolü atama (insert tool).
+- Stripe sandbox'ta replay/refund/transfer komutlarını uçtan uca dene.
+- `audit_logs` retention politikasını DBA ile netleştir (bu fazda 0 satır silme).
 
-- Migration onayı.
-- Creator role atama (mevcut `user_roles` üzerinden) — yeni creator için `creator` rolünün doğru atandığı doğrulanır.
-- Stripe sandbox/live ortam değişiminde badge'in doğru göründüğünün QA'i.
+## Açık riskler
 
-## 11. Açık riskler
+- Provider Payout komutu Stripe Connect account config'ine bağlı — bazı connected account'larda platform tarafından yönetilemez; UI o satırlarda "Read-only (Stripe-managed)" rozeti gösterir.
+- `audit_logs` büyüme hızı izlenmeli; bu fazda partition eklenmez.
 
-- Analytics RPC'sinin büyük campaign'lerde performansı; index'lere rağmen 30+ günlük seriye `EXPLAIN` koşulması gerekebilir.
-- Finance summary'de Transfer henüz tamamlanmadan Payout observation eksik olursa UI "veri yok" şeklinde gösterir; sahte tahmin yapılmaz.
-- Notification preference şeması ileride genişlerse JSON migration gerekli.
+---
 
-Onaylarsanız uygulamaya başlıyorum.
+**Onay verirseniz Alt-PR 1 ile başlıyorum** (shell + guard + dashboard + audit + system-alerts). Her PR sonunda type-check/build/lint/test çalıştırıp rapor ederim, sonra bir sonrakine geçerim. Hepsini tek seferde ister misiniz, yoksa PR-by-PR onay mı tercih edersiniz?
