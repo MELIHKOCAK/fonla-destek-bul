@@ -6,6 +6,8 @@
  */
 import Stripe from "stripe";
 
+type StripeCtorConfig = ConstructorParameters<typeof Stripe>[1] & object;
+
 let _client: Stripe | undefined;
 
 export function getStripe(): Stripe {
@@ -17,12 +19,15 @@ export function getStripe(): Stripe {
   if (process.env.APP_ENV === "production" && secret.startsWith("sk_test_")) {
     throw new Error("Refusing to use Stripe test key in production environment.");
   }
-  _client = new Stripe(secret, {
-    apiVersion: (process.env.STRIPE_API_VERSION as Stripe.StripeConfig["apiVersion"]) ?? undefined,
+  const config: StripeCtorConfig = {
     typescript: true,
     appInfo: { name: "BeniFonla", version: "0.12.0" },
     maxNetworkRetries: 2,
-  });
+  };
+  if (process.env.STRIPE_API_VERSION) {
+    (config as { apiVersion?: string }).apiVersion = process.env.STRIPE_API_VERSION;
+  }
+  _client = new Stripe(secret, config);
   return _client;
 }
 
