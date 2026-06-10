@@ -6,6 +6,8 @@
  */
 import Stripe from "stripe";
 
+type StripeCtorConfig = ConstructorParameters<typeof Stripe>[1] & object;
+
 let _client: Stripe | undefined;
 
 export function getStripe(): Stripe {
