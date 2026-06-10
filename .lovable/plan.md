@@ -1,49 +1,34 @@
 
-# BeniFonla — Eksik & Redirect Düzeltme Planı
+# Proje Başlat akışını aktif et
 
-Analiz sonucu bulunan sorunlar 3 öncelik grubuna ayrıldı. Onaylarsanız sırayla uygularım; istersen sadece belirli grupları seç.
+Tüm altyapı zaten hazır: `/creator/campaigns/new` rotası, kampanya sihirbazı (`/creator/campaigns/$id/edit/$step`), `_authenticated` gate (yetkisiz → `/login?redirect=...`, onboarding eksik → `/onboarding`). Sadece ana sayfadaki "Proje Başlat" çağrıları **disable** ve "yakında" mesajlarıyla kapatılmış. Bu fazda sadece o kapıyı açıyoruz.
 
-## Öncelik 1 — Kırık linkler ve yanlış yönlendirmeler (hızlı, kullanıcıyı doğrudan etkiler)
+## Yapılacaklar
 
-**Kırık footer / nav linkleri**
-- `src/routes/about.tsx`, `how-it-works.tsx`, `faq.tsx`, `contact.tsx` rotalarını oluştur. Her biri Türkçe içerik + kendi `head()` meta'sı (title, description, og:title/description). İçerik şu an için bilgilendirici statik metin (BeniFonla ürün tanımı, SSS, iletişim formu yerine e-posta + form taslağı).
-- Alternatif: Bu sayfalar henüz hazır değilse linkleri footer/nav'dan kaldır. **Tercih: oluşturmak**, çünkü footer'da boşluk kalmasın.
+### 1. `src/pages/HomePage.tsx` — hero CTA (satır 81-87)
+- `<Button disabled>` → `<Button asChild><Link to="/creator/campaigns/new">Proje Başlat</Link></Button>`
+- "Proje başlatma özelliği yakında…" yardımcı metnini kaldır.
+- Yetkisiz kullanıcı için davet metniyle değiştir: "Hesabın yoksa ücretsiz [kayıt ol]". `Link to="/register"`.
 
-**RegisterForm yanlış link hedefleri**
-- `src/components/forms/RegisterForm.tsx:205-206`: `to="/"` → `to="/terms"` ve `to="/privacy"`.
+### 2. `src/pages/HomePage.tsx` — alt CTA bandı (satır 265-285)
+- Başlık aynı kalsın ("Kendi projeni başlatmaya hazır mısın?").
+- Açıklamayı "demo aşaması" yerine pozitif metne çevir: "Birkaç dakikada taslak oluştur, hazır olduğunda yayına al."
+- Birincil buton: **Proje Başlat** → `/creator/campaigns/new`.
+- İkincil buton: **Nasıl çalışır?** → `/how-it-works` (zaten var, aynen kalsın).
+- "Bize ulaş" butonu ikincil olarak kalabilir veya kaldırılabilir — kaldırmayı öneriyorum, CTA odağı dağılmasın.
 
-**Sign-out / window.location**
-- `src/routes/_authenticated/creator.index.tsx:113`: `window.location.href = "/creator/payment-account"` → `navigate({ to: "/creator/payment-account" })` (TanStack `useNavigate`).
-- Sign-out yönlendirmeleri zaten `/login`; instructions'taki `/auth` referansını uygulamayacağız (proje `/login` kullanıyor, `/auth` rotası yok). Değişiklik gerekmiyor.
+### 3. Yetkisiz kullanıcı deneyimi — değişiklik yok
+- `/creator/campaigns/new` zaten `_authenticated/` altında. Yetkisizken `/login?redirect=/creator/campaigns/new`'e gidiyor, başarılı login sonrası geri dönüyor. Username yoksa `/onboarding`'e gidiyor, ardından kampanya sihirbazına. Mevcut akış doğru, ek kod gerekmiyor.
 
-## Öncelik 2 — SEO / keşfedilebilirlik tutarsızlıkları
+### 4. Doğrulama
+- Build/typecheck (otomatik).
+- Manuel: çıkış yapmış halde "Proje Başlat" → `/login?redirect=/creator/campaigns/new` → kayıt/giriş → onboarding (gerekiyorsa) → `/creator/campaigns/new` formu açılmalı.
 
-**robots.txt temizliği** (`public/robots.txt`)
-- Sil: `Disallow: /profile`, `Disallow: /account`, `Disallow: /contributions` (var olmayan veya yanlış path).
-- Ekle: `Disallow: /forgot-password`, `Disallow: /login`, `Disallow: /register` (zaten `noindex` meta'sı var ama tutarlılık için).
-- `Disallow: /api/` aynen kalsın.
+## Kapsam dışı (bu fazda değil)
 
-**sitemap.xml** (`src/routes/sitemap[.]xml.ts`)
-- Statik legal sayfaları ekle: `/terms`, `/privacy`, `/cookies`, `/refund-policy`, `/risk-disclosure`, `/creator-agreement`, `/prohibited-campaigns`, `/complaints-and-appeals`.
-- Öncelik 1'de oluşturulursa: `/about`, `/how-it-works`, `/faq`, `/contact` da eklenecek.
+- Onboarding'e "creator olmak istiyorum" rol gate'i.
+- `/register` üzerinden direkt creator profili oluşturma kısayolu.
+- Kampanya sihirbazının UX iyileştirmeleri (`creator.campaigns.new.tsx` zaten çalışıyor, kalsın).
+- Ödeme hesabı kurulum zorunluluğu (kampanya yayın anında devreye giriyor, taslak oluşturmak için gerekmez).
 
-## Öncelik 3 — Teknik borç işaretleri (kısa not, kod yazılmayacak; sadece raporda kalır)
-
-Bunlar bu faza dahil **değil**, ileride ayrı faz olarak ele alınmalı. Plan dosyasında ve `.lovable/plan.md`'de güncel açıklama:
-- `checkReleaseGates()` çağrısı `checkout.functions.ts`, `refund.functions.ts`, `transfer.functions.ts` içinde yok; hâlâ hardcode `livePaymentsEnabled: false`. Live'a geçiş öncesi bağlanmalı.
-- `settlement.functions.ts`: platform fee %5 hardcode, `refundedMinor = 0`. Faz 13'e bırakıldığı yorumda yazılı.
-- `creators.service.ts`: creator kampanya filtresi in-memory; `get_public_campaigns` RPC'sine `_creator_id` parametresi eklenmeli.
-- Faz 17.5 açık emitter'lar (12 event), bounce/complaint webhook, admin manuel retry UI.
-- Onboarding gate yalnız `username` kontrolüne bakıyor; creator-rol gate'i yok.
-
-## Doğrulama
-
-- `bunx vitest run` (etkilenen testler).
-- Build / typecheck (otomatik koşar).
-- Yeni rotalar için `src/routeTree.gen.ts` otomatik regenerate olur — elle dokunulmaz.
-- Görsel kontrol: footer'daki 4 yeni link 404 yerine yeni sayfaları açmalı; register sayfasında "kullanım koşulları" ve "gizlilik politikası" doğru rotalara gitmeli.
-
-## Cevap bekliyorum
-
-1. Öncelik 1'deki yeni 4 sayfayı **oluşturayım mı**, yoksa **linkleri kaldırayım mı**?
-2. Sadece Öncelik 1+2'yi mi uygulayayım, yoksa Öncelik 3'teki teknik borç maddelerinden birini de bu faza dahil edeyim mi (ör. release-gate enforcement bağlamak)?
+Onaylarsan uygulayayım.

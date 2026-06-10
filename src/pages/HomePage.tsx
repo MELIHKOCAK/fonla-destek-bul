@@ -73,17 +73,21 @@ export function HomePage() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button asChild size="lg">
-                <Link to="/discover">
-                  Projeleri Keşfet
+                <Link to="/creator/campaigns/new">
+                  Proje Başlat
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" disabled aria-disabled="true" title="Yakında">
-                Proje Başlat
+              <Button asChild size="lg" variant="outline">
+                <Link to="/discover">Projeleri Keşfet</Link>
               </Button>
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
-              Proje başlatma özelliği yakında. Şimdilik kampanyaları inceleyebilirsiniz.
+              Hesabın yok mu?{" "}
+              <Link to="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
+                Ücretsiz kayıt ol
+              </Link>{" "}
+              ve birkaç dakikada taslağını oluştur.
             </p>
           </div>
         </Container>
@@ -269,15 +273,17 @@ export function HomePage() {
               Kendi projeni başlatmaya hazır mısın?
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
-              Proje başlatma özelliği yakında aktif olacak. Şu an demo aşamasındayız; geri
-              bildirimlerinizi bekliyoruz.
+              Birkaç dakikada taslak oluştur, hazır olduğunda yayına al.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Button asChild>
-                <Link to="/contact">Bize ulaş</Link>
+              <Button asChild size="lg">
+                <Link to="/creator/campaigns/new">
+                  Proje Başlat
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
               </Button>
-              <Button asChild variant="outline">
-                <Link to="/how-it-works">Nasıl çalıştığını oku</Link>
+              <Button asChild size="lg" variant="outline">
+                <Link to="/how-it-works">Nasıl çalışır?</Link>
               </Button>
             </div>
           </div>
