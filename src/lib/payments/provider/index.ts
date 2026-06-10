@@ -2,19 +2,21 @@ import { DomainPaymentError, type PaymentEnvironment, type PaymentProvider } fro
 import { createSimulationAdapter } from "./simulation-adapter";
 import { createStripeSandboxAdapter } from "./stripe-sandbox-adapter";
 import { createStripeLiveAdapter } from "./stripe-live-adapter";
+import { isStripeConfigured } from "../stripe.server";
 
 export interface ProviderConfig {
   environment: PaymentEnvironment;
   livePaymentsEnabled: boolean;
   productionApprovalStatus: "not_verified" | "in_review" | "verified" | "rejected";
-  /** Set true once Faz 12 Stripe sandbox adapter lands. */
+  /** Stripe sandbox aktif mi (Faz 12). */
   stripeSandboxActivated?: boolean;
 }
 
 /**
- * Factory enforces sandbox-first rules:
- *  - environment 'test'  → simulation (or Stripe sandbox once activated)
- *  - environment 'live'  → only when live + verified; otherwise PAYMENT_PROVIDER_DISABLED
+ * Sandbox-first factory:
+ *  - environment 'live' + verified ise stripe-live (Faz 12'de NOT_IMPLEMENTED).
+ *  - environment 'test' + STRIPE_SECRET_KEY varsa Stripe sandbox.
+ *  - aksi halde simulation adapter (Faz 11 davranışı).
  */
 export function getProvider(config: ProviderConfig): PaymentProvider {
   if (config.environment === "live") {
@@ -23,10 +25,12 @@ export function getProvider(config: ProviderConfig): PaymentProvider {
     }
     return createStripeLiveAdapter();
   }
-  if (config.stripeSandboxActivated) {
+  if (config.stripeSandboxActivated || isStripeConfigured()) {
     return createStripeSandboxAdapter();
   }
   return createSimulationAdapter("test");
 }
 
+export { createStripeSandboxAdapter } from "./stripe-sandbox-adapter";
+export type { StripeSandboxProvider } from "./stripe-sandbox-adapter";
 export * from "./types";

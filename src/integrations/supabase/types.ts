@@ -1119,6 +1119,7 @@ export type Database = {
           failure_message_sanitized: string | null
           id: string
           last_provider_event_id: string | null
+          livemode: boolean | null
           provider: string
           provider_balance_transaction_id: string | null
           provider_charge_id: string | null
@@ -1131,6 +1132,8 @@ export type Database = {
           provider_status: string | null
           sanitized_metadata: Json
           status: Database["public"]["Enums"]["payment_status"]
+          stripe_idempotency_key: string | null
+          transfer_group: string | null
           updated_at: string
         }
         Insert: {
@@ -1151,6 +1154,7 @@ export type Database = {
           failure_message_sanitized?: string | null
           id?: string
           last_provider_event_id?: string | null
+          livemode?: boolean | null
           provider: string
           provider_balance_transaction_id?: string | null
           provider_charge_id?: string | null
@@ -1163,6 +1167,8 @@ export type Database = {
           provider_status?: string | null
           sanitized_metadata?: Json
           status?: Database["public"]["Enums"]["payment_status"]
+          stripe_idempotency_key?: string | null
+          transfer_group?: string | null
           updated_at?: string
         }
         Update: {
@@ -1183,6 +1189,7 @@ export type Database = {
           failure_message_sanitized?: string | null
           id?: string
           last_provider_event_id?: string | null
+          livemode?: boolean | null
           provider?: string
           provider_balance_transaction_id?: string | null
           provider_charge_id?: string | null
@@ -1195,6 +1202,8 @@ export type Database = {
           provider_status?: string | null
           sanitized_metadata?: Json
           status?: Database["public"]["Enums"]["payment_status"]
+          stripe_idempotency_key?: string | null
+          transfer_group?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1942,6 +1951,27 @@ export type Database = {
         Returns: boolean
       }
       claim_username: { Args: { _username: string }; Returns: undefined }
+      claim_webhook_event: {
+        Args: {
+          _api_version: string
+          _environment: Database["public"]["Enums"]["financial_environment"]
+          _event_created_at: string
+          _event_type: string
+          _livemode: boolean
+          _payload_hash: string
+          _provider: string
+          _provider_account_id: string
+          _provider_event_id: string
+          _provider_object_id: string
+          _provider_object_type: string
+          _request_id: string
+          _signature_valid: boolean
+        }
+        Returns: {
+          event_id: string
+          is_new: boolean
+        }[]
+      }
       confirm_reward_reservation: {
         Args: { _contribution_id: string }
         Returns: number
@@ -2270,6 +2300,10 @@ export type Database = {
       is_username_reserved: { Args: { _username: string }; Returns: boolean }
       mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: { Args: { _id: string }; Returns: undefined }
+      mark_webhook_event_processed: {
+        Args: { _error?: string; _event_id: string; _status: string }
+        Returns: undefined
+      }
       my_contributions: {
         Args: never
         Returns: {
@@ -2474,6 +2508,7 @@ export type Database = {
           failure_message_sanitized: string | null
           id: string
           last_provider_event_id: string | null
+          livemode: boolean | null
           provider: string
           provider_balance_transaction_id: string | null
           provider_charge_id: string | null
@@ -2486,6 +2521,8 @@ export type Database = {
           provider_status: string | null
           sanitized_metadata: Json
           status: Database["public"]["Enums"]["payment_status"]
+          stripe_idempotency_key: string | null
+          transfer_group: string | null
           updated_at: string
         }
         SetofOptions: {
