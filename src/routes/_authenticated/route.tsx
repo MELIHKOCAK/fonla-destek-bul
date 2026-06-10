@@ -4,6 +4,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { AppShell } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/_authenticated")({
+  head: () => ({
+    meta: [
+      { name: "robots", content: "noindex, nofollow" },
+      { name: "googlebot", content: "noindex, nofollow" },
+    ],
+  }),
   component: AuthenticatedLayout,
 });
 

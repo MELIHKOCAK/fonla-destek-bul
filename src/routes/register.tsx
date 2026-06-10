@@ -7,6 +7,8 @@ export const Route = createFileRoute("/register")({
     meta: [
       { title: "Kayıt ol — BeniFonla" },
       { name: "description", content: "BeniFonla'ya katılın ve toplulukla buluşun." },
+      { name: "robots", content: "noindex, nofollow" },
+      { name: "googlebot", content: "noindex, nofollow" },
     ],
   }),
   component: RegisterPage,
