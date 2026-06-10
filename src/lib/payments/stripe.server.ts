@@ -19,13 +19,13 @@ export function getStripe(): Stripe {
   if (process.env.APP_ENV === "production" && secret.startsWith("sk_test_")) {
     throw new Error("Refusing to use Stripe test key in production environment.");
   }
-  const config: Stripe.StripeConfig = {
+  const config: StripeCtorConfig = {
     typescript: true,
     appInfo: { name: "BeniFonla", version: "0.12.0" },
     maxNetworkRetries: 2,
   };
   if (process.env.STRIPE_API_VERSION) {
-    config.apiVersion = process.env.STRIPE_API_VERSION as Stripe.StripeConfig["apiVersion"];
+    (config as { apiVersion?: string }).apiVersion = process.env.STRIPE_API_VERSION;
   }
   _client = new Stripe(secret, config);
   return _client;
