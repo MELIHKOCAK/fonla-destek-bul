@@ -13,6 +13,8 @@ export const Route = createFileRoute("/login")({
     meta: [
       { title: "Giriş yap — BeniFonla" },
       { name: "description", content: "BeniFonla hesabınıza giriş yapın." },
+      { name: "robots", content: "noindex, nofollow" },
+      { name: "googlebot", content: "noindex, nofollow" },
     ],
   }),
   component: LoginPage,
