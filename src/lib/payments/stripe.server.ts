@@ -17,12 +17,15 @@ export function getStripe(): Stripe {
   if (process.env.APP_ENV === "production" && secret.startsWith("sk_test_")) {
     throw new Error("Refusing to use Stripe test key in production environment.");
   }
-  _client = new Stripe(secret, {
-    ...(process.env.STRIPE_API_VERSION ? { apiVersion: process.env.STRIPE_API_VERSION as Stripe.StripeConfig["apiVersion"] } : {}) as { apiVersion?: Stripe.StripeConfig["apiVersion"] },
+  const config: Stripe.StripeConfig = {
     typescript: true,
     appInfo: { name: "BeniFonla", version: "0.12.0" },
     maxNetworkRetries: 2,
-  });
+  };
+  if (process.env.STRIPE_API_VERSION) {
+    config.apiVersion = process.env.STRIPE_API_VERSION as Stripe.StripeConfig["apiVersion"];
+  }
+  _client = new Stripe(secret, config);
   return _client;
 }
 
