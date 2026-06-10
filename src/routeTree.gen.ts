@@ -43,6 +43,9 @@ import { Route as CampaignsSlugBackRewardRouteImport } from './routes/campaigns.
 import { Route as CampaignsSlugBackReviewRouteImport } from './routes/campaigns.$slug.back.review'
 import { Route as CampaignsSlugBackResultRouteImport } from './routes/campaigns.$slug.back.result'
 import { Route as CampaignsSlugBackDetailsRouteImport } from './routes/campaigns.$slug.back.details'
+import { Route as ApiPublicHooksStripeWebhookRouteImport } from './routes/api/public/hooks/stripe-webhook'
+import { Route as ApiPublicHooksStripeConnectWebhookRouteImport } from './routes/api/public/hooks/stripe-connect-webhook'
+import { Route as ApiPublicHooksRunPaymentReconciliationRouteImport } from './routes/api/public/hooks/run-payment-reconciliation'
 import { Route as ApiPublicHooksPublishDueCampaignsRouteImport } from './routes/api/public/hooks/publish-due-campaigns'
 import { Route as AuthenticatedCreatorCampaignsNewRouteImport } from './routes/_authenticated/creator.campaigns.new'
 import { Route as AuthenticatedAdminCampaignReviewsCampaignIdRouteImport } from './routes/_authenticated/admin.campaign-reviews.$campaignId'
@@ -229,6 +232,24 @@ const CampaignsSlugBackDetailsRoute =
     path: '/details',
     getParentRoute: () => CampaignsSlugBackRoute,
   } as any)
+const ApiPublicHooksStripeWebhookRoute =
+  ApiPublicHooksStripeWebhookRouteImport.update({
+    id: '/api/public/hooks/stripe-webhook',
+    path: '/api/public/hooks/stripe-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksStripeConnectWebhookRoute =
+  ApiPublicHooksStripeConnectWebhookRouteImport.update({
+    id: '/api/public/hooks/stripe-connect-webhook',
+    path: '/api/public/hooks/stripe-connect-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksRunPaymentReconciliationRoute =
+  ApiPublicHooksRunPaymentReconciliationRouteImport.update({
+    id: '/api/public/hooks/run-payment-reconciliation',
+    path: '/api/public/hooks/run-payment-reconciliation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksPublishDueCampaignsRoute =
   ApiPublicHooksPublishDueCampaignsRouteImport.update({
     id: '/api/public/hooks/publish-due-campaigns',
@@ -302,6 +323,9 @@ export interface FileRoutesByFullPath {
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
+  '/api/public/hooks/run-payment-reconciliation': typeof ApiPublicHooksRunPaymentReconciliationRoute
+  '/api/public/hooks/stripe-connect-webhook': typeof ApiPublicHooksStripeConnectWebhookRoute
+  '/api/public/hooks/stripe-webhook': typeof ApiPublicHooksStripeWebhookRoute
   '/campaigns/$slug/back/details': typeof CampaignsSlugBackDetailsRoute
   '/campaigns/$slug/back/result': typeof CampaignsSlugBackResultRoute
   '/campaigns/$slug/back/review': typeof CampaignsSlugBackReviewRoute
@@ -341,6 +365,9 @@ export interface FileRoutesByTo {
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
+  '/api/public/hooks/run-payment-reconciliation': typeof ApiPublicHooksRunPaymentReconciliationRoute
+  '/api/public/hooks/stripe-connect-webhook': typeof ApiPublicHooksStripeConnectWebhookRoute
+  '/api/public/hooks/stripe-webhook': typeof ApiPublicHooksStripeWebhookRoute
   '/campaigns/$slug/back/details': typeof CampaignsSlugBackDetailsRoute
   '/campaigns/$slug/back/result': typeof CampaignsSlugBackResultRoute
   '/campaigns/$slug/back/review': typeof CampaignsSlugBackReviewRoute
@@ -385,6 +412,9 @@ export interface FileRoutesById {
   '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
+  '/api/public/hooks/run-payment-reconciliation': typeof ApiPublicHooksRunPaymentReconciliationRoute
+  '/api/public/hooks/stripe-connect-webhook': typeof ApiPublicHooksStripeConnectWebhookRoute
+  '/api/public/hooks/stripe-webhook': typeof ApiPublicHooksStripeWebhookRoute
   '/campaigns/$slug/back/details': typeof CampaignsSlugBackDetailsRoute
   '/campaigns/$slug/back/result': typeof CampaignsSlugBackResultRoute
   '/campaigns/$slug/back/review': typeof CampaignsSlugBackReviewRoute
@@ -429,6 +459,9 @@ export interface FileRouteTypes {
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/api/public/hooks/publish-due-campaigns'
+    | '/api/public/hooks/run-payment-reconciliation'
+    | '/api/public/hooks/stripe-connect-webhook'
+    | '/api/public/hooks/stripe-webhook'
     | '/campaigns/$slug/back/details'
     | '/campaigns/$slug/back/result'
     | '/campaigns/$slug/back/review'
@@ -468,6 +501,9 @@ export interface FileRouteTypes {
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/api/public/hooks/publish-due-campaigns'
+    | '/api/public/hooks/run-payment-reconciliation'
+    | '/api/public/hooks/stripe-connect-webhook'
+    | '/api/public/hooks/stripe-webhook'
     | '/campaigns/$slug/back/details'
     | '/campaigns/$slug/back/result'
     | '/campaigns/$slug/back/review'
@@ -511,6 +547,9 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/campaign-reviews/$campaignId'
     | '/_authenticated/creator/campaigns/new'
     | '/api/public/hooks/publish-due-campaigns'
+    | '/api/public/hooks/run-payment-reconciliation'
+    | '/api/public/hooks/stripe-connect-webhook'
+    | '/api/public/hooks/stripe-webhook'
     | '/campaigns/$slug/back/details'
     | '/campaigns/$slug/back/result'
     | '/campaigns/$slug/back/review'
@@ -541,6 +580,9 @@ export interface RootRouteChildren {
   CategoriesSlugRoute: typeof CategoriesSlugRoute
   CreatorsUsernameRoute: typeof CreatorsUsernameRoute
   ApiPublicHooksPublishDueCampaignsRoute: typeof ApiPublicHooksPublishDueCampaignsRoute
+  ApiPublicHooksRunPaymentReconciliationRoute: typeof ApiPublicHooksRunPaymentReconciliationRoute
+  ApiPublicHooksStripeConnectWebhookRoute: typeof ApiPublicHooksStripeConnectWebhookRoute
+  ApiPublicHooksStripeWebhookRoute: typeof ApiPublicHooksStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -783,6 +825,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CampaignsSlugBackDetailsRouteImport
       parentRoute: typeof CampaignsSlugBackRoute
     }
+    '/api/public/hooks/stripe-webhook': {
+      id: '/api/public/hooks/stripe-webhook'
+      path: '/api/public/hooks/stripe-webhook'
+      fullPath: '/api/public/hooks/stripe-webhook'
+      preLoaderRoute: typeof ApiPublicHooksStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/stripe-connect-webhook': {
+      id: '/api/public/hooks/stripe-connect-webhook'
+      path: '/api/public/hooks/stripe-connect-webhook'
+      fullPath: '/api/public/hooks/stripe-connect-webhook'
+      preLoaderRoute: typeof ApiPublicHooksStripeConnectWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/run-payment-reconciliation': {
+      id: '/api/public/hooks/run-payment-reconciliation'
+      path: '/api/public/hooks/run-payment-reconciliation'
+      fullPath: '/api/public/hooks/run-payment-reconciliation'
+      preLoaderRoute: typeof ApiPublicHooksRunPaymentReconciliationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/publish-due-campaigns': {
       id: '/api/public/hooks/publish-due-campaigns'
       path: '/api/public/hooks/publish-due-campaigns'
@@ -986,6 +1049,11 @@ const rootRouteChildren: RootRouteChildren = {
   CreatorsUsernameRoute: CreatorsUsernameRoute,
   ApiPublicHooksPublishDueCampaignsRoute:
     ApiPublicHooksPublishDueCampaignsRoute,
+  ApiPublicHooksRunPaymentReconciliationRoute:
+    ApiPublicHooksRunPaymentReconciliationRoute,
+  ApiPublicHooksStripeConnectWebhookRoute:
+    ApiPublicHooksStripeConnectWebhookRoute,
+  ApiPublicHooksStripeWebhookRoute: ApiPublicHooksStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
