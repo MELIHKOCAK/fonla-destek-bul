@@ -818,6 +818,68 @@ export type Database = {
           },
         ]
       }
+      email_deliveries: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          dedupe_key: string
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          outbox_id: string | null
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_user_id: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["email_delivery_status"]
+          template_data: Json
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          dedupe_key: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          outbox_id?: string | null
+          provider_message_id?: string | null
+          recipient_email: string
+          recipient_user_id: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_delivery_status"]
+          template_data?: Json
+          template_name: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          dedupe_key?: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          outbox_id?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string
+          recipient_user_id?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_delivery_status"]
+          template_data?: Json
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_deliveries_outbox_id_fkey"
+            columns: ["outbox_id"]
+            isOneToOne: false
+            referencedRelation: "notification_outbox"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           campaign_id: string
@@ -1001,6 +1063,81 @@ export type Database = {
           scope?: string
           status?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      notification_outbox: {
+        Row: {
+          attempt_count: number
+          correlation_id: string | null
+          created_at: string
+          dedupe_key: string
+          entity_id: string | null
+          entity_type: string
+          event_type: Database["public"]["Enums"]["notification_event_type"]
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          recipient_user_id: string
+          status: Database["public"]["Enums"]["notification_outbox_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          correlation_id?: string | null
+          created_at?: string
+          dedupe_key: string
+          entity_id?: string | null
+          entity_type: string
+          event_type: Database["public"]["Enums"]["notification_event_type"]
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          recipient_user_id: string
+          status?: Database["public"]["Enums"]["notification_outbox_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          correlation_id?: string | null
+          created_at?: string
+          dedupe_key?: string
+          entity_id?: string | null
+          entity_type?: string
+          event_type?: Database["public"]["Enums"]["notification_event_type"]
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          recipient_user_id?: string
+          status?: Database["public"]["Enums"]["notification_outbox_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          campaign_updates_email: boolean
+          marketing_email: boolean
+          transaction_email: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_updates_email?: boolean
+          marketing_email?: boolean
+          transaction_email?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_updates_email?: boolean
+          marketing_email?: boolean
+          transaction_email?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2220,6 +2357,22 @@ export type Database = {
         }
         Returns: Json
       }
+      get_notification_preferences: {
+        Args: never
+        Returns: {
+          campaign_updates_email: boolean
+          marketing_email: boolean
+          transaction_email: boolean
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_preferences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_public_campaign_by_slug: {
         Args: { _slug: string }
         Returns: {
@@ -2343,6 +2496,7 @@ export type Database = {
           website_url: string
         }[]
       }
+      get_unread_notification_count: { Args: never; Returns: number }
       get_user_dashboard_overview: {
         Args: never
         Returns: {
@@ -2445,6 +2599,48 @@ export type Database = {
           status: Database["public"]["Enums"]["contribution_status"]
           updated_at: string
         }[]
+      }
+      notify_claim_batch: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempt_count: number
+          correlation_id: string | null
+          created_at: string
+          dedupe_key: string
+          entity_id: string | null
+          entity_type: string
+          event_type: Database["public"]["Enums"]["notification_event_type"]
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          recipient_user_id: string
+          status: Database["public"]["Enums"]["notification_outbox_status"]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      notify_enqueue: {
+        Args: {
+          p_correlation_id?: string
+          p_dedupe_key: string
+          p_entity_id: string
+          p_entity_type: string
+          p_event_type: Database["public"]["Enums"]["notification_event_type"]
+          p_payload: Json
+          p_recipient_user_id: string
+        }
+        Returns: string
+      }
+      notify_mark_done: { Args: { p_id: string }; Returns: undefined }
+      notify_mark_failed: {
+        Args: { p_error: string; p_id: string; p_retriable: boolean }
+        Returns: undefined
       }
       publish_campaign_update: {
         Args: { _body: string; _campaign_id: string; _title: string }
@@ -2858,6 +3054,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      update_notification_preferences: {
+        Args: { p_campaign_updates_email: boolean; p_marketing_email: boolean }
+        Returns: {
+          campaign_updates_email: boolean
+          marketing_email: boolean
+          transaction_email: boolean
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_preferences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       campaign_media_type: "image" | "video" | "document"
@@ -2904,6 +3116,15 @@ export type Database = {
         | "reversed"
         | "partially_reversed"
         | "cancelled"
+      email_delivery_status:
+        | "queued"
+        | "sent"
+        | "failed"
+        | "dead_letter"
+        | "bounced"
+        | "suppressed"
+        | "pending_provider"
+        | "skipped"
       financial_environment: "test" | "live"
       ledger_entry_type:
         | "contribution_capture"
@@ -2919,6 +3140,37 @@ export type Database = {
         | "provider_payout_observed"
         | "dispute_opened"
         | "chargeback_recorded"
+      notification_event_type:
+        | "registration_completed"
+        | "campaign_submitted"
+        | "campaign_revision_requested"
+        | "campaign_approved"
+        | "campaign_rejected"
+        | "campaign_published"
+        | "contribution_created"
+        | "payment_action_required"
+        | "payment_succeeded"
+        | "payment_failed"
+        | "payment_session_expired"
+        | "campaign_goal_reached"
+        | "campaign_failed"
+        | "refund_started"
+        | "refund_completed"
+        | "creator_transfer_started"
+        | "creator_transfer_completed"
+        | "creator_transfer_failed"
+        | "transfer_reversal_started"
+        | "transfer_reversal_completed"
+        | "provider_payout_observed"
+        | "provider_payout_failed"
+        | "campaign_update_published"
+        | "creator_comment_reply"
+      notification_outbox_status:
+        | "pending"
+        | "processing"
+        | "done"
+        | "failed"
+        | "skipped"
       payment_domain_status:
         | "created"
         | "pending"
@@ -3158,6 +3410,16 @@ export const Constants = {
         "partially_reversed",
         "cancelled",
       ],
+      email_delivery_status: [
+        "queued",
+        "sent",
+        "failed",
+        "dead_letter",
+        "bounced",
+        "suppressed",
+        "pending_provider",
+        "skipped",
+      ],
       financial_environment: ["test", "live"],
       ledger_entry_type: [
         "contribution_capture",
@@ -3173,6 +3435,39 @@ export const Constants = {
         "provider_payout_observed",
         "dispute_opened",
         "chargeback_recorded",
+      ],
+      notification_event_type: [
+        "registration_completed",
+        "campaign_submitted",
+        "campaign_revision_requested",
+        "campaign_approved",
+        "campaign_rejected",
+        "campaign_published",
+        "contribution_created",
+        "payment_action_required",
+        "payment_succeeded",
+        "payment_failed",
+        "payment_session_expired",
+        "campaign_goal_reached",
+        "campaign_failed",
+        "refund_started",
+        "refund_completed",
+        "creator_transfer_started",
+        "creator_transfer_completed",
+        "creator_transfer_failed",
+        "transfer_reversal_started",
+        "transfer_reversal_completed",
+        "provider_payout_observed",
+        "provider_payout_failed",
+        "campaign_update_published",
+        "creator_comment_reply",
+      ],
+      notification_outbox_status: [
+        "pending",
+        "processing",
+        "done",
+        "failed",
+        "skipped",
       ],
       payment_domain_status: [
         "created",
