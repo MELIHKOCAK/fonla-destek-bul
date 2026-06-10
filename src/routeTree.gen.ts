@@ -32,8 +32,13 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as CampaignsSlugBackRouteImport } from './routes/campaigns.$slug.back'
+import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated/settings.security'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings.account'
+import { Route as AuthenticatedDashboardRewardsRouteImport } from './routes/_authenticated/dashboard.rewards'
+import { Route as AuthenticatedDashboardRefundsRouteImport } from './routes/_authenticated/dashboard.refunds'
+import { Route as AuthenticatedDashboardPaymentsRouteImport } from './routes/_authenticated/dashboard.payments'
+import { Route as AuthenticatedDashboardFavoritesRouteImport } from './routes/_authenticated/dashboard.favorites'
 import { Route as AuthenticatedDashboardContributionsRouteImport } from './routes/_authenticated/dashboard.contributions'
 import { Route as AuthenticatedCreatorPaymentAccountRouteImport } from './routes/_authenticated/creator.payment-account'
 import { Route as AuthenticatedCreatorCampaignsRouteImport } from './routes/_authenticated/creator.campaigns'
@@ -170,6 +175,12 @@ const CampaignsSlugBackRoute = CampaignsSlugBackRouteImport.update({
   path: '/back',
   getParentRoute: () => CampaignsSlugRoute,
 } as any)
+const AuthenticatedSettingsSecurityRoute =
+  AuthenticatedSettingsSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsProfileRoute =
   AuthenticatedSettingsProfileRouteImport.update({
     id: '/profile',
@@ -181,6 +192,30 @@ const AuthenticatedSettingsAccountRoute =
     id: '/account',
     path: '/account',
     getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedDashboardRewardsRoute =
+  AuthenticatedDashboardRewardsRouteImport.update({
+    id: '/rewards',
+    path: '/rewards',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardRefundsRoute =
+  AuthenticatedDashboardRefundsRouteImport.update({
+    id: '/refunds',
+    path: '/refunds',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardPaymentsRoute =
+  AuthenticatedDashboardPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardFavoritesRoute =
+  AuthenticatedDashboardFavoritesRouteImport.update({
+    id: '/favorites',
+    path: '/favorites',
+    getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardContributionsRoute =
   AuthenticatedDashboardContributionsRouteImport.update({
@@ -323,8 +358,13 @@ export interface FileRoutesByFullPath {
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
   '/creator/payment-account': typeof AuthenticatedCreatorPaymentAccountRoute
   '/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
+  '/dashboard/favorites': typeof AuthenticatedDashboardFavoritesRoute
+  '/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
+  '/dashboard/refunds': typeof AuthenticatedDashboardRefundsRoute
+  '/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
@@ -367,8 +407,13 @@ export interface FileRoutesByTo {
   '/creators/$username': typeof CreatorsUsernameRoute
   '/creator/payment-account': typeof AuthenticatedCreatorPaymentAccountRoute
   '/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
+  '/dashboard/favorites': typeof AuthenticatedDashboardFavoritesRoute
+  '/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
+  '/dashboard/refunds': typeof AuthenticatedDashboardRefundsRoute
+  '/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
@@ -414,8 +459,13 @@ export interface FileRoutesById {
   '/_authenticated/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
   '/_authenticated/creator/payment-account': typeof AuthenticatedCreatorPaymentAccountRoute
   '/_authenticated/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
+  '/_authenticated/dashboard/favorites': typeof AuthenticatedDashboardFavoritesRoute
+  '/_authenticated/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
+  '/_authenticated/dashboard/refunds': typeof AuthenticatedDashboardRefundsRoute
+  '/_authenticated/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
@@ -462,8 +512,13 @@ export interface FileRouteTypes {
     | '/creator/campaigns'
     | '/creator/payment-account'
     | '/dashboard/contributions'
+    | '/dashboard/favorites'
+    | '/dashboard/payments'
+    | '/dashboard/refunds'
+    | '/dashboard/rewards'
     | '/settings/account'
     | '/settings/profile'
+    | '/settings/security'
     | '/campaigns/$slug/back'
     | '/admin/'
     | '/admin/campaign-reviews/$campaignId'
@@ -506,8 +561,13 @@ export interface FileRouteTypes {
     | '/creators/$username'
     | '/creator/payment-account'
     | '/dashboard/contributions'
+    | '/dashboard/favorites'
+    | '/dashboard/payments'
+    | '/dashboard/refunds'
+    | '/dashboard/rewards'
     | '/settings/account'
     | '/settings/profile'
+    | '/settings/security'
     | '/admin'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
@@ -552,8 +612,13 @@ export interface FileRouteTypes {
     | '/_authenticated/creator/campaigns'
     | '/_authenticated/creator/payment-account'
     | '/_authenticated/dashboard/contributions'
+    | '/_authenticated/dashboard/favorites'
+    | '/_authenticated/dashboard/payments'
+    | '/_authenticated/dashboard/refunds'
+    | '/_authenticated/dashboard/rewards'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/profile'
+    | '/_authenticated/settings/security'
     | '/campaigns/$slug/back'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/campaign-reviews/$campaignId'
@@ -761,6 +826,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CampaignsSlugBackRouteImport
       parentRoute: typeof CampaignsSlugRoute
     }
+    '/_authenticated/settings/security': {
+      id: '/_authenticated/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof AuthenticatedSettingsSecurityRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/profile': {
       id: '/_authenticated/settings/profile'
       path: '/profile'
@@ -774,6 +846,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/account'
       preLoaderRoute: typeof AuthenticatedSettingsAccountRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/dashboard/rewards': {
+      id: '/_authenticated/dashboard/rewards'
+      path: '/rewards'
+      fullPath: '/dashboard/rewards'
+      preLoaderRoute: typeof AuthenticatedDashboardRewardsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/refunds': {
+      id: '/_authenticated/dashboard/refunds'
+      path: '/refunds'
+      fullPath: '/dashboard/refunds'
+      preLoaderRoute: typeof AuthenticatedDashboardRefundsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/payments': {
+      id: '/_authenticated/dashboard/payments'
+      path: '/payments'
+      fullPath: '/dashboard/payments'
+      preLoaderRoute: typeof AuthenticatedDashboardPaymentsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/favorites': {
+      id: '/_authenticated/dashboard/favorites'
+      path: '/favorites'
+      fullPath: '/dashboard/favorites'
+      preLoaderRoute: typeof AuthenticatedDashboardFavoritesRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/contributions': {
       id: '/_authenticated/dashboard/contributions'
@@ -940,12 +1040,20 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardContributionsRoute: typeof AuthenticatedDashboardContributionsRoute
+  AuthenticatedDashboardFavoritesRoute: typeof AuthenticatedDashboardFavoritesRoute
+  AuthenticatedDashboardPaymentsRoute: typeof AuthenticatedDashboardPaymentsRoute
+  AuthenticatedDashboardRefundsRoute: typeof AuthenticatedDashboardRefundsRoute
+  AuthenticatedDashboardRewardsRoute: typeof AuthenticatedDashboardRewardsRoute
 }
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
     AuthenticatedDashboardContributionsRoute:
       AuthenticatedDashboardContributionsRoute,
+    AuthenticatedDashboardFavoritesRoute: AuthenticatedDashboardFavoritesRoute,
+    AuthenticatedDashboardPaymentsRoute: AuthenticatedDashboardPaymentsRoute,
+    AuthenticatedDashboardRefundsRoute: AuthenticatedDashboardRefundsRoute,
+    AuthenticatedDashboardRewardsRoute: AuthenticatedDashboardRewardsRoute,
   }
 
 const AuthenticatedDashboardRouteWithChildren =
@@ -956,11 +1064,13 @@ const AuthenticatedDashboardRouteWithChildren =
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
   AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
+  AuthenticatedSettingsSecurityRoute: typeof AuthenticatedSettingsSecurityRoute
 }
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
   AuthenticatedSettingsProfileRoute: AuthenticatedSettingsProfileRoute,
+  AuthenticatedSettingsSecurityRoute: AuthenticatedSettingsSecurityRoute,
 }
 
 const AuthenticatedSettingsRouteWithChildren =
