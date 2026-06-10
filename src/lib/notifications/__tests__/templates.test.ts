@@ -38,7 +38,7 @@ describe("notification templates", () => {
       const blob = `${r!.subject}\n${r!.text}\n${r!.html}`;
       expect(blob).not.toMatch(/pi_|ch_|cus_|acct_|txn_|seti_|pm_/i);
       expect(blob).not.toMatch(/stripe/i);
-      expect(blob).not.toMatch(/cvv|pan/i);
+      expect(blob).not.toMatch(/\bcvv\b|\bpan\b/i);
     }
   });
 
@@ -57,7 +57,7 @@ describe("notification templates", () => {
       payload: { amount_minor: 12345 },
     });
     // 123,45 ₺ veya benzeri tr-TR
-    expect(r!.subject).toMatch(/12[3.,]45/);
+    expect(r!.subject).toMatch(/123[.,]45/);
   });
 
   it("eksik event için null döner", () => {
