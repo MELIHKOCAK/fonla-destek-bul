@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ShieldCheck, ListChecks, History } from "lucide-react";
+import { ShieldCheck, ListChecks, History, ScrollText, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Container } from "@/components/common/Container";
 import { cn } from "@/lib/utils";
