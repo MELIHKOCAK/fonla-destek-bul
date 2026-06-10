@@ -48,7 +48,7 @@ export async function listReviewQueue(params: ListReviewQueueParams = {}): Promi
   let q = supabase
     .from("campaigns")
     .select(
-      "id, title, slug, status, goal_amount_minor, currency, submitted_at, updated_at, lock_version, category_id, creator_id, categories(name), profiles!campaigns_creator_id_fkey(display_name, username)",
+      "id, title, slug, status, goal_amount_minor, currency, submitted_at, updated_at, lock_version, category_id, creator_id, categories(name), profiles!campaigns_creator_id_profiles_fkey(display_name, username)",
       { count: "exact" },
     )
     .in("status", status)
