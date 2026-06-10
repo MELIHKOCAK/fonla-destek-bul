@@ -56,6 +56,9 @@ export function mapCampaignError(err: unknown): MappedError {
   if (message.includes("BFL_INVALID_TITLE")) {
     return { code: "BFL_INVALID_TITLE", message: "Başlık 5-80 karakter arasında olmalı." };
   }
+  if (message.includes("BFL_INVALID_SHORT_DESCRIPTION")) {
+    return { code: "BFL_INVALID_SHORT_DESCRIPTION", message: "Kısa açıklama 40-200 karakter arasında olmalı." };
+  }
   if (message.includes("BFL_INVALID_CATEGORY")) {
     return { code: "BFL_INVALID_CATEGORY", message: "Geçerli bir kategori seçin." };
   }
@@ -64,6 +67,9 @@ export function mapCampaignError(err: unknown): MappedError {
   }
   if (message.includes("BFL_INVALID_DATES") || message.includes("BFL_DURATION")) {
     return { code: "BFL_INVALID_DATES", message: "Tarih veya kampanya süresi geçersiz." };
+  }
+  if (import.meta.env.DEV) {
+    console.warn("[mapCampaignError] Unmapped error:", message, err);
   }
   return { code: "UNKNOWN", message: "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin." };
 }
