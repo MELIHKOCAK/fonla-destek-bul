@@ -34,6 +34,7 @@ import { Route as CampaignsSlugBackRouteImport } from './routes/campaigns.$slug.
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings.account'
 import { Route as AuthenticatedDashboardContributionsRouteImport } from './routes/_authenticated/dashboard.contributions'
+import { Route as AuthenticatedCreatorPaymentAccountRouteImport } from './routes/_authenticated/creator.payment-account'
 import { Route as AuthenticatedCreatorCampaignsRouteImport } from './routes/_authenticated/creator.campaigns'
 import { Route as CampaignsSlugBackIndexRouteImport } from './routes/campaigns.$slug.back.index'
 import { Route as AuthenticatedCreatorCampaignsIndexRouteImport } from './routes/_authenticated/creator.campaigns.index'
@@ -178,6 +179,12 @@ const AuthenticatedDashboardContributionsRoute =
     path: '/contributions',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedCreatorPaymentAccountRoute =
+  AuthenticatedCreatorPaymentAccountRouteImport.update({
+    id: '/creator/payment-account',
+    path: '/creator/payment-account',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCreatorCampaignsRoute =
   AuthenticatedCreatorCampaignsRouteImport.update({
     id: '/creator/campaigns',
@@ -286,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
+  '/creator/payment-account': typeof AuthenticatedCreatorPaymentAccountRoute
   '/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
@@ -325,6 +333,7 @@ export interface FileRoutesByTo {
   '/campaigns/$slug': typeof CampaignsSlugRouteWithChildren
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
+  '/creator/payment-account': typeof AuthenticatedCreatorPaymentAccountRoute
   '/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
@@ -367,6 +376,7 @@ export interface FileRoutesById {
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
   '/_authenticated/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
+  '/_authenticated/creator/payment-account': typeof AuthenticatedCreatorPaymentAccountRoute
   '/_authenticated/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
@@ -410,6 +420,7 @@ export interface FileRouteTypes {
     | '/categories/$slug'
     | '/creators/$username'
     | '/creator/campaigns'
+    | '/creator/payment-account'
     | '/dashboard/contributions'
     | '/settings/account'
     | '/settings/profile'
@@ -449,6 +460,7 @@ export interface FileRouteTypes {
     | '/campaigns/$slug'
     | '/categories/$slug'
     | '/creators/$username'
+    | '/creator/payment-account'
     | '/dashboard/contributions'
     | '/settings/account'
     | '/settings/profile'
@@ -490,6 +502,7 @@ export interface FileRouteTypes {
     | '/categories/$slug'
     | '/creators/$username'
     | '/_authenticated/creator/campaigns'
+    | '/_authenticated/creator/payment-account'
     | '/_authenticated/dashboard/contributions'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/profile'
@@ -707,6 +720,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardContributionsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/creator/payment-account': {
+      id: '/_authenticated/creator/payment-account'
+      path: '/creator/payment-account'
+      fullPath: '/creator/payment-account'
+      preLoaderRoute: typeof AuthenticatedCreatorPaymentAccountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/creator/campaigns': {
       id: '/_authenticated/creator/campaigns'
       path: '/creator/campaigns'
@@ -899,6 +919,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedCreatorCampaignsRoute: typeof AuthenticatedCreatorCampaignsRouteWithChildren
+  AuthenticatedCreatorPaymentAccountRoute: typeof AuthenticatedCreatorPaymentAccountRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -909,6 +930,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedCreatorCampaignsRoute:
     AuthenticatedCreatorCampaignsRouteWithChildren,
+  AuthenticatedCreatorPaymentAccountRoute:
+    AuthenticatedCreatorPaymentAccountRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
