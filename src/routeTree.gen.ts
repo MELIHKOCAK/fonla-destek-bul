@@ -35,6 +35,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as CampaignsSlugBackRouteImport } from './routes/campaigns.$slug.back'
 import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated/settings.security'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
+import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings.notifications'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings.account'
 import { Route as AuthenticatedDashboardRewardsRouteImport } from './routes/_authenticated/dashboard.rewards'
 import { Route as AuthenticatedDashboardRefundsRouteImport } from './routes/_authenticated/dashboard.refunds'
@@ -56,6 +57,7 @@ import { Route as ApiPublicHooksStripeWebhookRouteImport } from './routes/api/pu
 import { Route as ApiPublicHooksStripeConnectWebhookRouteImport } from './routes/api/public/hooks/stripe-connect-webhook'
 import { Route as ApiPublicHooksRunPaymentReconciliationRouteImport } from './routes/api/public/hooks/run-payment-reconciliation'
 import { Route as ApiPublicHooksPublishDueCampaignsRouteImport } from './routes/api/public/hooks/publish-due-campaigns'
+import { Route as ApiPublicHooksProcessNotificationOutboxRouteImport } from './routes/api/public/hooks/process-notification-outbox'
 import { Route as AuthenticatedCreatorCampaignsNewRouteImport } from './routes/_authenticated/creator.campaigns.new'
 import { Route as AuthenticatedAdminCampaignReviewsCampaignIdRouteImport } from './routes/_authenticated/admin.campaign-reviews.$campaignId'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdUpdatesRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.updates'
@@ -201,6 +203,12 @@ const AuthenticatedSettingsProfileRoute =
     path: '/profile',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsNotificationsRoute =
+  AuthenticatedSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsAccountRoute =
   AuthenticatedSettingsAccountRouteImport.update({
     id: '/account',
@@ -322,6 +330,12 @@ const ApiPublicHooksPublishDueCampaignsRoute =
     path: '/api/public/hooks/publish-due-campaigns',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksProcessNotificationOutboxRoute =
+  ApiPublicHooksProcessNotificationOutboxRouteImport.update({
+    id: '/api/public/hooks/process-notification-outbox',
+    path: '/api/public/hooks/process-notification-outbox',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedCreatorCampaignsNewRoute =
   AuthenticatedCreatorCampaignsNewRouteImport.update({
     id: '/new',
@@ -420,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/refunds': typeof AuthenticatedDashboardRefundsRoute
   '/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
+  '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
@@ -427,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/creator/': typeof AuthenticatedCreatorIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/hooks/process-notification-outbox': typeof ApiPublicHooksProcessNotificationOutboxRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
   '/api/public/hooks/run-payment-reconciliation': typeof ApiPublicHooksRunPaymentReconciliationRoute
   '/api/public/hooks/stripe-connect-webhook': typeof ApiPublicHooksStripeConnectWebhookRoute
@@ -477,12 +493,14 @@ export interface FileRoutesByTo {
   '/dashboard/refunds': typeof AuthenticatedDashboardRefundsRoute
   '/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
+  '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/creator': typeof AuthenticatedCreatorIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/hooks/process-notification-outbox': typeof ApiPublicHooksProcessNotificationOutboxRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
   '/api/public/hooks/run-payment-reconciliation': typeof ApiPublicHooksRunPaymentReconciliationRoute
   '/api/public/hooks/stripe-connect-webhook': typeof ApiPublicHooksStripeConnectWebhookRoute
@@ -537,6 +555,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/refunds': typeof AuthenticatedDashboardRefundsRoute
   '/_authenticated/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
+  '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
@@ -544,6 +563,7 @@ export interface FileRoutesById {
   '/_authenticated/creator/': typeof AuthenticatedCreatorIndexRoute
   '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/hooks/process-notification-outbox': typeof ApiPublicHooksProcessNotificationOutboxRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
   '/api/public/hooks/run-payment-reconciliation': typeof ApiPublicHooksRunPaymentReconciliationRoute
   '/api/public/hooks/stripe-connect-webhook': typeof ApiPublicHooksStripeConnectWebhookRoute
@@ -598,6 +618,7 @@ export interface FileRouteTypes {
     | '/dashboard/refunds'
     | '/dashboard/rewards'
     | '/settings/account'
+    | '/settings/notifications'
     | '/settings/profile'
     | '/settings/security'
     | '/campaigns/$slug/back'
@@ -605,6 +626,7 @@ export interface FileRouteTypes {
     | '/creator/'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
+    | '/api/public/hooks/process-notification-outbox'
     | '/api/public/hooks/publish-due-campaigns'
     | '/api/public/hooks/run-payment-reconciliation'
     | '/api/public/hooks/stripe-connect-webhook'
@@ -655,12 +677,14 @@ export interface FileRouteTypes {
     | '/dashboard/refunds'
     | '/dashboard/rewards'
     | '/settings/account'
+    | '/settings/notifications'
     | '/settings/profile'
     | '/settings/security'
     | '/admin'
     | '/creator'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
+    | '/api/public/hooks/process-notification-outbox'
     | '/api/public/hooks/publish-due-campaigns'
     | '/api/public/hooks/run-payment-reconciliation'
     | '/api/public/hooks/stripe-connect-webhook'
@@ -714,6 +738,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/refunds'
     | '/_authenticated/dashboard/rewards'
     | '/_authenticated/settings/account'
+    | '/_authenticated/settings/notifications'
     | '/_authenticated/settings/profile'
     | '/_authenticated/settings/security'
     | '/campaigns/$slug/back'
@@ -721,6 +746,7 @@ export interface FileRouteTypes {
     | '/_authenticated/creator/'
     | '/_authenticated/admin/campaign-reviews/$campaignId'
     | '/_authenticated/creator/campaigns/new'
+    | '/api/public/hooks/process-notification-outbox'
     | '/api/public/hooks/publish-due-campaigns'
     | '/api/public/hooks/run-payment-reconciliation'
     | '/api/public/hooks/stripe-connect-webhook'
@@ -760,6 +786,7 @@ export interface RootRouteChildren {
   CampaignsSlugRoute: typeof CampaignsSlugRouteWithChildren
   CategoriesSlugRoute: typeof CategoriesSlugRoute
   CreatorsUsernameRoute: typeof CreatorsUsernameRoute
+  ApiPublicHooksProcessNotificationOutboxRoute: typeof ApiPublicHooksProcessNotificationOutboxRoute
   ApiPublicHooksPublishDueCampaignsRoute: typeof ApiPublicHooksPublishDueCampaignsRoute
   ApiPublicHooksRunPaymentReconciliationRoute: typeof ApiPublicHooksRunPaymentReconciliationRoute
   ApiPublicHooksStripeConnectWebhookRoute: typeof ApiPublicHooksStripeConnectWebhookRoute
@@ -950,6 +977,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsProfileRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/notifications': {
+      id: '/_authenticated/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof AuthenticatedSettingsNotificationsRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/account': {
       id: '/_authenticated/settings/account'
       path: '/account'
@@ -1097,6 +1131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksPublishDueCampaignsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/process-notification-outbox': {
+      id: '/api/public/hooks/process-notification-outbox'
+      path: '/api/public/hooks/process-notification-outbox'
+      fullPath: '/api/public/hooks/process-notification-outbox'
+      preLoaderRoute: typeof ApiPublicHooksProcessNotificationOutboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/creator/campaigns/new': {
       id: '/_authenticated/creator/campaigns/new'
       path: '/new'
@@ -1226,12 +1267,15 @@ const AuthenticatedDashboardRouteWithChildren =
 
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
+  AuthenticatedSettingsNotificationsRoute: typeof AuthenticatedSettingsNotificationsRoute
   AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
   AuthenticatedSettingsSecurityRoute: typeof AuthenticatedSettingsSecurityRoute
 }
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
+  AuthenticatedSettingsNotificationsRoute:
+    AuthenticatedSettingsNotificationsRoute,
   AuthenticatedSettingsProfileRoute: AuthenticatedSettingsProfileRoute,
   AuthenticatedSettingsSecurityRoute: AuthenticatedSettingsSecurityRoute,
 }
@@ -1358,6 +1402,8 @@ const rootRouteChildren: RootRouteChildren = {
   CampaignsSlugRoute: CampaignsSlugRouteWithChildren,
   CategoriesSlugRoute: CategoriesSlugRoute,
   CreatorsUsernameRoute: CreatorsUsernameRoute,
+  ApiPublicHooksProcessNotificationOutboxRoute:
+    ApiPublicHooksProcessNotificationOutboxRoute,
   ApiPublicHooksPublishDueCampaignsRoute:
     ApiPublicHooksPublishDueCampaignsRoute,
   ApiPublicHooksRunPaymentReconciliationRoute:

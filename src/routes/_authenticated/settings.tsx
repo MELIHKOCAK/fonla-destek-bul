@@ -10,6 +10,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 const NAV = [
   { to: "/settings/profile", label: "Profil" },
   { to: "/settings/security", label: "Güvenlik" },
+  { to: "/settings/notifications", label: "Bildirimler" },
   { to: "/settings/account", label: "Hesap" },
 ] as const;
 
