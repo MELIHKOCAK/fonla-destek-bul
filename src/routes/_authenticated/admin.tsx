@@ -36,6 +36,18 @@ function AdminLayout() {
       icon: ListChecks,
       match: (p) => p.startsWith("/admin/campaign-reviews"),
     },
+    {
+      to: "/admin/system-alerts",
+      label: "Sistem uyarıları",
+      icon: AlertTriangle,
+      match: (p) => p.startsWith("/admin/system-alerts"),
+    },
+    {
+      to: "/admin/audit",
+      label: "Denetim günlüğü",
+      icon: ScrollText,
+      match: (p) => p.startsWith("/admin/audit"),
+    },
   ];
 
   return (
