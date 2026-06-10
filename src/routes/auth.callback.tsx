@@ -5,7 +5,13 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/auth/callback")({
-  head: () => ({ meta: [{ title: "Doğrulanıyor — BeniFonla" }] }),
+  head: () => ({
+    meta: [
+      { title: "Doğrulanıyor — BeniFonla" },
+      { name: "robots", content: "noindex, nofollow" },
+      { name: "googlebot", content: "noindex, nofollow" },
+    ],
+  }),
   component: AuthCallbackPage,
 });
 
