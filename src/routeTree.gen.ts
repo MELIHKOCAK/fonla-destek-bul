@@ -43,6 +43,8 @@ import { Route as AuthenticatedDashboardFavoritesRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardContributionsRouteImport } from './routes/_authenticated/dashboard.contributions'
 import { Route as AuthenticatedCreatorPaymentAccountRouteImport } from './routes/_authenticated/creator.payment-account'
 import { Route as AuthenticatedCreatorCampaignsRouteImport } from './routes/_authenticated/creator.campaigns'
+import { Route as AuthenticatedAdminSystemAlertsRouteImport } from './routes/_authenticated/admin.system-alerts'
+import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
 import { Route as CampaignsSlugBackIndexRouteImport } from './routes/campaigns.$slug.back.index'
 import { Route as AuthenticatedCreatorCampaignsIndexRouteImport } from './routes/_authenticated/creator.campaigns.index'
 import { Route as AuthenticatedAdminCampaignReviewsIndexRouteImport } from './routes/_authenticated/admin.campaign-reviews.index'
@@ -247,6 +249,17 @@ const AuthenticatedCreatorCampaignsRoute =
     path: '/creator/campaigns',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminSystemAlertsRoute =
+  AuthenticatedAdminSystemAlertsRouteImport.update({
+    id: '/system-alerts',
+    path: '/system-alerts',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const CampaignsSlugBackIndexRoute = CampaignsSlugBackIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -397,6 +410,8 @@ export interface FileRoutesByFullPath {
   '/campaigns/$slug': typeof CampaignsSlugRouteWithChildren
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/system-alerts': typeof AuthenticatedAdminSystemAlertsRoute
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
   '/creator/payment-account': typeof AuthenticatedCreatorPaymentAccountRoute
   '/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
@@ -453,6 +468,8 @@ export interface FileRoutesByTo {
   '/campaigns/$slug': typeof CampaignsSlugRouteWithChildren
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/system-alerts': typeof AuthenticatedAdminSystemAlertsRoute
   '/creator/payment-account': typeof AuthenticatedCreatorPaymentAccountRoute
   '/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
   '/dashboard/favorites': typeof AuthenticatedDashboardFavoritesRoute
@@ -510,6 +527,8 @@ export interface FileRoutesById {
   '/campaigns/$slug': typeof CampaignsSlugRouteWithChildren
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
+  '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/system-alerts': typeof AuthenticatedAdminSystemAlertsRoute
   '/_authenticated/creator/campaigns': typeof AuthenticatedCreatorCampaignsRouteWithChildren
   '/_authenticated/creator/payment-account': typeof AuthenticatedCreatorPaymentAccountRoute
   '/_authenticated/dashboard/contributions': typeof AuthenticatedDashboardContributionsRoute
@@ -569,6 +588,8 @@ export interface FileRouteTypes {
     | '/campaigns/$slug'
     | '/categories/$slug'
     | '/creators/$username'
+    | '/admin/audit'
+    | '/admin/system-alerts'
     | '/creator/campaigns'
     | '/creator/payment-account'
     | '/dashboard/contributions'
@@ -625,6 +646,8 @@ export interface FileRouteTypes {
     | '/campaigns/$slug'
     | '/categories/$slug'
     | '/creators/$username'
+    | '/admin/audit'
+    | '/admin/system-alerts'
     | '/creator/payment-account'
     | '/dashboard/contributions'
     | '/dashboard/favorites'
@@ -681,6 +704,8 @@ export interface FileRouteTypes {
     | '/campaigns/$slug'
     | '/categories/$slug'
     | '/creators/$username'
+    | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/system-alerts'
     | '/_authenticated/creator/campaigns'
     | '/_authenticated/creator/payment-account'
     | '/_authenticated/dashboard/contributions'
@@ -981,6 +1006,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCreatorCampaignsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/system-alerts': {
+      id: '/_authenticated/admin/system-alerts'
+      path: '/system-alerts'
+      fullPath: '/admin/system-alerts'
+      preLoaderRoute: typeof AuthenticatedAdminSystemAlertsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/audit': {
+      id: '/_authenticated/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/campaigns/$slug/back/': {
       id: '/campaigns/$slug/back/'
       path: '/'
@@ -1139,6 +1178,8 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminSystemAlertsRoute: typeof AuthenticatedAdminSystemAlertsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminCampaignReviewsCampaignIdRoute: typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   AuthenticatedAdminCampaignReviewsIndexRoute: typeof AuthenticatedAdminCampaignReviewsIndexRoute
@@ -1146,6 +1187,8 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+  AuthenticatedAdminSystemAlertsRoute: AuthenticatedAdminSystemAlertsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminCampaignReviewsCampaignIdRoute:
     AuthenticatedAdminCampaignReviewsCampaignIdRoute,

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ShieldCheck, ListChecks, History } from "lucide-react";
+import { ShieldCheck, ListChecks, History, ScrollText, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Container } from "@/components/common/Container";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,18 @@ function AdminLayout() {
       label: "İnceleme kuyruğu",
       icon: ListChecks,
       match: (p) => p.startsWith("/admin/campaign-reviews"),
+    },
+    {
+      to: "/admin/system-alerts",
+      label: "Sistem uyarıları",
+      icon: AlertTriangle,
+      match: (p) => p.startsWith("/admin/system-alerts"),
+    },
+    {
+      to: "/admin/audit",
+      label: "Denetim günlüğü",
+      icon: ScrollText,
+      match: (p) => p.startsWith("/admin/audit"),
     },
   ];
 
