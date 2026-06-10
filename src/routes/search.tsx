@@ -16,7 +16,20 @@ export type SearchParams = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/search")({
   validateSearch: (input) => searchSchema.parse(input ?? {}),
-  head: () => ({ meta: [{ title: "Ara — BeniFonla" }] }),
+  head: ({ match }) => {
+    const s = match.search as SearchParams | undefined;
+    const hasFilters = Boolean(
+      s && (s.q || (s.cats && s.cats.length > 0) || s.page > 1 || s.sort !== "newest"),
+    );
+    const meta: Array<{ title?: string; name?: string; content?: string; property?: string }> = [
+      { title: s?.q ? `"${s.q}" araması — BeniFonla` : "Ara — BeniFonla" },
+      { name: "description", content: "BeniFonla kampanyalarını arayın ve filtreleyin." },
+    ];
+    if (hasFilters) {
+      meta.push({ name: "robots", content: "noindex, follow" });
+    }
+    return { meta };
+  },
   component: SearchRoute,
 });
 
