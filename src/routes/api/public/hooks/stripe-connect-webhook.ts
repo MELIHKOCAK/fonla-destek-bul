@@ -33,6 +33,7 @@ export const Route = createFileRoute("/api/public/hooks/stripe-connect-webhook")
 
         const payloadHash = createHash("sha256").update(raw).digest("hex");
         const obj = event.data.object as { id?: string; object?: string };
+        const reqId = typeof event.request === "string" ? event.request : event.request?.id ?? undefined;
         const { data: claim } = await supabaseAdmin.rpc("claim_webhook_event", {
           _provider: "stripe",
           _provider_event_id: event.id,
@@ -41,12 +42,12 @@ export const Route = createFileRoute("/api/public/hooks/stripe-connect-webhook")
           _signature_valid: true,
           _environment: env,
           _livemode: event.livemode,
-          _api_version: event.api_version ?? null,
-          _request_id: event.request?.id ?? null,
-          _provider_account_id: event.account ?? null,
+          _api_version: event.api_version ?? undefined,
+          _request_id: reqId ?? undefined,
+          _provider_account_id: event.account ?? undefined,
           _event_created_at: new Date(event.created * 1000).toISOString(),
-          _provider_object_type: obj?.object ?? null,
-          _provider_object_id: obj?.id ?? null,
+          _provider_object_type: obj?.object ?? undefined,
+          _provider_object_id: obj?.id ?? undefined,
         });
         const claimed = (claim as Array<{ event_id: string; is_new: boolean }>)[0];
         if (!claimed?.is_new) return new Response("duplicate", { status: 200 });
@@ -60,17 +61,15 @@ export const Route = createFileRoute("/api/public/hooks/stripe-connect-webhook")
                 charges_enabled: acct.charges_enabled ?? false,
                 payouts_enabled: acct.payouts_enabled ?? false,
                 details_submitted: acct.details_submitted ?? false,
-                disabled_reason: acct.requirements?.disabled_reason ?? null,
-                onboarding_status: acct.details_submitted ? "submitted" : "in_progress",
+                disabled_reason: acct.requirements?.disabled_reason ?? undefined,
+                onboarding_status: acct.details_submitted ? "enabled" : "onboarding_pending",
                 last_provider_sync_at: new Date().toISOString(),
               })
               .eq("provider_account_id", acct.id);
           }
-          // transfer.* / payout.* event'leri Faz 13'te işlenecek
           await supabaseAdmin.rpc("mark_webhook_event_processed", {
             _event_id: claimed.event_id,
             _status: "processed",
-            _error: null,
           });
           return new Response("ok", { status: 200 });
         } catch (err) {

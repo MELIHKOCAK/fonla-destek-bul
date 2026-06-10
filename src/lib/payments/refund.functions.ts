@@ -7,9 +7,12 @@ import type { StripeSandboxProvider } from "./provider/stripe-sandbox-adapter";
 import { getEnvironment } from "./stripe.server";
 
 /**
- * Refund'ı initiate eder. Stripe call sonrası kayıt `pending` durumda
- * tutulur; final state webhook ile gelir. Refund Transfer Reversal'i
- * otomatik tetiklemez — ayrı işlem.
+ * Refund'ı initiate eder. Stripe call sonrası kayıt `pending`/`processing`
+ * durumda tutulur; final state webhook (charge.refunded) ile gelir. Refund
+ * Transfer Reversal'i otomatik tetiklemez — ayrı işlem.
+ *
+ * NOT: `refunds` tablosunda `idempotency_key`/`currency`/`environment`
+ * kolonları yok; idempotency için aktif pending refund'u tekrar kullanırız.
  */
 export const requestRefund = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -19,22 +22,18 @@ export const requestRefund = createServerFn({ method: "POST" })
         paymentTransactionId: z.string().uuid(),
         amountMinor: z.number().int().min(1).max(500_000_000),
         reason: z.enum(["requested_by_customer", "duplicate", "fraudulent", "other"]).optional(),
-        idempotencyKey: z.string().min(8).max(120),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    // ownership/admin: backer veya admin
     const { data: pt } = await supabase
       .from("payment_transactions")
-      .select(
-        "id, contribution_id, amount_minor, currency, environment, domain_status, provider_payment_intent_id",
-      )
+      .select("id, contribution_id, amount_minor, domain_status, provider_payment_intent_id")
       .eq("id", data.paymentTransactionId)
       .maybeSingle();
     if (!pt) throw new Error("BFL_NOT_FOUND");
-    if (pt.domain_status !== "paid" && pt.domain_status !== "partially_refunded") {
+    if (!["paid", "partially_refunded"].includes(pt.domain_status ?? "")) {
       throw new Error("BFL_REFUND_NOT_ALLOWED");
     }
     if (!pt.provider_payment_intent_id) throw new Error("BFL_NO_PROVIDER_REFERENCE");
@@ -45,41 +44,28 @@ export const requestRefund = createServerFn({ method: "POST" })
       .eq("id", pt.contribution_id)
       .maybeSingle();
     if (!contribution) throw new Error("BFL_NOT_FOUND");
-    const isOwner = contribution.backer_id === userId;
     const { data: isAdminRow } = await supabase.rpc("is_admin");
-    if (!isOwner && !isAdminRow) throw new Error("BFL_FORBIDDEN");
+    if (contribution.backer_id !== userId && !isAdminRow) throw new Error("BFL_FORBIDDEN");
 
-    // Refundable bakiye
     const { data: prior } = await supabaseAdmin
       .from("refunds")
       .select("amount_minor, status")
       .eq("payment_transaction_id", pt.id);
     const alreadyRefunded = (prior ?? [])
-      .filter((r) => ["pending", "succeeded"].includes(r.status))
+      .filter((r) => ["requested", "processing", "succeeded"].includes(r.status))
       .reduce((s, r) => s + Number(r.amount_minor), 0);
     if (alreadyRefunded + data.amountMinor > Number(pt.amount_minor)) {
       throw new Error("BFL_REFUND_AMOUNT_EXCEEDED");
     }
 
-    // Local idempotency
-    const { data: existing } = await supabaseAdmin
-      .from("refunds")
-      .select("id, status, provider_refund_id")
-      .eq("payment_transaction_id", pt.id)
-      .eq("idempotency_key", data.idempotencyKey)
-      .maybeSingle();
-    if (existing) return { refundId: existing.id, status: existing.status };
-
     const { data: insertRow, error: insErr } = await supabaseAdmin
       .from("refunds")
       .insert({
         payment_transaction_id: pt.id,
+        contribution_id: pt.contribution_id,
         amount_minor: data.amountMinor,
-        currency: pt.currency,
-        status: "pending",
-        environment: pt.environment,
+        status: "requested",
         reason: data.reason ?? "requested_by_customer",
-        idempotency_key: data.idempotencyKey,
         requested_by: userId,
       })
       .select("id")
@@ -97,13 +83,13 @@ export const requestRefund = createServerFn({ method: "POST" })
       const r = await provider.createRefund(pt.provider_payment_intent_id, data.amountMinor);
       await supabaseAdmin
         .from("refunds")
-        .update({ provider_refund_id: r.providerRefundId })
+        .update({ provider_refund_id: r.providerRefundId, status: "processing" })
         .eq("id", insertRow.id);
-      return { refundId: insertRow.id, status: "pending", providerRefundId: r.providerRefundId };
+      return { refundId: insertRow.id, status: "processing", providerRefundId: r.providerRefundId };
     } catch (err) {
       await supabaseAdmin
         .from("refunds")
-        .update({ status: "failed", failure_message: "provider_error" })
+        .update({ status: "failed" })
         .eq("id", insertRow.id);
       console.error("[refund] stripe error", { refundId: insertRow.id });
       throw new Error("BFL_REFUND_PROVIDER_ERROR");

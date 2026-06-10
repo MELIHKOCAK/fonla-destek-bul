@@ -54,6 +54,7 @@ export const Route = createFileRoute("/api/public/hooks/stripe-webhook")({
         // Claim event atomically
         const payloadHash = createHash("sha256").update(rawBody).digest("hex");
         const obj = event.data.object as { id?: string; object?: string };
+        const reqId = typeof event.request === "string" ? event.request : event.request?.id ?? undefined;
         const { data: claim, error: claimErr } = await supabaseAdmin.rpc("claim_webhook_event", {
           _provider: "stripe",
           _provider_event_id: event.id,
@@ -62,12 +63,12 @@ export const Route = createFileRoute("/api/public/hooks/stripe-webhook")({
           _signature_valid: true,
           _environment: env,
           _livemode: event.livemode,
-          _api_version: event.api_version ?? null,
-          _request_id: event.request?.id ?? null,
-          _provider_account_id: event.account ?? null,
+          _api_version: event.api_version ?? undefined,
+          _request_id: reqId ?? undefined,
+          _provider_account_id: event.account ?? undefined,
           _event_created_at: new Date(event.created * 1000).toISOString(),
-          _provider_object_type: obj?.object ?? null,
-          _provider_object_id: obj?.id ?? null,
+          _provider_object_type: obj?.object ?? undefined,
+          _provider_object_id: obj?.id ?? undefined,
         });
         if (claimErr) {
           console.error("[stripe-webhook] claim error", claimErr.message);
@@ -82,7 +83,6 @@ export const Route = createFileRoute("/api/public/hooks/stripe-webhook")({
           await supabaseAdmin.rpc("mark_webhook_event_processed", {
             _event_id: claimed.event_id,
             _status: "ignored",
-            _error: null,
           });
           return new Response("ignored", { status: 200 });
         }
@@ -92,7 +92,6 @@ export const Route = createFileRoute("/api/public/hooks/stripe-webhook")({
           await supabaseAdmin.rpc("mark_webhook_event_processed", {
             _event_id: claimed.event_id,
             _status: "processed",
-            _error: null,
           });
           return new Response("ok", { status: 200 });
         } catch (err) {
@@ -124,22 +123,21 @@ async function processEvent(event: Stripe.Event) {
           ? session.payment_intent
           : session.payment_intent?.id ?? null;
       // For completed/async_payment_succeeded, check actual payment status
-      const explicit =
+      const explicit: "failed" | "expired" | null =
         event.type === "checkout.session.async_payment_failed"
           ? "failed"
           : event.type === "checkout.session.expired"
             ? "expired"
             : null;
-      const domain =
-        explicit ?? mapCheckoutSessionStatus(session.status, session.payment_status);
-      if (domain === "unknown") return;
+      const mapped = explicit ?? mapCheckoutSessionStatus(session.status, session.payment_status);
+      if (mapped === "unknown") return;
       await applyPaymentTransition({
         paymentTransactionId: ptId,
-        expectedAmountMinor: 0, // skip amount check when not provided
+        expectedAmountMinor: 0,
         expectedCurrency: "TRY",
         providerAmountMinor: session.amount_total ?? null,
         providerCurrency: session.currency ?? null,
-        newDomainStatus: domain === "unknown" ? "processing" : domain,
+        newDomainStatus: mapped,
         providerStatus: `cs:${session.status}/${session.payment_status}`,
         providerEventId: event.id,
         providerPaymentIntentId: piId,

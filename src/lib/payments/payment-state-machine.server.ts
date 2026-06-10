@@ -109,7 +109,8 @@ export async function applyPaymentTransition(
 
   const { error: upErr } = await supabaseAdmin
     .from("payment_transactions")
-    .update(patch)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(patch as any)
     .eq("id", row.id);
   if (upErr) throw new Error(`payment_transaction update failed: ${upErr.message}`);
 

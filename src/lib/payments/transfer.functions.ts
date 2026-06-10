@@ -7,21 +7,18 @@ import type { StripeSandboxProvider } from "./provider/stripe-sandbox-adapter";
 import { getEnvironment } from "./stripe.server";
 
 /**
- * createCreatorTransfer — Stripe sandbox test mode. Production guard:
- * environment=live ise creator_transfers_live_guard trigger reddeder.
- *
+ * createCreatorTransfer — Stripe sandbox test mode.
  * Transfer ≠ Payout. Bu işlem platform Stripe balance'tan connected
- * account balance'a aktarır.
+ * account balance'a aktarır. Production live transfer trigger guard'lı.
+ *
+ * NOT: Mevcut schema `creator_transfers` üzerinde idempotency_key kolonu
+ * taşımıyor; idempotency için settlement_id + provider_transfer_id uniqueness'a
+ * dayanıyoruz (aynı settlement için ikinci Stripe API çağrısı yapılmaz).
  */
 export const createCreatorTransfer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z
-      .object({
-        settlementId: z.string().uuid(),
-        idempotencyKey: z.string().min(8).max(120),
-      })
-      .parse(d),
+    z.object({ settlementId: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
@@ -30,54 +27,48 @@ export const createCreatorTransfer = createServerFn({ method: "POST" })
 
     const { data: settlement } = await supabaseAdmin
       .from("campaign_settlements")
-      .select("id, campaign_id, environment, net_amount_minor, currency, transfer_group, status")
+      .select("id, campaign_id, creator_id, environment, net_amount_minor, currency, status")
       .eq("id", data.settlementId)
       .maybeSingle();
     if (!settlement) throw new Error("BFL_NOT_FOUND");
     if (settlement.environment === "live") throw new Error("BFL_LIVE_TRANSFERS_DISABLED");
-    if (settlement.status !== "calculated") throw new Error("BFL_SETTLEMENT_NOT_READY");
-
-    const { data: campaign } = await supabaseAdmin
-      .from("campaigns")
-      .select("creator_id")
-      .eq("id", settlement.campaign_id)
-      .maybeSingle();
-    if (!campaign) throw new Error("BFL_NOT_FOUND");
 
     const { data: acct } = await supabaseAdmin
       .from("creator_payment_accounts")
-      .select("provider_account_id, charges_enabled, payouts_enabled")
-      .eq("creator_id", campaign.creator_id)
+      .select("id, provider_account_id")
+      .eq("creator_id", settlement.creator_id)
       .eq("environment", settlement.environment)
       .maybeSingle();
     if (!acct?.provider_account_id) throw new Error("BFL_NO_CONNECTED_ACCOUNT");
 
-    // Idempotent check
     const { data: existing } = await supabaseAdmin
       .from("creator_transfers")
       .select("id, provider_transfer_id, status")
       .eq("settlement_id", settlement.id)
-      .eq("idempotency_key", data.idempotencyKey)
       .maybeSingle();
-    if (existing) return existing;
+    if (existing?.provider_transfer_id) return existing;
 
-    const { data: row, error: insErr } = await supabaseAdmin
-      .from("creator_transfers")
-      .insert({
-        settlement_id: settlement.id,
-        campaign_id: settlement.campaign_id,
-        creator_id: campaign.creator_id,
-        provider_connected_account_id: acct.provider_account_id,
-        amount_minor: settlement.net_amount_minor,
-        currency: settlement.currency,
-        environment: settlement.environment,
-        transfer_group: settlement.transfer_group,
-        status: "pending",
-        idempotency_key: data.idempotencyKey,
-      })
-      .select("id")
-      .single();
-    if (insErr || !row) throw new Error(insErr?.message ?? "BFL_TRANSFER_INSERT_FAILED");
+    const transferGroup = `cmp_${settlement.campaign_id.replace(/-/g, "").slice(0, 16)}`;
+    const insertRow = existing ?? (await (async () => {
+      const { data, error } = await supabaseAdmin
+        .from("creator_transfers")
+        .insert({
+          settlement_id: settlement.id,
+          campaign_id: settlement.campaign_id,
+          creator_id: settlement.creator_id,
+          creator_payment_account_id: acct.id,
+          amount_minor: settlement.net_amount_minor,
+          currency: settlement.currency,
+          environment: settlement.environment,
+          provider: "stripe",
+          provider_transfer_group: transferGroup,
+          status: "pending",
+        })
+        .select("id, provider_transfer_id, status")
+        .single();
+      if (error || !data) throw new Error(error?.message ?? "BFL_TRANSFER_INSERT_FAILED");
+      return data;
+    })());
 
     const provider = getProvider({
       environment: getEnvironment(),
@@ -90,19 +81,23 @@ export const createCreatorTransfer = createServerFn({ method: "POST" })
       const t = await provider.createCreatorTransfer(
         acct.provider_account_id,
         Number(settlement.net_amount_minor),
-        settlement.transfer_group ?? `cmp_${settlement.campaign_id.replace(/-/g, "").slice(0, 16)}`,
+        transferGroup,
       );
       await supabaseAdmin
         .from("creator_transfers")
-        .update({ provider_transfer_id: t.providerTransferId, status: "succeeded" })
-        .eq("id", row.id);
-      return { id: row.id, providerTransferId: t.providerTransferId };
+        .update({
+          provider_transfer_id: t.providerTransferId,
+          status: "paid",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", insertRow.id);
+      return { id: insertRow.id, providerTransferId: t.providerTransferId };
     } catch (err) {
       await supabaseAdmin
         .from("creator_transfers")
-        .update({ status: "failed", failure_message: "provider_error" })
-        .eq("id", row.id);
-      console.error("[transfer] stripe error", { transferId: row.id });
+        .update({ status: "failed", failure_code: "provider_error" })
+        .eq("id", insertRow.id);
+      console.error("[transfer] stripe error", { transferId: insertRow.id });
       throw new Error("BFL_TRANSFER_PROVIDER_ERROR");
     }
   });
