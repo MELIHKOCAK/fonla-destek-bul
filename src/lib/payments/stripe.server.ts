@@ -18,7 +18,7 @@ export function getStripe(): Stripe {
     throw new Error("Refusing to use Stripe test key in production environment.");
   }
   _client = new Stripe(secret, {
-    apiVersion: (process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion) ?? undefined,
+    apiVersion: (process.env.STRIPE_API_VERSION as Stripe.StripeConfig["apiVersion"] | undefined),
     typescript: true,
     appInfo: { name: "BeniFonla", version: "0.12.0" },
     maxNetworkRetries: 2,
