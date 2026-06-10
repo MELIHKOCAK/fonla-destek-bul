@@ -281,6 +281,68 @@ export type Database = {
           },
         ]
       }
+      campaign_settlements: {
+        Row: {
+          campaign_id: string
+          computed_at: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          environment: Database["public"]["Enums"]["financial_environment"]
+          gross_amount_minor: number
+          id: string
+          net_amount_minor: number
+          other_deduction_amount_minor: number
+          platform_fee_amount_minor: number
+          provider_fee_amount_minor: number
+          refunded_amount_minor: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          computed_at?: string | null
+          created_at?: string
+          creator_id: string
+          currency?: string
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          gross_amount_minor?: number
+          id?: string
+          net_amount_minor?: number
+          other_deduction_amount_minor?: number
+          platform_fee_amount_minor?: number
+          provider_fee_amount_minor?: number
+          refunded_amount_minor?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          computed_at?: string | null
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          gross_amount_minor?: number
+          id?: string
+          net_amount_minor?: number
+          other_deduction_amount_minor?: number
+          platform_fee_amount_minor?: number
+          provider_fee_amount_minor?: number
+          refunded_amount_minor?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_settlements_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_updates: {
         Row: {
           author_id: string
@@ -558,6 +620,204 @@ export type Database = {
           },
         ]
       }
+      creator_payment_accounts: {
+        Row: {
+          capabilities_snapshot: Json
+          charges_enabled: boolean
+          country: string | null
+          created_at: string
+          creator_id: string
+          default_currency: string | null
+          details_submitted: boolean
+          disabled_reason: string | null
+          environment: Database["public"]["Enums"]["financial_environment"]
+          id: string
+          last_provider_sync_at: string | null
+          onboarding_status: Database["public"]["Enums"]["creator_payment_account_status"]
+          payouts_enabled: boolean
+          provider: string
+          provider_account_id: string | null
+          requirements_currently_due: string[]
+          requirements_eventually_due: string[]
+          requirements_past_due: string[]
+          requirements_pending_verification: string[]
+          updated_at: string
+        }
+        Insert: {
+          capabilities_snapshot?: Json
+          charges_enabled?: boolean
+          country?: string | null
+          created_at?: string
+          creator_id: string
+          default_currency?: string | null
+          details_submitted?: boolean
+          disabled_reason?: string | null
+          environment: Database["public"]["Enums"]["financial_environment"]
+          id?: string
+          last_provider_sync_at?: string | null
+          onboarding_status?: Database["public"]["Enums"]["creator_payment_account_status"]
+          payouts_enabled?: boolean
+          provider?: string
+          provider_account_id?: string | null
+          requirements_currently_due?: string[]
+          requirements_eventually_due?: string[]
+          requirements_past_due?: string[]
+          requirements_pending_verification?: string[]
+          updated_at?: string
+        }
+        Update: {
+          capabilities_snapshot?: Json
+          charges_enabled?: boolean
+          country?: string | null
+          created_at?: string
+          creator_id?: string
+          default_currency?: string | null
+          details_submitted?: boolean
+          disabled_reason?: string | null
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          id?: string
+          last_provider_sync_at?: string | null
+          onboarding_status?: Database["public"]["Enums"]["creator_payment_account_status"]
+          payouts_enabled?: boolean
+          provider?: string
+          provider_account_id?: string | null
+          requirements_currently_due?: string[]
+          requirements_eventually_due?: string[]
+          requirements_past_due?: string[]
+          requirements_pending_verification?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      creator_transfer_reversals: {
+        Row: {
+          amount_minor: number
+          completed_at: string | null
+          created_at: string
+          creator_transfer_id: string
+          currency: string
+          id: string
+          provider_transfer_reversal_id: string | null
+          reason: string | null
+          status: Database["public"]["Enums"]["creator_transfer_reversal_status"]
+        }
+        Insert: {
+          amount_minor: number
+          completed_at?: string | null
+          created_at?: string
+          creator_transfer_id: string
+          currency?: string
+          id?: string
+          provider_transfer_reversal_id?: string | null
+          reason?: string | null
+          status?: Database["public"]["Enums"]["creator_transfer_reversal_status"]
+        }
+        Update: {
+          amount_minor?: number
+          completed_at?: string | null
+          created_at?: string
+          creator_transfer_id?: string
+          currency?: string
+          id?: string
+          provider_transfer_reversal_id?: string | null
+          reason?: string | null
+          status?: Database["public"]["Enums"]["creator_transfer_reversal_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_transfer_reversals_creator_transfer_id_fkey"
+            columns: ["creator_transfer_id"]
+            isOneToOne: false
+            referencedRelation: "creator_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_transfers: {
+        Row: {
+          amount_minor: number
+          campaign_id: string
+          completed_at: string | null
+          created_at: string
+          creator_id: string
+          creator_payment_account_id: string | null
+          currency: string
+          environment: Database["public"]["Enums"]["financial_environment"]
+          failure_code: string | null
+          failure_message_sanitized: string | null
+          id: string
+          initiated_at: string | null
+          provider: string
+          provider_transfer_group: string | null
+          provider_transfer_id: string | null
+          settlement_id: string | null
+          status: Database["public"]["Enums"]["creator_transfer_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_minor: number
+          campaign_id: string
+          completed_at?: string | null
+          created_at?: string
+          creator_id: string
+          creator_payment_account_id?: string | null
+          currency?: string
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          failure_code?: string | null
+          failure_message_sanitized?: string | null
+          id?: string
+          initiated_at?: string | null
+          provider?: string
+          provider_transfer_group?: string | null
+          provider_transfer_id?: string | null
+          settlement_id?: string | null
+          status?: Database["public"]["Enums"]["creator_transfer_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_minor?: number
+          campaign_id?: string
+          completed_at?: string | null
+          created_at?: string
+          creator_id?: string
+          creator_payment_account_id?: string | null
+          currency?: string
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          failure_code?: string | null
+          failure_message_sanitized?: string | null
+          id?: string
+          initiated_at?: string | null
+          provider?: string
+          provider_transfer_group?: string | null
+          provider_transfer_id?: string | null
+          settlement_id?: string | null
+          status?: Database["public"]["Enums"]["creator_transfer_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_transfers_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_transfers_creator_payment_account_id_fkey"
+            columns: ["creator_payment_account_id"]
+            isOneToOne: false
+            referencedRelation: "creator_payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_transfers_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           campaign_id: string
@@ -591,6 +851,8 @@ export type Database = {
           contribution_id: string | null
           correlation_id: string | null
           created_at: string
+          creator_transfer_id: string | null
+          creator_transfer_reversal_id: string | null
           currency: string
           entry_type: Database["public"]["Enums"]["ledger_entry_type"]
           environment: Database["public"]["Enums"]["financial_environment"]
@@ -598,6 +860,7 @@ export type Database = {
           metadata: Json
           payment_transaction_id: string | null
           payout_id: string | null
+          provider_payout_id: string | null
           refund_id: string | null
           reversal_of_entry_id: string | null
         }
@@ -607,6 +870,8 @@ export type Database = {
           contribution_id?: string | null
           correlation_id?: string | null
           created_at?: string
+          creator_transfer_id?: string | null
+          creator_transfer_reversal_id?: string | null
           currency?: string
           entry_type: Database["public"]["Enums"]["ledger_entry_type"]
           environment?: Database["public"]["Enums"]["financial_environment"]
@@ -614,6 +879,7 @@ export type Database = {
           metadata?: Json
           payment_transaction_id?: string | null
           payout_id?: string | null
+          provider_payout_id?: string | null
           refund_id?: string | null
           reversal_of_entry_id?: string | null
         }
@@ -623,6 +889,8 @@ export type Database = {
           contribution_id?: string | null
           correlation_id?: string | null
           created_at?: string
+          creator_transfer_id?: string | null
+          creator_transfer_reversal_id?: string | null
           currency?: string
           entry_type?: Database["public"]["Enums"]["ledger_entry_type"]
           environment?: Database["public"]["Enums"]["financial_environment"]
@@ -630,6 +898,7 @@ export type Database = {
           metadata?: Json
           payment_transaction_id?: string | null
           payout_id?: string | null
+          provider_payout_id?: string | null
           refund_id?: string | null
           reversal_of_entry_id?: string | null
         }
@@ -649,6 +918,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "financial_ledger_entries_creator_transfer_id_fkey"
+            columns: ["creator_transfer_id"]
+            isOneToOne: false
+            referencedRelation: "creator_transfers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_ledger_entries_creator_transfer_reversal_id_fkey"
+            columns: ["creator_transfer_reversal_id"]
+            isOneToOne: false
+            referencedRelation: "creator_transfer_reversals"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "financial_ledger_entries_payment_transaction_id_fkey"
             columns: ["payment_transaction_id"]
             isOneToOne: false
@@ -660,6 +943,13 @@ export type Database = {
             columns: ["payout_id"]
             isOneToOne: false
             referencedRelation: "payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_ledger_entries_provider_payout_id_fkey"
+            columns: ["provider_payout_id"]
+            isOneToOne: false
+            referencedRelation: "provider_payouts"
             referencedColumns: ["id"]
           },
           {
@@ -750,20 +1040,95 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_provider_configs: {
+        Row: {
+          capture_model: string
+          checkout_mode: string
+          connect_flow: string
+          created_at: string
+          creator_onboarding_enabled: boolean
+          currency: string
+          environment: Database["public"]["Enums"]["financial_environment"]
+          failed_campaign_model: string
+          id: string
+          live_payments_enabled: boolean
+          payments_enabled: boolean
+          production_approval_note: string | null
+          production_approval_status: Database["public"]["Enums"]["production_approval_status"]
+          provider: string
+          refunds_enabled: boolean
+          transfers_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          capture_model?: string
+          checkout_mode?: string
+          connect_flow?: string
+          created_at?: string
+          creator_onboarding_enabled?: boolean
+          currency?: string
+          environment: Database["public"]["Enums"]["financial_environment"]
+          failed_campaign_model?: string
+          id?: string
+          live_payments_enabled?: boolean
+          payments_enabled?: boolean
+          production_approval_note?: string | null
+          production_approval_status?: Database["public"]["Enums"]["production_approval_status"]
+          provider: string
+          refunds_enabled?: boolean
+          transfers_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          capture_model?: string
+          checkout_mode?: string
+          connect_flow?: string
+          created_at?: string
+          creator_onboarding_enabled?: boolean
+          currency?: string
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          failed_campaign_model?: string
+          id?: string
+          live_payments_enabled?: boolean
+          payments_enabled?: boolean
+          production_approval_note?: string | null
+          production_approval_status?: Database["public"]["Enums"]["production_approval_status"]
+          provider?: string
+          refunds_enabled?: boolean
+          transfers_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
           amount_minor: number
           attempt_number: number
+          checkout_expires_at: string | null
+          completed_at: string | null
           contribution_id: string
           created_at: string
           currency: string
+          domain_status:
+            | Database["public"]["Enums"]["payment_domain_status"]
+            | null
           environment: Database["public"]["Enums"]["financial_environment"]
           error_code: string | null
           error_message: string | null
+          failure_code: string | null
+          failure_message_sanitized: string | null
           id: string
+          last_provider_event_id: string | null
           provider: string
+          provider_balance_transaction_id: string | null
+          provider_charge_id: string | null
+          provider_checkout_session_id: string | null
+          provider_connected_account_id: string | null
+          provider_created_at: string | null
           provider_payment_id: string | null
+          provider_payment_intent_id: string | null
           provider_reference: string | null
+          provider_status: string | null
           sanitized_metadata: Json
           status: Database["public"]["Enums"]["payment_status"]
           updated_at: string
@@ -771,16 +1136,31 @@ export type Database = {
         Insert: {
           amount_minor: number
           attempt_number?: number
+          checkout_expires_at?: string | null
+          completed_at?: string | null
           contribution_id: string
           created_at?: string
           currency?: string
+          domain_status?:
+            | Database["public"]["Enums"]["payment_domain_status"]
+            | null
           environment?: Database["public"]["Enums"]["financial_environment"]
           error_code?: string | null
           error_message?: string | null
+          failure_code?: string | null
+          failure_message_sanitized?: string | null
           id?: string
+          last_provider_event_id?: string | null
           provider: string
+          provider_balance_transaction_id?: string | null
+          provider_charge_id?: string | null
+          provider_checkout_session_id?: string | null
+          provider_connected_account_id?: string | null
+          provider_created_at?: string | null
           provider_payment_id?: string | null
+          provider_payment_intent_id?: string | null
           provider_reference?: string | null
+          provider_status?: string | null
           sanitized_metadata?: Json
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
@@ -788,16 +1168,31 @@ export type Database = {
         Update: {
           amount_minor?: number
           attempt_number?: number
+          checkout_expires_at?: string | null
+          completed_at?: string | null
           contribution_id?: string
           created_at?: string
           currency?: string
+          domain_status?:
+            | Database["public"]["Enums"]["payment_domain_status"]
+            | null
           environment?: Database["public"]["Enums"]["financial_environment"]
           error_code?: string | null
           error_message?: string | null
+          failure_code?: string | null
+          failure_message_sanitized?: string | null
           id?: string
+          last_provider_event_id?: string | null
           provider?: string
+          provider_balance_transaction_id?: string | null
+          provider_charge_id?: string | null
+          provider_checkout_session_id?: string | null
+          provider_connected_account_id?: string | null
+          provider_created_at?: string | null
           provider_payment_id?: string | null
+          provider_payment_intent_id?: string | null
           provider_reference?: string | null
+          provider_status?: string | null
           sanitized_metadata?: Json
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
@@ -967,6 +1362,65 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_payouts: {
+        Row: {
+          amount_minor: number
+          arrival_date: string | null
+          created_at: string
+          creator_id: string
+          creator_payment_account_id: string | null
+          currency: string
+          environment: Database["public"]["Enums"]["financial_environment"]
+          failure_code: string | null
+          failure_message_sanitized: string | null
+          id: string
+          provider: string
+          provider_payout_id: string | null
+          status: Database["public"]["Enums"]["provider_payout_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_minor: number
+          arrival_date?: string | null
+          created_at?: string
+          creator_id: string
+          creator_payment_account_id?: string | null
+          currency?: string
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          failure_code?: string | null
+          failure_message_sanitized?: string | null
+          id?: string
+          provider?: string
+          provider_payout_id?: string | null
+          status?: Database["public"]["Enums"]["provider_payout_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_minor?: number
+          arrival_date?: string | null
+          created_at?: string
+          creator_id?: string
+          creator_payment_account_id?: string | null
+          currency?: string
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          failure_code?: string | null
+          failure_message_sanitized?: string | null
+          id?: string
+          provider?: string
+          provider_payout_id?: string | null
+          status?: Database["public"]["Enums"]["provider_payout_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_payouts_creator_payment_account_id_fkey"
+            columns: ["creator_payment_account_id"]
+            isOneToOne: false
+            referencedRelation: "creator_payment_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refunds: {
         Row: {
           amount_minor: number
@@ -1017,6 +1471,69 @@ export type Database = {
             columns: ["payment_transaction_id"]
             isOneToOne: false
             referencedRelation: "payment_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_reservations: {
+        Row: {
+          backer_id: string
+          confirmed_at: string | null
+          contribution_id: string
+          created_at: string
+          environment: Database["public"]["Enums"]["financial_environment"]
+          expires_at: string
+          id: string
+          quantity: number
+          release_reason: string | null
+          released_at: string | null
+          reward_tier_id: string
+          status: Database["public"]["Enums"]["reward_reservation_status"]
+          updated_at: string
+        }
+        Insert: {
+          backer_id: string
+          confirmed_at?: string | null
+          contribution_id: string
+          created_at?: string
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          expires_at: string
+          id?: string
+          quantity?: number
+          release_reason?: string | null
+          released_at?: string | null
+          reward_tier_id: string
+          status?: Database["public"]["Enums"]["reward_reservation_status"]
+          updated_at?: string
+        }
+        Update: {
+          backer_id?: string
+          confirmed_at?: string | null
+          contribution_id?: string
+          created_at?: string
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          expires_at?: string
+          id?: string
+          quantity?: number
+          release_reason?: string | null
+          released_at?: string | null
+          reward_tier_id?: string
+          status?: Database["public"]["Enums"]["reward_reservation_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_reservations_contribution_id_fkey"
+            columns: ["contribution_id"]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_reservations_reward_tier_id_fkey"
+            columns: ["reward_tier_id"]
+            isOneToOne: false
+            referencedRelation: "reward_tiers"
             referencedColumns: ["id"]
           },
         ]
@@ -1100,42 +1617,78 @@ export type Database = {
       }
       webhook_events: {
         Row: {
+          api_version: string | null
           attempt_count: number
+          dead_lettered_at: string | null
+          environment: Database["public"]["Enums"]["financial_environment"]
+          event_created_at: string | null
           event_type: string
           id: string
           last_error: string | null
+          livemode: boolean | null
+          next_retry_at: string | null
           payload_hash: string
           processed_at: string | null
+          processing_completed_at: string | null
+          processing_started_at: string | null
           processing_status: string
           provider: string
+          provider_account_id: string | null
           provider_event_id: string
+          provider_object_id: string | null
+          provider_object_type: string | null
           received_at: string
+          request_id: string | null
           signature_valid: boolean
         }
         Insert: {
+          api_version?: string | null
           attempt_count?: number
+          dead_lettered_at?: string | null
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          event_created_at?: string | null
           event_type: string
           id?: string
           last_error?: string | null
+          livemode?: boolean | null
+          next_retry_at?: string | null
           payload_hash: string
           processed_at?: string | null
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
           processing_status?: string
           provider: string
+          provider_account_id?: string | null
           provider_event_id: string
+          provider_object_id?: string | null
+          provider_object_type?: string | null
           received_at?: string
+          request_id?: string | null
           signature_valid?: boolean
         }
         Update: {
+          api_version?: string | null
           attempt_count?: number
+          dead_lettered_at?: string | null
+          environment?: Database["public"]["Enums"]["financial_environment"]
+          event_created_at?: string | null
           event_type?: string
           id?: string
           last_error?: string | null
+          livemode?: boolean | null
+          next_retry_at?: string | null
           payload_hash?: string
           processed_at?: string | null
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
           processing_status?: string
           provider?: string
+          provider_account_id?: string | null
           provider_event_id?: string
+          provider_object_id?: string | null
+          provider_object_type?: string | null
           received_at?: string
+          request_id?: string | null
           signature_valid?: boolean
         }
         Relationships: []
@@ -1351,6 +1904,10 @@ export type Database = {
         Returns: boolean
       }
       claim_username: { Args: { _username: string }; Returns: undefined }
+      confirm_reward_reservation: {
+        Args: { _contribution_id: string }
+        Returns: number
+      }
       create_campaign_draft: {
         Args: { _category_id: string; _title: string }
         Returns: {
@@ -1489,6 +2046,10 @@ export type Database = {
         Args: { _base: string }
         Returns: string
       }
+      get_campaign_payment_readiness: {
+        Args: { _campaign_id: string }
+        Returns: Json
+      }
       get_campaign_progress: {
         Args: { _campaign_id: string }
         Returns: {
@@ -1530,6 +2091,12 @@ export type Database = {
           reward_title: string
           status: Database["public"]["Enums"]["contribution_status"]
         }[]
+      }
+      get_my_creator_payment_account: {
+        Args: {
+          _environment?: Database["public"]["Enums"]["financial_environment"]
+        }
+        Returns: Json
       }
       get_public_campaign_by_slug: {
         Args: { _slug: string }
@@ -1744,6 +2311,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      release_expired_reward_reservations: { Args: never; Returns: number }
+      release_reward_reservation: {
+        Args: { _contribution_id: string; _reason: string }
+        Returns: number
+      }
       report_target: {
         Args: {
           _campaign_id: string
@@ -1813,6 +2385,35 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reserve_reward: {
+        Args: {
+          _contribution_id: string
+          _quantity?: number
+          _reward_tier_id: string
+          _ttl_seconds?: number
+        }
+        Returns: {
+          backer_id: string
+          confirmed_at: string | null
+          contribution_id: string
+          created_at: string
+          environment: Database["public"]["Enums"]["financial_environment"]
+          expires_at: string
+          id: string
+          quantity: number
+          release_reason: string | null
+          released_at: string | null
+          reward_tier_id: string
+          status: Database["public"]["Enums"]["reward_reservation_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "reward_reservations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       simulate_test_payment: {
@@ -1820,16 +2421,31 @@ export type Database = {
         Returns: {
           amount_minor: number
           attempt_number: number
+          checkout_expires_at: string | null
+          completed_at: string | null
           contribution_id: string
           created_at: string
           currency: string
+          domain_status:
+            | Database["public"]["Enums"]["payment_domain_status"]
+            | null
           environment: Database["public"]["Enums"]["financial_environment"]
           error_code: string | null
           error_message: string | null
+          failure_code: string | null
+          failure_message_sanitized: string | null
           id: string
+          last_provider_event_id: string | null
           provider: string
+          provider_balance_transaction_id: string | null
+          provider_charge_id: string | null
+          provider_checkout_session_id: string | null
+          provider_connected_account_id: string | null
+          provider_created_at: string | null
           provider_payment_id: string | null
+          provider_payment_intent_id: string | null
           provider_reference: string | null
+          provider_status: string | null
           sanitized_metadata: Json
           status: Database["public"]["Enums"]["payment_status"]
           updated_at: string
@@ -2068,6 +2684,23 @@ export type Database = {
         | "cancelled"
         | "refunded"
         | "partially_refunded"
+      creator_payment_account_status:
+        | "not_started"
+        | "onboarding_pending"
+        | "pending_verification"
+        | "enabled"
+        | "restricted"
+        | "payouts_disabled"
+        | "rejected"
+      creator_transfer_reversal_status: "pending" | "completed" | "failed"
+      creator_transfer_status:
+        | "pending"
+        | "in_transit"
+        | "paid"
+        | "failed"
+        | "reversed"
+        | "partially_reversed"
+        | "cancelled"
       financial_environment: "test" | "live"
       ledger_entry_type:
         | "contribution_capture"
@@ -2077,6 +2710,25 @@ export type Database = {
         | "payout"
         | "adjustment"
         | "reversal"
+        | "creator_transfer_created"
+        | "creator_transfer_completed"
+        | "creator_transfer_reversed"
+        | "provider_payout_observed"
+        | "dispute_opened"
+        | "chargeback_recorded"
+      payment_domain_status:
+        | "created"
+        | "pending"
+        | "action_required"
+        | "processing"
+        | "paid"
+        | "failed"
+        | "cancelled"
+        | "expired"
+        | "partially_refunded"
+        | "refunded"
+        | "disputed"
+        | "chargeback"
       payment_status:
         | "initiated"
         | "pending"
@@ -2086,6 +2738,11 @@ export type Database = {
         | "cancelled"
         | "expired"
         | "refunded"
+        | "action_required"
+        | "processing"
+        | "paid"
+        | "disputed"
+        | "chargeback"
       payout_status:
         | "scheduled"
         | "processing"
@@ -2093,6 +2750,17 @@ export type Database = {
         | "failed"
         | "cancelled"
         | "on_hold"
+      production_approval_status:
+        | "not_verified"
+        | "in_review"
+        | "verified"
+        | "rejected"
+      provider_payout_status:
+        | "pending"
+        | "in_transit"
+        | "paid"
+        | "failed"
+        | "cancelled"
       refund_status:
         | "requested"
         | "processing"
@@ -2106,6 +2774,11 @@ export type Database = {
         | "revision_requested"
         | "suspended"
         | "reinstated"
+      reward_reservation_status:
+        | "reserved"
+        | "confirmed"
+        | "released"
+        | "expired"
       user_role: "admin" | "moderator" | "reviewer" | "creator" | "backer"
     }
     CompositeTypes: {
@@ -2263,6 +2936,25 @@ export const Constants = {
         "refunded",
         "partially_refunded",
       ],
+      creator_payment_account_status: [
+        "not_started",
+        "onboarding_pending",
+        "pending_verification",
+        "enabled",
+        "restricted",
+        "payouts_disabled",
+        "rejected",
+      ],
+      creator_transfer_reversal_status: ["pending", "completed", "failed"],
+      creator_transfer_status: [
+        "pending",
+        "in_transit",
+        "paid",
+        "failed",
+        "reversed",
+        "partially_reversed",
+        "cancelled",
+      ],
       financial_environment: ["test", "live"],
       ledger_entry_type: [
         "contribution_capture",
@@ -2272,6 +2964,26 @@ export const Constants = {
         "payout",
         "adjustment",
         "reversal",
+        "creator_transfer_created",
+        "creator_transfer_completed",
+        "creator_transfer_reversed",
+        "provider_payout_observed",
+        "dispute_opened",
+        "chargeback_recorded",
+      ],
+      payment_domain_status: [
+        "created",
+        "pending",
+        "action_required",
+        "processing",
+        "paid",
+        "failed",
+        "cancelled",
+        "expired",
+        "partially_refunded",
+        "refunded",
+        "disputed",
+        "chargeback",
       ],
       payment_status: [
         "initiated",
@@ -2282,6 +2994,11 @@ export const Constants = {
         "cancelled",
         "expired",
         "refunded",
+        "action_required",
+        "processing",
+        "paid",
+        "disputed",
+        "chargeback",
       ],
       payout_status: [
         "scheduled",
@@ -2290,6 +3007,19 @@ export const Constants = {
         "failed",
         "cancelled",
         "on_hold",
+      ],
+      production_approval_status: [
+        "not_verified",
+        "in_review",
+        "verified",
+        "rejected",
+      ],
+      provider_payout_status: [
+        "pending",
+        "in_transit",
+        "paid",
+        "failed",
+        "cancelled",
       ],
       refund_status: [
         "requested",
@@ -2305,6 +3035,12 @@ export const Constants = {
         "revision_requested",
         "suspended",
         "reinstated",
+      ],
+      reward_reservation_status: [
+        "reserved",
+        "confirmed",
+        "released",
+        "expired",
       ],
       user_role: ["admin", "moderator", "reviewer", "creator", "backer"],
     },
