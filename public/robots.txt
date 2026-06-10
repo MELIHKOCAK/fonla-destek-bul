@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /onboarding
+Disallow: /notifications
+Disallow: /profile
+Disallow: /account
+Disallow: /contributions
+Disallow: /creator
+Disallow: /api/
+Disallow: /auth/callback
+Disallow: /reset-password
+Disallow: /unauthorized
+Disallow: /design-system
+
+Sitemap: https://benifonla.lovable.app/sitemap.xml
