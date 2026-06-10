@@ -42,12 +42,12 @@ export const Route = createFileRoute("/api/public/hooks/stripe-connect-webhook")
           _signature_valid: true,
           _environment: env,
           _livemode: event.livemode,
-          _api_version: event.api_version ?? undefined,
-          _request_id: reqId ?? undefined,
-          _provider_account_id: event.account ?? undefined,
+          _api_version: (event.api_version ?? null) as unknown as string,
+          _request_id: (reqId ?? null) as unknown as string,
+          _provider_account_id: (event.account ?? null) as unknown as string,
           _event_created_at: new Date(event.created * 1000).toISOString(),
-          _provider_object_type: obj?.object ?? undefined,
-          _provider_object_id: obj?.id ?? undefined,
+          _provider_object_type: (obj?.object ?? null) as unknown as string,
+          _provider_object_id: (obj?.id ?? null) as unknown as string,
         });
         const claimed = (claim as Array<{ event_id: string; is_new: boolean }>)[0];
         if (!claimed?.is_new) return new Response("duplicate", { status: 200 });
