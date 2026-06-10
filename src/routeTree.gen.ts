@@ -56,6 +56,7 @@ import { Route as ApiPublicHooksStripeWebhookRouteImport } from './routes/api/pu
 import { Route as ApiPublicHooksStripeConnectWebhookRouteImport } from './routes/api/public/hooks/stripe-connect-webhook'
 import { Route as ApiPublicHooksRunPaymentReconciliationRouteImport } from './routes/api/public/hooks/run-payment-reconciliation'
 import { Route as ApiPublicHooksPublishDueCampaignsRouteImport } from './routes/api/public/hooks/publish-due-campaigns'
+import { Route as ApiPublicHooksProcessNotificationOutboxRouteImport } from './routes/api/public/hooks/process-notification-outbox'
 import { Route as AuthenticatedCreatorCampaignsNewRouteImport } from './routes/_authenticated/creator.campaigns.new'
 import { Route as AuthenticatedAdminCampaignReviewsCampaignIdRouteImport } from './routes/_authenticated/admin.campaign-reviews.$campaignId'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdUpdatesRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.updates'
@@ -322,6 +323,12 @@ const ApiPublicHooksPublishDueCampaignsRoute =
     path: '/api/public/hooks/publish-due-campaigns',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksProcessNotificationOutboxRoute =
+  ApiPublicHooksProcessNotificationOutboxRouteImport.update({
+    id: '/api/public/hooks/process-notification-outbox',
+    path: '/api/public/hooks/process-notification-outbox',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedCreatorCampaignsNewRoute =
   AuthenticatedCreatorCampaignsNewRouteImport.update({
     id: '/new',
@@ -427,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/creator/': typeof AuthenticatedCreatorIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/hooks/process-notification-outbox': typeof ApiPublicHooksProcessNotificationOutboxRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
   '/api/public/hooks/run-payment-reconciliation': typeof ApiPublicHooksRunPaymentReconciliationRoute
   '/api/public/hooks/stripe-connect-webhook': typeof ApiPublicHooksStripeConnectWebhookRoute
@@ -483,6 +491,7 @@ export interface FileRoutesByTo {
   '/creator': typeof AuthenticatedCreatorIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/hooks/process-notification-outbox': typeof ApiPublicHooksProcessNotificationOutboxRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
   '/api/public/hooks/run-payment-reconciliation': typeof ApiPublicHooksRunPaymentReconciliationRoute
   '/api/public/hooks/stripe-connect-webhook': typeof ApiPublicHooksStripeConnectWebhookRoute
@@ -544,6 +553,7 @@ export interface FileRoutesById {
   '/_authenticated/creator/': typeof AuthenticatedCreatorIndexRoute
   '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/hooks/process-notification-outbox': typeof ApiPublicHooksProcessNotificationOutboxRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
   '/api/public/hooks/run-payment-reconciliation': typeof ApiPublicHooksRunPaymentReconciliationRoute
   '/api/public/hooks/stripe-connect-webhook': typeof ApiPublicHooksStripeConnectWebhookRoute
@@ -605,6 +615,7 @@ export interface FileRouteTypes {
     | '/creator/'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
+    | '/api/public/hooks/process-notification-outbox'
     | '/api/public/hooks/publish-due-campaigns'
     | '/api/public/hooks/run-payment-reconciliation'
     | '/api/public/hooks/stripe-connect-webhook'
@@ -661,6 +672,7 @@ export interface FileRouteTypes {
     | '/creator'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
+    | '/api/public/hooks/process-notification-outbox'
     | '/api/public/hooks/publish-due-campaigns'
     | '/api/public/hooks/run-payment-reconciliation'
     | '/api/public/hooks/stripe-connect-webhook'
@@ -721,6 +733,7 @@ export interface FileRouteTypes {
     | '/_authenticated/creator/'
     | '/_authenticated/admin/campaign-reviews/$campaignId'
     | '/_authenticated/creator/campaigns/new'
+    | '/api/public/hooks/process-notification-outbox'
     | '/api/public/hooks/publish-due-campaigns'
     | '/api/public/hooks/run-payment-reconciliation'
     | '/api/public/hooks/stripe-connect-webhook'
@@ -760,6 +773,7 @@ export interface RootRouteChildren {
   CampaignsSlugRoute: typeof CampaignsSlugRouteWithChildren
   CategoriesSlugRoute: typeof CategoriesSlugRoute
   CreatorsUsernameRoute: typeof CreatorsUsernameRoute
+  ApiPublicHooksProcessNotificationOutboxRoute: typeof ApiPublicHooksProcessNotificationOutboxRoute
   ApiPublicHooksPublishDueCampaignsRoute: typeof ApiPublicHooksPublishDueCampaignsRoute
   ApiPublicHooksRunPaymentReconciliationRoute: typeof ApiPublicHooksRunPaymentReconciliationRoute
   ApiPublicHooksStripeConnectWebhookRoute: typeof ApiPublicHooksStripeConnectWebhookRoute
@@ -1097,6 +1111,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksPublishDueCampaignsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/process-notification-outbox': {
+      id: '/api/public/hooks/process-notification-outbox'
+      path: '/api/public/hooks/process-notification-outbox'
+      fullPath: '/api/public/hooks/process-notification-outbox'
+      preLoaderRoute: typeof ApiPublicHooksProcessNotificationOutboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/creator/campaigns/new': {
       id: '/_authenticated/creator/campaigns/new'
       path: '/new'
@@ -1358,6 +1379,8 @@ const rootRouteChildren: RootRouteChildren = {
   CampaignsSlugRoute: CampaignsSlugRouteWithChildren,
   CategoriesSlugRoute: CategoriesSlugRoute,
   CreatorsUsernameRoute: CreatorsUsernameRoute,
+  ApiPublicHooksProcessNotificationOutboxRoute:
+    ApiPublicHooksProcessNotificationOutboxRoute,
   ApiPublicHooksPublishDueCampaignsRoute:
     ApiPublicHooksPublishDueCampaignsRoute,
   ApiPublicHooksRunPaymentReconciliationRoute:

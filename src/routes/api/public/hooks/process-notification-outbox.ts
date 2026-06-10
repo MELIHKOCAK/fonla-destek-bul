@@ -64,11 +64,11 @@ export const Route = createFileRoute("/api/public/hooks/process-notification-out
             const { error: notifErr } = await supabaseAdmin
               .from("notifications")
               .insert({
-                user_id: ev.recipient_user_id,
+              user_id: ev.recipient_user_id,
                 type: ev.event_type,
                 title: inApp.title,
                 body: inApp.body,
-                data: { href: inApp.href ?? null, payload: ev.payload ?? {} },
+                data: { href: inApp.href ?? null, payload: (ev.payload ?? {}) as unknown as Record<string, unknown> } as never,
                 dedupe_key: inAppDedupe,
               });
             // Conflict on dedupe_key => duplicate, treat as success.
