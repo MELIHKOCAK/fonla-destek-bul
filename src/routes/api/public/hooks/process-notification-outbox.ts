@@ -112,18 +112,17 @@ export const Route = createFileRoute("/api/public/hooks/process-notification-out
   },
 });
 
+type AdminClient = import("@supabase/supabase-js").SupabaseClient<import("@/integrations/supabase/types").Database>;
+
 async function tryQueueEmail(params: {
-  supabaseAdmin: Awaited<ReturnType<typeof import("@/integrations/supabase/client.server")["getAdminClient"]>> extends never
-    ? never
-    : ReturnType<typeof import("@/integrations/supabase/client.server").getAdminClient> extends Promise<infer T> ? T : import("@/integrations/supabase/client.server")["supabaseAdmin"];
+  supabaseAdmin: AdminClient;
   event: NotificationEventType;
   payload: NotificationPayload;
   recipientUserId: string;
   outboxId: string;
   appUrl: string;
 }): Promise<boolean> {
-  // Tip kolaylığı için locally cast
-  const sb = params.supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient<import("@/integrations/supabase/types").Database>;
+  const sb = params.supabaseAdmin;
 
   if (!hasTemplate(params.event)) return false;
 
