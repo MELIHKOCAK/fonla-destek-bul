@@ -1695,44 +1695,6 @@ export type Database = {
       }
     }
     Views: {
-      creator_campaign_reviews: {
-        Row: {
-          campaign_id: string | null
-          created_at: string | null
-          creator_visible_notes: string | null
-          decision: Database["public"]["Enums"]["review_decision"] | null
-          from_status: Database["public"]["Enums"]["campaign_status"] | null
-          id: string | null
-          to_status: Database["public"]["Enums"]["campaign_status"] | null
-        }
-        Insert: {
-          campaign_id?: string | null
-          created_at?: string | null
-          creator_visible_notes?: string | null
-          decision?: Database["public"]["Enums"]["review_decision"] | null
-          from_status?: Database["public"]["Enums"]["campaign_status"] | null
-          id?: string | null
-          to_status?: Database["public"]["Enums"]["campaign_status"] | null
-        }
-        Update: {
-          campaign_id?: string | null
-          created_at?: string | null
-          creator_visible_notes?: string | null
-          decision?: Database["public"]["Enums"]["review_decision"] | null
-          from_status?: Database["public"]["Enums"]["campaign_status"] | null
-          id?: string | null
-          to_status?: Database["public"]["Enums"]["campaign_status"] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_reviews_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaigns"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       my_reports: {
         Row: {
           campaign_id: string | null
