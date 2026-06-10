@@ -45,7 +45,9 @@ export const getCreatorCampaignAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => analyticsSchema.parse(d))
   .handler(async ({ data, context }): Promise<CreatorAnalytics> => {
-    const params: Record<string, string> = { p_campaign_id: data.campaignId };
+    const params: { p_campaign_id: string; p_from?: string; p_to?: string } = {
+      p_campaign_id: data.campaignId,
+    };
     if (data.from) params.p_from = data.from;
     if (data.to) params.p_to = data.to;
     const { data: row, error } = await context.supabase.rpc(
