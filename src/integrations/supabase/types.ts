@@ -1066,6 +1066,84 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_consents: {
+        Row: {
+          accepted_at: string
+          created_at: string
+          document_slug: string
+          document_version: string
+          id: string
+          ip_hash: string | null
+          user_agent_hint: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          created_at?: string
+          document_slug: string
+          document_version: string
+          id?: string
+          ip_hash?: string | null
+          user_agent_hint?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string
+          document_slug?: string
+          document_version?: string
+          id?: string
+          ip_hash?: string | null
+          user_agent_hint?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      legal_documents: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          content_url: string | null
+          created_at: string
+          effective_at: string | null
+          id: string
+          slug: string
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          content_url?: string | null
+          created_at?: string
+          effective_at?: string | null
+          id?: string
+          slug: string
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          content_url?: string | null
+          created_at?: string
+          effective_at?: string | null
+          id?: string
+          slug?: string
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       notification_outbox: {
         Row: {
           attempt_count: number
@@ -1620,6 +1698,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      release_gates: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          description: string | null
+          enabled: boolean
+          evidence_url: string | null
+          key: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          description?: string | null
+          enabled?: boolean
+          evidence_url?: string | null
+          key: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          description?: string | null
+          enabled?: boolean
+          evidence_url?: string | null
+          key?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       reward_reservations: {
         Row: {
@@ -2579,6 +2687,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_release_gate_open: { Args: { p_key: string }; Returns: boolean }
       is_username_reserved: { Args: { _username: string }; Returns: boolean }
       mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: { Args: { _id: string }; Returns: undefined }
@@ -2665,6 +2774,15 @@ export type Database = {
         }
       }
       publish_due_campaigns: { Args: never; Returns: number }
+      record_legal_consent: {
+        Args: {
+          p_document_slug: string
+          p_document_version: string
+          p_ip_hash?: string
+          p_user_agent_hint?: string
+        }
+        Returns: string
+      }
       reject_campaign: {
         Args: {
           _campaign_id: string
