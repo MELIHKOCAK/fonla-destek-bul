@@ -30,6 +30,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedCreatorIndexRouteImport } from './routes/_authenticated/creator.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as CampaignsSlugBackRouteImport } from './routes/campaigns.$slug.back'
 import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated/settings.security'
@@ -56,7 +57,12 @@ import { Route as ApiPublicHooksPublishDueCampaignsRouteImport } from './routes/
 import { Route as AuthenticatedCreatorCampaignsNewRouteImport } from './routes/_authenticated/creator.campaigns.new'
 import { Route as AuthenticatedAdminCampaignReviewsCampaignIdRouteImport } from './routes/_authenticated/admin.campaign-reviews.$campaignId'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdUpdatesRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.updates'
+import { Route as AuthenticatedCreatorCampaignsCampaignIdReviewRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.review'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.preview'
+import { Route as AuthenticatedCreatorCampaignsCampaignIdOverviewRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.overview'
+import { Route as AuthenticatedCreatorCampaignsCampaignIdFinanceRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.finance'
+import { Route as AuthenticatedCreatorCampaignsCampaignIdBackersRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.backers'
+import { Route as AuthenticatedCreatorCampaignsCampaignIdAnalyticsRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.analytics'
 import { Route as AuthenticatedAdminCampaignsCampaignIdHistoryRouteImport } from './routes/_authenticated/admin.campaigns.$campaignId.history'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdEditStepRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.edit.$step'
 
@@ -165,6 +171,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCreatorIndexRoute =
+  AuthenticatedCreatorIndexRouteImport.update({
+    id: '/creator/',
+    path: '/creator/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -315,10 +327,40 @@ const AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute =
     path: '/$campaignId/updates',
     getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
   } as any)
+const AuthenticatedCreatorCampaignsCampaignIdReviewRoute =
+  AuthenticatedCreatorCampaignsCampaignIdReviewRouteImport.update({
+    id: '/$campaignId/review',
+    path: '/$campaignId/review',
+    getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
+  } as any)
 const AuthenticatedCreatorCampaignsCampaignIdPreviewRoute =
   AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport.update({
     id: '/$campaignId/preview',
     path: '/$campaignId/preview',
+    getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
+  } as any)
+const AuthenticatedCreatorCampaignsCampaignIdOverviewRoute =
+  AuthenticatedCreatorCampaignsCampaignIdOverviewRouteImport.update({
+    id: '/$campaignId/overview',
+    path: '/$campaignId/overview',
+    getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
+  } as any)
+const AuthenticatedCreatorCampaignsCampaignIdFinanceRoute =
+  AuthenticatedCreatorCampaignsCampaignIdFinanceRouteImport.update({
+    id: '/$campaignId/finance',
+    path: '/$campaignId/finance',
+    getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
+  } as any)
+const AuthenticatedCreatorCampaignsCampaignIdBackersRoute =
+  AuthenticatedCreatorCampaignsCampaignIdBackersRouteImport.update({
+    id: '/$campaignId/backers',
+    path: '/$campaignId/backers',
+    getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
+  } as any)
+const AuthenticatedCreatorCampaignsCampaignIdAnalyticsRoute =
+  AuthenticatedCreatorCampaignsCampaignIdAnalyticsRouteImport.update({
+    id: '/$campaignId/analytics',
+    path: '/$campaignId/analytics',
     getParentRoute: () => AuthenticatedCreatorCampaignsRoute,
   } as any)
 const AuthenticatedAdminCampaignsCampaignIdHistoryRoute =
@@ -367,6 +409,7 @@ export interface FileRoutesByFullPath {
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/creator/': typeof AuthenticatedCreatorIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
@@ -381,7 +424,12 @@ export interface FileRoutesByFullPath {
   '/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
   '/campaigns/$slug/back/': typeof CampaignsSlugBackIndexRoute
   '/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
+  '/creator/campaigns/$campaignId/analytics': typeof AuthenticatedCreatorCampaignsCampaignIdAnalyticsRoute
+  '/creator/campaigns/$campaignId/backers': typeof AuthenticatedCreatorCampaignsCampaignIdBackersRoute
+  '/creator/campaigns/$campaignId/finance': typeof AuthenticatedCreatorCampaignsCampaignIdFinanceRoute
+  '/creator/campaigns/$campaignId/overview': typeof AuthenticatedCreatorCampaignsCampaignIdOverviewRoute
   '/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
+  '/creator/campaigns/$campaignId/review': typeof AuthenticatedCreatorCampaignsCampaignIdReviewRoute
   '/creator/campaigns/$campaignId/updates': typeof AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute
   '/creator/campaigns/$campaignId/edit/$step': typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
 }
@@ -415,6 +463,7 @@ export interface FileRoutesByTo {
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/creator': typeof AuthenticatedCreatorIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
@@ -429,7 +478,12 @@ export interface FileRoutesByTo {
   '/creator/campaigns': typeof AuthenticatedCreatorCampaignsIndexRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackIndexRoute
   '/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
+  '/creator/campaigns/$campaignId/analytics': typeof AuthenticatedCreatorCampaignsCampaignIdAnalyticsRoute
+  '/creator/campaigns/$campaignId/backers': typeof AuthenticatedCreatorCampaignsCampaignIdBackersRoute
+  '/creator/campaigns/$campaignId/finance': typeof AuthenticatedCreatorCampaignsCampaignIdFinanceRoute
+  '/creator/campaigns/$campaignId/overview': typeof AuthenticatedCreatorCampaignsCampaignIdOverviewRoute
   '/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
+  '/creator/campaigns/$campaignId/review': typeof AuthenticatedCreatorCampaignsCampaignIdReviewRoute
   '/creator/campaigns/$campaignId/updates': typeof AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute
   '/creator/campaigns/$campaignId/edit/$step': typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
 }
@@ -468,6 +522,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/creator/': typeof AuthenticatedCreatorIndexRoute
   '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
@@ -482,7 +537,12 @@ export interface FileRoutesById {
   '/_authenticated/creator/campaigns/': typeof AuthenticatedCreatorCampaignsIndexRoute
   '/campaigns/$slug/back/': typeof CampaignsSlugBackIndexRoute
   '/_authenticated/admin/campaigns/$campaignId/history': typeof AuthenticatedAdminCampaignsCampaignIdHistoryRoute
+  '/_authenticated/creator/campaigns/$campaignId/analytics': typeof AuthenticatedCreatorCampaignsCampaignIdAnalyticsRoute
+  '/_authenticated/creator/campaigns/$campaignId/backers': typeof AuthenticatedCreatorCampaignsCampaignIdBackersRoute
+  '/_authenticated/creator/campaigns/$campaignId/finance': typeof AuthenticatedCreatorCampaignsCampaignIdFinanceRoute
+  '/_authenticated/creator/campaigns/$campaignId/overview': typeof AuthenticatedCreatorCampaignsCampaignIdOverviewRoute
   '/_authenticated/creator/campaigns/$campaignId/preview': typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
+  '/_authenticated/creator/campaigns/$campaignId/review': typeof AuthenticatedCreatorCampaignsCampaignIdReviewRoute
   '/_authenticated/creator/campaigns/$campaignId/updates': typeof AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute
   '/_authenticated/creator/campaigns/$campaignId/edit/$step': typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
 }
@@ -521,6 +581,7 @@ export interface FileRouteTypes {
     | '/settings/security'
     | '/campaigns/$slug/back'
     | '/admin/'
+    | '/creator/'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/api/public/hooks/publish-due-campaigns'
@@ -535,7 +596,12 @@ export interface FileRouteTypes {
     | '/creator/campaigns/'
     | '/campaigns/$slug/back/'
     | '/admin/campaigns/$campaignId/history'
+    | '/creator/campaigns/$campaignId/analytics'
+    | '/creator/campaigns/$campaignId/backers'
+    | '/creator/campaigns/$campaignId/finance'
+    | '/creator/campaigns/$campaignId/overview'
     | '/creator/campaigns/$campaignId/preview'
+    | '/creator/campaigns/$campaignId/review'
     | '/creator/campaigns/$campaignId/updates'
     | '/creator/campaigns/$campaignId/edit/$step'
   fileRoutesByTo: FileRoutesByTo
@@ -569,6 +635,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/security'
     | '/admin'
+    | '/creator'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/api/public/hooks/publish-due-campaigns'
@@ -583,7 +650,12 @@ export interface FileRouteTypes {
     | '/creator/campaigns'
     | '/campaigns/$slug/back'
     | '/admin/campaigns/$campaignId/history'
+    | '/creator/campaigns/$campaignId/analytics'
+    | '/creator/campaigns/$campaignId/backers'
+    | '/creator/campaigns/$campaignId/finance'
+    | '/creator/campaigns/$campaignId/overview'
     | '/creator/campaigns/$campaignId/preview'
+    | '/creator/campaigns/$campaignId/review'
     | '/creator/campaigns/$campaignId/updates'
     | '/creator/campaigns/$campaignId/edit/$step'
   id:
@@ -621,6 +693,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/security'
     | '/campaigns/$slug/back'
     | '/_authenticated/admin/'
+    | '/_authenticated/creator/'
     | '/_authenticated/admin/campaign-reviews/$campaignId'
     | '/_authenticated/creator/campaigns/new'
     | '/api/public/hooks/publish-due-campaigns'
@@ -635,7 +708,12 @@ export interface FileRouteTypes {
     | '/_authenticated/creator/campaigns/'
     | '/campaigns/$slug/back/'
     | '/_authenticated/admin/campaigns/$campaignId/history'
+    | '/_authenticated/creator/campaigns/$campaignId/analytics'
+    | '/_authenticated/creator/campaigns/$campaignId/backers'
+    | '/_authenticated/creator/campaigns/$campaignId/finance'
+    | '/_authenticated/creator/campaigns/$campaignId/overview'
     | '/_authenticated/creator/campaigns/$campaignId/preview'
+    | '/_authenticated/creator/campaigns/$campaignId/review'
     | '/_authenticated/creator/campaigns/$campaignId/updates'
     | '/_authenticated/creator/campaigns/$campaignId/edit/$step'
   fileRoutesById: FileRoutesById
@@ -810,6 +888,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/creator/': {
+      id: '/_authenticated/creator/'
+      path: '/creator'
+      fullPath: '/creator/'
+      preLoaderRoute: typeof AuthenticatedCreatorIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/': {
@@ -994,11 +1079,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCreatorCampaignsCampaignIdUpdatesRouteImport
       parentRoute: typeof AuthenticatedCreatorCampaignsRoute
     }
+    '/_authenticated/creator/campaigns/$campaignId/review': {
+      id: '/_authenticated/creator/campaigns/$campaignId/review'
+      path: '/$campaignId/review'
+      fullPath: '/creator/campaigns/$campaignId/review'
+      preLoaderRoute: typeof AuthenticatedCreatorCampaignsCampaignIdReviewRouteImport
+      parentRoute: typeof AuthenticatedCreatorCampaignsRoute
+    }
     '/_authenticated/creator/campaigns/$campaignId/preview': {
       id: '/_authenticated/creator/campaigns/$campaignId/preview'
       path: '/$campaignId/preview'
       fullPath: '/creator/campaigns/$campaignId/preview'
       preLoaderRoute: typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRouteImport
+      parentRoute: typeof AuthenticatedCreatorCampaignsRoute
+    }
+    '/_authenticated/creator/campaigns/$campaignId/overview': {
+      id: '/_authenticated/creator/campaigns/$campaignId/overview'
+      path: '/$campaignId/overview'
+      fullPath: '/creator/campaigns/$campaignId/overview'
+      preLoaderRoute: typeof AuthenticatedCreatorCampaignsCampaignIdOverviewRouteImport
+      parentRoute: typeof AuthenticatedCreatorCampaignsRoute
+    }
+    '/_authenticated/creator/campaigns/$campaignId/finance': {
+      id: '/_authenticated/creator/campaigns/$campaignId/finance'
+      path: '/$campaignId/finance'
+      fullPath: '/creator/campaigns/$campaignId/finance'
+      preLoaderRoute: typeof AuthenticatedCreatorCampaignsCampaignIdFinanceRouteImport
+      parentRoute: typeof AuthenticatedCreatorCampaignsRoute
+    }
+    '/_authenticated/creator/campaigns/$campaignId/backers': {
+      id: '/_authenticated/creator/campaigns/$campaignId/backers'
+      path: '/$campaignId/backers'
+      fullPath: '/creator/campaigns/$campaignId/backers'
+      preLoaderRoute: typeof AuthenticatedCreatorCampaignsCampaignIdBackersRouteImport
+      parentRoute: typeof AuthenticatedCreatorCampaignsRoute
+    }
+    '/_authenticated/creator/campaigns/$campaignId/analytics': {
+      id: '/_authenticated/creator/campaigns/$campaignId/analytics'
+      path: '/$campaignId/analytics'
+      fullPath: '/creator/campaigns/$campaignId/analytics'
+      preLoaderRoute: typeof AuthenticatedCreatorCampaignsCampaignIdAnalyticsRouteImport
       parentRoute: typeof AuthenticatedCreatorCampaignsRoute
     }
     '/_authenticated/admin/campaigns/$campaignId/history': {
@@ -1081,7 +1201,12 @@ const AuthenticatedSettingsRouteWithChildren =
 interface AuthenticatedCreatorCampaignsRouteChildren {
   AuthenticatedCreatorCampaignsNewRoute: typeof AuthenticatedCreatorCampaignsNewRoute
   AuthenticatedCreatorCampaignsIndexRoute: typeof AuthenticatedCreatorCampaignsIndexRoute
+  AuthenticatedCreatorCampaignsCampaignIdAnalyticsRoute: typeof AuthenticatedCreatorCampaignsCampaignIdAnalyticsRoute
+  AuthenticatedCreatorCampaignsCampaignIdBackersRoute: typeof AuthenticatedCreatorCampaignsCampaignIdBackersRoute
+  AuthenticatedCreatorCampaignsCampaignIdFinanceRoute: typeof AuthenticatedCreatorCampaignsCampaignIdFinanceRoute
+  AuthenticatedCreatorCampaignsCampaignIdOverviewRoute: typeof AuthenticatedCreatorCampaignsCampaignIdOverviewRoute
   AuthenticatedCreatorCampaignsCampaignIdPreviewRoute: typeof AuthenticatedCreatorCampaignsCampaignIdPreviewRoute
+  AuthenticatedCreatorCampaignsCampaignIdReviewRoute: typeof AuthenticatedCreatorCampaignsCampaignIdReviewRoute
   AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute: typeof AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute
   AuthenticatedCreatorCampaignsCampaignIdEditStepRoute: typeof AuthenticatedCreatorCampaignsCampaignIdEditStepRoute
 }
@@ -1092,8 +1217,18 @@ const AuthenticatedCreatorCampaignsRouteChildren: AuthenticatedCreatorCampaignsR
       AuthenticatedCreatorCampaignsNewRoute,
     AuthenticatedCreatorCampaignsIndexRoute:
       AuthenticatedCreatorCampaignsIndexRoute,
+    AuthenticatedCreatorCampaignsCampaignIdAnalyticsRoute:
+      AuthenticatedCreatorCampaignsCampaignIdAnalyticsRoute,
+    AuthenticatedCreatorCampaignsCampaignIdBackersRoute:
+      AuthenticatedCreatorCampaignsCampaignIdBackersRoute,
+    AuthenticatedCreatorCampaignsCampaignIdFinanceRoute:
+      AuthenticatedCreatorCampaignsCampaignIdFinanceRoute,
+    AuthenticatedCreatorCampaignsCampaignIdOverviewRoute:
+      AuthenticatedCreatorCampaignsCampaignIdOverviewRoute,
     AuthenticatedCreatorCampaignsCampaignIdPreviewRoute:
       AuthenticatedCreatorCampaignsCampaignIdPreviewRoute,
+    AuthenticatedCreatorCampaignsCampaignIdReviewRoute:
+      AuthenticatedCreatorCampaignsCampaignIdReviewRoute,
     AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute:
       AuthenticatedCreatorCampaignsCampaignIdUpdatesRoute,
     AuthenticatedCreatorCampaignsCampaignIdEditStepRoute:
@@ -1113,6 +1248,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedCreatorCampaignsRoute: typeof AuthenticatedCreatorCampaignsRouteWithChildren
   AuthenticatedCreatorPaymentAccountRoute: typeof AuthenticatedCreatorPaymentAccountRoute
+  AuthenticatedCreatorIndexRoute: typeof AuthenticatedCreatorIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1125,6 +1261,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedCreatorCampaignsRouteWithChildren,
   AuthenticatedCreatorPaymentAccountRoute:
     AuthenticatedCreatorPaymentAccountRoute,
+  AuthenticatedCreatorIndexRoute: AuthenticatedCreatorIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
