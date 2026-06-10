@@ -6,12 +6,12 @@ Disallow: /dashboard
 Disallow: /settings
 Disallow: /onboarding
 Disallow: /notifications
-Disallow: /profile
-Disallow: /account
-Disallow: /contributions
 Disallow: /creator
 Disallow: /api/
 Disallow: /auth/callback
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /unauthorized
 Disallow: /design-system
