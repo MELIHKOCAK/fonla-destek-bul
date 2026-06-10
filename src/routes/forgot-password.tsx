@@ -7,6 +7,8 @@ export const Route = createFileRoute("/forgot-password")({
     meta: [
       { title: "Şifremi unuttum — BeniFonla" },
       { name: "description", content: "Şifre sıfırlama bağlantısı isteyin." },
+      { name: "robots", content: "noindex, nofollow" },
+      { name: "googlebot", content: "noindex, nofollow" },
     ],
   }),
   component: ForgotPasswordPage,
