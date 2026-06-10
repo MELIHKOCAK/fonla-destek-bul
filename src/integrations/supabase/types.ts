@@ -2114,6 +2114,33 @@ export type Database = {
         Args: { _base: string }
         Returns: string
       }
+      get_admin_audit_log: {
+        Args: {
+          p_action?: string
+          p_actor_user_id?: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_to?: string
+        }
+        Returns: {
+          action: string
+          actor_user_id: string
+          after_data: Json
+          before_data: Json
+          correlation_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          reason: string
+          total_count: number
+        }[]
+      }
+      get_admin_dashboard_overview: { Args: never; Returns: Json }
+      get_admin_system_alerts: { Args: never; Returns: Json }
       get_campaign_payment_readiness: {
         Args: { _campaign_id: string }
         Returns: Json
