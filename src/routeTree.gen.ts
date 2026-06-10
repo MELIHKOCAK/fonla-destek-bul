@@ -10,14 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as RiskDisclosureRouteImport } from './routes/risk-disclosure'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
+import { Route as ProhibitedCampaignsRouteImport } from './routes/prohibited-campaigns'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
+import { Route as CreatorAgreementRouteImport } from './routes/creator-agreement'
+import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as ComplaintsAndAppealsRouteImport } from './routes/complaints-and-appeals'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -75,6 +83,11 @@ const UnauthorizedRoute = UnauthorizedRouteImport.update({
   path: '/unauthorized',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -85,6 +98,11 @@ const SearchRoute = SearchRouteImport.update({
   path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RiskDisclosureRoute = RiskDisclosureRouteImport.update({
+  id: '/risk-disclosure',
+  path: '/risk-disclosure',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -93,6 +111,21 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProhibitedCampaignsRoute = ProhibitedCampaignsRouteImport.update({
+  id: '/prohibited-campaigns',
+  path: '/prohibited-campaigns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -113,6 +146,21 @@ const DiscoverRoute = DiscoverRouteImport.update({
 const DesignSystemRoute = DesignSystemRouteImport.update({
   id: '/design-system',
   path: '/design-system',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatorAgreementRoute = CreatorAgreementRouteImport.update({
+  id: '/creator-agreement',
+  path: '/creator-agreement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComplaintsAndAppealsRoute = ComplaintsAndAppealsRouteImport.update({
+  id: '/complaints-and-appeals',
+  path: '/complaints-and-appeals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SplatRoute = SplatRouteImport.update({
@@ -406,14 +454,22 @@ const AuthenticatedCreatorCampaignsCampaignIdEditStepRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/complaints-and-appeals': typeof ComplaintsAndAppealsRoute
+  '/cookies': typeof CookiesRoute
+  '/creator-agreement': typeof CreatorAgreementRoute
   '/design-system': typeof DesignSystemRoute
   '/discover': typeof DiscoverRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/prohibited-campaigns': typeof ProhibitedCampaignsRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/risk-disclosure': typeof RiskDisclosureRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
@@ -467,14 +523,22 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/complaints-and-appeals': typeof ComplaintsAndAppealsRoute
+  '/cookies': typeof CookiesRoute
+  '/creator-agreement': typeof CreatorAgreementRoute
   '/design-system': typeof DesignSystemRoute
   '/discover': typeof DiscoverRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/prohibited-campaigns': typeof ProhibitedCampaignsRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/risk-disclosure': typeof RiskDisclosureRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
@@ -527,14 +591,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/$': typeof SplatRoute
+  '/complaints-and-appeals': typeof ComplaintsAndAppealsRoute
+  '/cookies': typeof CookiesRoute
+  '/creator-agreement': typeof CreatorAgreementRoute
   '/design-system': typeof DesignSystemRoute
   '/discover': typeof DiscoverRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/prohibited-campaigns': typeof ProhibitedCampaignsRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/risk-disclosure': typeof RiskDisclosureRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
@@ -590,14 +662,22 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/complaints-and-appeals'
+    | '/cookies'
+    | '/creator-agreement'
     | '/design-system'
     | '/discover'
     | '/forgot-password'
     | '/login'
+    | '/privacy'
+    | '/prohibited-campaigns'
+    | '/refund-policy'
     | '/register'
     | '/reset-password'
+    | '/risk-disclosure'
     | '/search'
     | '/sitemap.xml'
+    | '/terms'
     | '/unauthorized'
     | '/admin'
     | '/dashboard'
@@ -651,14 +731,22 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$'
+    | '/complaints-and-appeals'
+    | '/cookies'
+    | '/creator-agreement'
     | '/design-system'
     | '/discover'
     | '/forgot-password'
     | '/login'
+    | '/privacy'
+    | '/prohibited-campaigns'
+    | '/refund-policy'
     | '/register'
     | '/reset-password'
+    | '/risk-disclosure'
     | '/search'
     | '/sitemap.xml'
+    | '/terms'
     | '/unauthorized'
     | '/dashboard'
     | '/notifications'
@@ -710,14 +798,22 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/$'
+    | '/complaints-and-appeals'
+    | '/cookies'
+    | '/creator-agreement'
     | '/design-system'
     | '/discover'
     | '/forgot-password'
     | '/login'
+    | '/privacy'
+    | '/prohibited-campaigns'
+    | '/refund-policy'
     | '/register'
     | '/reset-password'
+    | '/risk-disclosure'
     | '/search'
     | '/sitemap.xml'
+    | '/terms'
     | '/unauthorized'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
@@ -773,14 +869,22 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   SplatRoute: typeof SplatRoute
+  ComplaintsAndAppealsRoute: typeof ComplaintsAndAppealsRoute
+  CookiesRoute: typeof CookiesRoute
+  CreatorAgreementRoute: typeof CreatorAgreementRoute
   DesignSystemRoute: typeof DesignSystemRoute
   DiscoverRoute: typeof DiscoverRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ProhibitedCampaignsRoute: typeof ProhibitedCampaignsRoute
+  RefundPolicyRoute: typeof RefundPolicyRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RiskDisclosureRoute: typeof RiskDisclosureRoute
   SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   CampaignsSlugRoute: typeof CampaignsSlugRouteWithChildren
@@ -802,6 +906,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UnauthorizedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -816,6 +927,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/risk-disclosure': {
+      id: '/risk-disclosure'
+      path: '/risk-disclosure'
+      fullPath: '/risk-disclosure'
+      preLoaderRoute: typeof RiskDisclosureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -828,6 +946,27 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prohibited-campaigns': {
+      id: '/prohibited-campaigns'
+      path: '/prohibited-campaigns'
+      fullPath: '/prohibited-campaigns'
+      preLoaderRoute: typeof ProhibitedCampaignsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -856,6 +995,27 @@ declare module '@tanstack/react-router' {
       path: '/design-system'
       fullPath: '/design-system'
       preLoaderRoute: typeof DesignSystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/creator-agreement': {
+      id: '/creator-agreement'
+      path: '/creator-agreement'
+      fullPath: '/creator-agreement'
+      preLoaderRoute: typeof CreatorAgreementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/complaints-and-appeals': {
+      id: '/complaints-and-appeals'
+      path: '/complaints-and-appeals'
+      fullPath: '/complaints-and-appeals'
+      preLoaderRoute: typeof ComplaintsAndAppealsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$': {
@@ -1389,14 +1549,22 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   SplatRoute: SplatRoute,
+  ComplaintsAndAppealsRoute: ComplaintsAndAppealsRoute,
+  CookiesRoute: CookiesRoute,
+  CreatorAgreementRoute: CreatorAgreementRoute,
   DesignSystemRoute: DesignSystemRoute,
   DiscoverRoute: DiscoverRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
+  ProhibitedCampaignsRoute: ProhibitedCampaignsRoute,
+  RefundPolicyRoute: RefundPolicyRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  RiskDisclosureRoute: RiskDisclosureRoute,
   SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   CampaignsSlugRoute: CampaignsSlugRouteWithChildren,
