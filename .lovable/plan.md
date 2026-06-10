@@ -1,186 +1,194 @@
-# Faz 12 — Stripe Sandbox Ödeme Entegrasyonu
 
-Faz 11.5'te hazırlanan veri modeli ve adapter iskeletinin üstüne **sadece Stripe test mode / sandbox** entegrasyonu eklenir. Production payment, Transfer ve Payout default kapalıdır; live secret yoktur. Live mode için Faz 12+ ve hukuki onay gerekir.
+# Faz 11.5 — Stripe’a Hazırlık (Sandbox-First)
 
-## Kapsam dışı
-- Live Stripe API çağrısı, live secret kullanımı
-- Stripe.js / publishable key (Hosted Checkout redirect kullanıyoruz)
-- Connected account banka Payout statusu
-- Production Transfer akışı (sadece test mode'da denenebilir, prod flag kapalı)
+Amaç: Faz 0–11 sonucu oluşan mevcut kod ve şemayı bozmadan, ileri yönlü migration’larla Stripe Checkout + Stripe Connect entegrasyonuna hazırlamak. **Stripe baştan yalnızca sandbox (test mode) olarak çalışacak şekilde kurulur**; live mode tüm katmanlarda varsayılan kapalı kalır ve yazılı dış onay olmadan açılamaz. Bu fazda hiçbir gerçek Stripe API çağrısı, gerçek secret, gerçek ödeme yok.
 
-## Mimari
+## 0. Sandbox-first prensibi (sözleşme)
 
+- Stripe entegrasyonu Faz 12’de açıldığında **ilk çalışma modu Stripe sandbox / test mode**’dur.
+- Tüm provider config kayıtları başlangıçta `environment='test'`, `payments_enabled=true`, `live_payments_enabled=false`, `production_approval_status='not_verified'`.
+- Live mode kapısı (`live_payments_enabled=true`) yalnız: (a) Stripe TR + crowdfunding uygunluk yazılı onayı, (b) admin manuel SQL/seed işlemi, (c) production_approval_status='verified' kombinasyonu sağlandığında açılır. Frontend ve adapter live moda hiçbir kod yoluyla otomatik geçmez.
+- Sandbox’ta dahi gerçek Stripe API çağrısı bu fazda yapılmaz; adapter `simulation`’dır. Stripe sandbox çağrıları Faz 12’de yalnız `STRIPE_SECRET_KEY_TEST` ile başlar.
+- UI’de live/test rozetleri korunur; sandbox’ta net “Test ortamı — gerçek tahsilat yok” bildirimi.
+
+## 1. Durum tespiti (yazılı çıktı)
+
+`docs/finance/stripe-readiness-audit.md` oluşturulur. Her gereksinim için sınıflar: mevcut-doğru, mevcut-değiştirilecek, eksik, dış-onay-gerekli, Faz 12’ye bırakılan. Gözlemler: 10 migration uygulanmış; `payment_transactions` tek `provider_payment_id` text alanı; `payouts` settlement+transfer+payout’u karıştırıyor; `webhook_events` Connect/livemode/api_version yok; `reward_tiers.claimed_count` var ama süreli rezervasyon yok; `creator_payment_accounts`, `creator_transfers`, `creator_transfer_reversals`, `provider_payouts`, `reward_reservations`, `payment_provider_configs`, `campaign_settlements` yok; finans tabloları boş → forward migration güvenli, drop/rename yok.
+
+## 2. Migration stratejisi
+
+Tek yeni migration `supabase/migrations/<ts>_phase_11_5_stripe_readiness.sql`. Kurallar: drop yok, rename yok, type değişimi yok; eski kolonlar `COMMENT ... 'DEPRECATED'`. Yeni kolonlar nullable; constraint/NOT NULL ileride.
+
+### 2.1 Yeni tablolar
+
+```text
+payment_provider_configs       (provider, environment) unique
+creator_payment_accounts       (creator_id, provider, environment) unique
+reward_reservations            contribution_id + reward_tier_id, status enum
+campaign_settlements           campaign_id unique
+creator_transfers              provider_transfer_id partial unique per env
+creator_transfer_reversals     provider_transfer_reversal_id partial unique
+provider_payouts               provider_payout_id partial unique per env
 ```
-Browser ──► createServerFn (auth, ownership, readiness)
-              │
-              ▼
-        Supabase Edge Function (Stripe secret kullanır)
-              │
-              ├─ create-payment-session
-              ├─ payment-webhook (raw body, signature)
-              ├─ request-refund
-              ├─ create-transfer (test mode, prod flag kapalı)
-              ├─ calculate-campaign-settlement (dry-run)
-              └─ reconcile-pending-payments (scheduled)
-              │
-              ▼
-         Stripe Test/Sandbox API
+
+Her tablo: GRANT bloğu (finans için yalnız `service_role` write), RLS enable, policy seti (madde 9).
+
+### 2.2 Yeni enum’lar
+
+`payment_domain_status` (created|pending|action_required|processing|paid|failed|cancelled|expired|partially_refunded|refunded|disputed|chargeback), `reward_reservation_status`, `creator_transfer_status`, `creator_transfer_reversal_status`, `provider_payout_status`, `creator_payment_account_status`, `production_approval_status`. Mevcut enum’lara `ALTER TYPE ... ADD VALUE IF NOT EXISTS` ile değer eklenir; eski değerler korunur. `payment_provider` enum/text’ine `simulation` (varsa yok sayılır), `stripe` korunur.
+
+### 2.3 Provider config seed (sandbox-first)
+
+Migration sonunda idempotent seed:
+
+```sql
+insert into payment_provider_configs (provider, environment, checkout_mode, capture_model,
+  failed_campaign_model, connect_flow, currency, payments_enabled,
+  creator_onboarding_enabled, transfers_enabled, refunds_enabled,
+  live_payments_enabled, production_approval_status)
+values
+  ('stripe','test','hosted_checkout','immediate_capture','full_refund',
+   'separate_charges_and_transfers','TRY', true, true, true, true, false, 'not_verified'),
+  ('stripe','live','hosted_checkout','immediate_capture','full_refund',
+   'separate_charges_and_transfers','TRY', false, false, false, false, false, 'not_verified')
+on conflict (provider, environment) do nothing;
 ```
 
-Edge Functions Stripe secret tutar; frontend doğrudan Stripe'a çağrı yapmaz. Stripe-specific kod tamamen `stripe-sandbox-adapter` arkasında izole. PaymentIntent/Checkout Session string'leri domain status'a explicit mapper ile bağlanır.
+### 2.4 `payment_transactions` genişletmesi (kolon ekleme; drop yok)
 
-## 1) Secrets (manuel kullanıcı adımı)
+Eklenecek nullable kolonlar: `provider_checkout_session_id`, `provider_payment_intent_id`, `provider_charge_id`, `provider_balance_transaction_id`, `provider_connected_account_id`, `provider_status`, `provider_created_at`, `checkout_expires_at`, `completed_at`, `last_provider_event_id`, `failure_code`, `failure_message_sanitized`, `domain_status payment_domain_status`. `provider_payment_id` deprecated.
 
-`secrets--add_secret` ile istenir (chat'e değer yazılmaz):
-- `STRIPE_SECRET_KEY_TEST` — sk_test_...
-- `STRIPE_WEBHOOK_SECRET_TEST` — Stripe Dashboard endpoint secret
-- `STRIPE_CONNECT_WEBHOOK_SECRET_TEST` — ayrı Connect endpoint için (varsa)
-- `APP_PUBLIC_URL` — success/cancel URL base
+Partial unique indexler (her biri `WHERE col IS NOT NULL AND provider <> 'simulation'`, environment dahil): checkout_session, payment_intent, charge, balance_tx. Ayrıca `unique(contribution_id, attempt_number)`.
 
-`.env.example` sadece anahtar adlarını ve açıklamayı içerir. Live secret eklenmez.
+Simulation namespace trigger: `provider='simulation'` iken Stripe prefix’li ID (pi_, ch_, cs_, evt_, acct_) reddi.
 
-## 2) Edge Functions (`supabase/functions/`)
+### 2.5 `webhook_events` genişletmesi
 
-Her function: CORS sadece app origin'i, structured logging (header/secret/PII yok), Sentry-safe error mapping, Zod input validation.
+Eklenir: `provider_account_id`, `livemode`, `api_version`, `request_id`, `event_created_at`, `provider_object_type`, `provider_object_id`, `processing_started_at`, `processing_completed_at`, `next_retry_at`, `dead_lettered_at`, `environment`. Unique expression index: `(provider, environment, coalesce(provider_account_id,'_'), provider_event_id)`. Raw payload saklanmaz; `payload_hash` tutulur.
 
-### a) `create-payment-session/index.ts`
-- JWT doğrular (Authorization header)
-- `contributions` row ownership + status `created|pending|action_required`
-- `campaigns.live` + bitmemiş + `get_campaign_payment_readiness` true
-- `reward_tiers` doğrulama; `reserve_reward` RPC (Faz 11.5)
-- Amount/currency DB'den; currency MVP `TRY` zorunlu
-- Local idempotency: `idempotency_keys` tablosuna unique insert; duplicate aktif session varsa onu döndür
-- `payment_transactions` row insert (`provider='stripe'`, `environment='test'`, `domain_status='created'`, `provider_status='checkout_session.created'`)
-- Stripe API: `Stripe.checkout.sessions.create({...}, { idempotencyKey })`
-  - `mode: 'payment'`, `payment_intent_data.transfer_group = tg_<campaignId>_<settlementWindowId>`
-  - `metadata`: `{ contribution_id, payment_transaction_id, campaign_id, environment }` — PII yok
-  - `success_url: ${APP}/campaigns/${slug}/back/result?session_id={CHECKOUT_SESSION_ID}`
-  - `cancel_url: ${APP}/campaigns/${slug}/back/result?cancelled=1`
-  - `expires_at` açık set edilir (örn. 30 dk)
-- Response fields persist: `provider_checkout_session_id`, `provider_payment_intent_id` (varsa), `provider_status`, `livemode`, session `expires_at`, transfer_group DB'ye yazılır
-- Frontend'e sadece `{ url, providerSessionId, expiresAt }` döner
+### 2.6 `financial_ledger_entries` genişletmesi
 
-### b) `payment-webhook/index.ts`
-- **Raw body okur** (Deno `req.text()` — JSON parse etmeden)
-- `stripe.webhooks.constructEventAsync(rawBody, sig, STRIPE_WEBHOOK_SECRET_TEST, tolerance)` — Stripe SDK signature verification
-- `webhook_events` tablosuna `provider_event_id` unique insert ile **atomic claim**; duplicate sessizce 200 döner
-- `event.livemode === false` zorunlu (test/live karışmaz)
-- Connect event ise `event.account` context korunur, ayrı secret ile doğrulanır
-- Event router → idempotent handler:
-  - `checkout.session.completed` → session payment_status + PI status kontrol, async ise `pending`
-  - `checkout.session.async_payment_succeeded` → `paid` (amount/currency/metadata DB ile karşılaştırılır, `confirm_reward_reservation`, ledger entry)
-  - `checkout.session.async_payment_failed` → `failed`, reservation release
-  - `checkout.session.expired` → `expired`, reservation release, paid'i geri çevirmez
-  - `payment_intent.succeeded` → idempotent paid transition (duplicate fulfillment yok)
-  - `payment_intent.payment_failed` / `canceled` → mapped state
-  - `charge.refunded` → refund kaydını günceller
-  - dispute event'leri → `payment_transactions.dispute_status` alanı
-  - `transfer.*`, `transfer.reversed` → `creator_transfers` güncellenir
-- Amount/currency mismatch → `paid` yapma; `audit_logs` alert, manuel reconciliation
-- Unknown event tipleri kontrollü loglanır (payload kalıcı saklanmaz)
+FK kolonları: `creator_transfer_id`, `creator_transfer_reversal_id`, `provider_payout_id`. `entry_type` enum’una madde 5’teki event tipleri. Append-only trigger: UPDATE/DELETE reddi (admin dahil); düzeltme yalnız reversal entry ile.
 
-### c) `request-refund/index.ts`
-- JWT + ownership/admin + payment `paid`/`partially_refunded`
-- Server-side amount; sum(refunds) ≤ captured
-- Local idempotency + Stripe `idempotencyKey`
-- `stripe.refunds.create({ payment_intent, amount })`; response → `refunds` row `pending`
-- Final state `charge.refunded` webhook'undan gelir
-- İlgili `creator_transfers` varsa **ayrı işlem** olarak Transfer Reversal hesaplama (otomatik yapılmaz; bayrak konur, `create-transfer-reversal` ayrı çağrı ile)
+### 2.7 `payouts` geriye dönük uyum
 
-### d) `create-transfer/index.ts`
-- Production feature flag (`payment_provider_configs.transfers_enabled`) zorunlu; default false
-- Settlement net amount server-side yeniden hesap
-- `destination` = `creator_payment_accounts.provider_account_id` (doğrulanmış)
-- Aynı `transfer_group`; `idempotencyKey` ile duplicate engellenir
-- Result `creator_transfers` tablosuna provider_transfer_id ile yazılır
-- **Stripe Transfer ≠ Stripe Payout** — payout asla bu function'da modellenmez
+Tablo boş; drop edilmez. `COMMENT 'DEPRECATED — replaced by campaign_settlements + creator_transfers + provider_payouts'`. Mevcut kod yeni tablolara yönlendirilir; eski tablo Faz 12 sonrası temizlik fazında düşürülür.
 
-### e) `calculate-campaign-settlement/index.ts`
-- Faz 12'de dry-run; net/fee/refund breakdown döner, DB'ye `campaign_settlements` preview yazar
+## 3. Database fonksiyonları
 
-### f) `reconcile-pending-payments/index.ts`
-- pg_cron tarafından stable URL ile çağrılır
-- N dakikadan uzun `pending|processing` `payment_transactions` row'ları için sadece provider_reference üzerinden `stripe.checkout.sessions.retrieve` + PaymentIntent retrieve
-- Aynı webhook state transition servisini reuse eder (yeni state machine yok)
-- Rate limit + exponential backoff; 4xx retry yok, 429/5xx kontrollü retry
-- Mismatch → `audit_logs` report, payment'ı sessizce failed yapmaz
+Yeni `SECURITY DEFINER`, `search_path=public`, doğru REVOKE/GRANT:
 
-`supabase/config.toml`: `payment-webhook` için `verify_jwt = false`. Diğerleri default.
+- `reserve_reward(_contribution_id, _reward_tier_id, _quantity, _expires_at)` — transaction + row lock, duplicate aktif rezervasyon reddi.
+- `confirm_reward_reservation(_contribution_id)` — idempotent.
+- `release_reward_reservation(_contribution_id, _reason)` — idempotent; quantity tek sefer geri verilir.
+- `release_expired_reward_reservations()` — cron-safe; payment durumunu yeniden okur.
+- `get_campaign_payment_readiness(_campaign_id)` — campaign status, creator account, env, capability, blocking requirement, provider config, production approval, `live_payments_enabled`. Sandbox’ta test env readiness, live’da live env readiness döner; live env kapalıysa `PAYMENT_PROVIDER_DISABLED`.
+- `record_payment_event(...)` — webhook idempotency + ledger append.
 
-## 3) Adapter ve domain mapping (`src/lib/payments/provider/`)
+Mevcut `simulate_test_payment` korunur ve sandbox-first kurala göre düzenlenir: aynı trusted state-transition fonksiyonunu çağırır; başarıda `confirm_reward_reservation`, başarısız/iptalde `release_reward_reservation`. `provider='simulation'`, `environment='test'`. Production rejection devam eder. Public aggregate (`get_public_campaigns`, `get_public_campaign_by_slug`) `environment` filtresi alır: `live_payments_enabled=false` iken test sayılır; true olunca live’a geçer.
 
-- `stripe-sandbox-adapter.ts` gerçek implementasyon: `createCheckoutSession`, `fetchCheckoutSession`, `fetchPaymentIntent`, `verifyStripeEventSignature`, `parseStripeWebhookEvent`, `createRefund`, `createTransfer`, `reverseTransfer`
-- `stripe-status-mapper.ts` — yeni dosya:
-  - `mapCheckoutSessionStatus(session)`, `mapPaymentIntentStatus(pi)`, `mapRefundStatus(r)`, `mapTransferStatus(t)`
-  - Unknown status → `processing` + alert (sessizce paid/failed yok)
-- `index.ts` factory: `provider='stripe'` + `environment='test'` → sandbox; live → throw (kapalı)
-- Adapter tip ayrımı korunur: `provider_checkout_session_id`, `provider_payment_intent_id`, `provider_charge_id`, `provider_refund_id`, `provider_transfer_id`, `provider_transfer_reversal_id`
+## 4. Provider adapter sınırı (sandbox-first)
 
-## 4) Server functions (frontend ↔ edge function köprüsü)
+`src/lib/payments/provider/`:
 
-`src/lib/payments/payments.functions.ts` genişletilir:
-- `createStripeCheckoutSession` — Edge function `create-payment-session` çağırır, sonucu döner
-- `getPaymentStatus(paymentTransactionId)` — DB poll için
-- `requestRefund`, `requestTransfer` (admin), `requestSettlementPreview`
+```text
+types.ts                — PaymentProvider interface, DomainPaymentError union
+errors.ts               — CAMPAIGN_NOT_PAYMENT_READY vb. 11 kod
+simulation-adapter.ts   — mevcut simulate_test_payment'ı sarar (default)
+stripe-sandbox-adapter  — Faz 12 iskeleti; STRIPE_SECRET_KEY_TEST okur, NOT_IMPLEMENTED
+stripe-live-adapter     — Faz 12 sonrası; live flag + approval olmadan factory döndürmez
+index.ts                — getProvider(env, config) factory: sandbox-first kuralı uygular
+```
 
-Hepsi `requireSupabaseAuth` middleware. `attachSupabaseAuth` zaten `src/start.ts`'te.
+Factory kuralı: `environment='test'` → simulation (bu faz) / stripe-sandbox (Faz 12); `environment='live'` → yalnız `live_payments_enabled=true && production_approval_status='verified'` ise stripe-live; aksi halde `PAYMENT_PROVIDER_DISABLED` fırlatır. Frontend doğrudan Stripe’a bağlanmaz.
 
-## 5) Frontend değişiklikleri
+## 5. Server functions (TanStack Start)
 
-- `src/routes/campaigns.$slug.back.review.tsx`: onay → `createStripeCheckoutSession` → `window.location.href = url` (Stripe Hosted Checkout)
-- `src/routes/campaigns.$slug.back.result.tsx`:
-  - Query param `success`/`cancelled`/`session_id` **sadece lookup** için
-  - TanStack Query ile `getPaymentStatus` poll (interval backoff: 2s→5s→10s, max 2 dk)
-  - Status'a göre Türkçe UI: "İşleniyor", "Başarılı", "Başarısız", "İptal edildi", "Süresi doldu"
-  - Cancel = otomatik failed değil; "ödemeniz hâlâ tamamlanabilir" mesajı
-- `ContributionStatusBadge` Stripe state'lerini gösterir
-- `TestEnvironmentBadge` her Stripe sayfasında görünür (sandbox bilgilendirme)
+`src/lib/payments/`, hepsi `requireSupabaseAuth`:
 
-## 6) DB migration
+- `getCampaignPaymentReadiness({ campaignId })`
+- `getCreatorPaymentAccountSummary()` — sahip maskeli okur
+- `requestCreatorOnboarding()` — bu fazda `NOT_IMPLEMENTED`; UI placeholder
+- `releaseExpiredReservations()` — admin/cron
 
-Sadece eksik kolonlar:
-- `payment_transactions`: `dispute_status text`, `last_provider_sync_at timestamptz`, `reconciliation_status text` (nullable)
-- `creator_transfers`: `transfer_group text`, `source_charge_id text`
-- `creator_transfer_reversals`: `refund_id uuid references refunds(id)`
-- `payment_provider_configs`: `transfers_enabled boolean default false`, `reconciliation_enabled boolean default true`
+`createContribution` güncellenir: contribution sonrası `reserve_reward` (transaction). `simulateTestPayment` aynı RPC’yi çağırır; success → reservation confirm.
 
-Partial unique index: `payment_transactions(provider_checkout_session_id) where provider='stripe'`.
+## 6. Frontend
 
-pg_cron job: `reconcile-pending-payments` her 10 dk (insert tool ile, migration değil).
+- `/_authenticated/creator/payment-account` route: readiness kartı + “Stripe sandbox onboarding Faz 12’de açılacak; live mode dış onaydan sonra” açıklaması.
+- `CampaignDetailPage` ve back akışı: `getCampaignPaymentReadiness` çağrısı; readiness yoksa Destekle butonu disabled + dürüst mesaj.
+- `back/ResultStep`: URL `?success=true` ödeme kanıtı değil; status yalnız backend polling’den.
+- Sandbox rozetleri: `TestEnvironmentBadge` korunur; live env aktifleştiğinde ayrı `LiveEnvironmentBadge` ileride.
 
-## 7) Test paketi (`src/lib/payments/__tests__/`)
+## 7. Environment & secrets (sandbox-first isimlendirme)
 
-Vitest + node mocks (Stripe SDK mock; gerçek API çağrısı yok):
-- `stripe-status-mapper.test.ts` — tüm Checkout/PI/Refund/Transfer status'ları + unknown
-- `webhook-signature.test.ts` — geçerli, invalid, replay-outside-tolerance, malformed body, yanlış secret
-- `webhook-idempotency.test.ts` — aynı event 2 kez; aynı paymentin checkout.session.completed + payment_intent.succeeded'i; out-of-order
-- `webhook-amount-mismatch.test.ts` — paid yapmaz, alert yazar
-- `create-session-idempotency.test.ts` — duplicate request aynı session döner
-- `refund.test.ts` — full, partial, over-refund block, duplicate, transfer reversal ayrı işlem
-- `transfer.test.ts` — duplicate engelleme, prod flag kapalı throw
-- `reconciliation.test.ts` — pending → paid sync, session expired → reservation release, mismatch report, Stripe 404'te failed yapmaz
-- `result-route.test.tsx` — `?success=true` payment'ı paid yapmaz, sadece backend status
+`.env.example` ve `docs/finance/stripe-integration-contract.md`’de yalnız isim+açıklama:
 
-Test matrisindeki 39 senaryo bu dosyalara dağıtılır. Stripe test kart numaraları kaynak kodda yok; sadece `docs/finance/stripe-test-guide.md` Stripe resmi dokümanına link verir.
+```text
+STRIPE_SECRET_KEY_TEST            # Faz 12 sandbox — server only, sk_test_...
+STRIPE_WEBHOOK_SECRET_TEST        # Faz 12 sandbox webhook
+STRIPE_CONNECT_WEBHOOK_SECRET_TEST# Faz 12 sandbox connect webhook
+STRIPE_SECRET_KEY_LIVE            # KAPALI — dış onaydan sonra eklenir
+STRIPE_WEBHOOK_SECRET_LIVE        # KAPALI — dış onaydan sonra
+STRIPE_API_VERSION                # opsiyonel pin
+APP_PUBLIC_URL                    # checkout return/cancel base
+```
 
-## 8) Dokümantasyon
+Test/live secret aynı isimde paylaşılmaz. Publishable key bu fazda eklenmez (hosted checkout). Frontend’e secret konulmaz.
 
-- `docs/finance/stripe-test-guide.md` — secret kurulumu, webhook endpoint URL'leri, Stripe Dashboard / Stripe CLI talimatları, test matrisi
-- `docs/finance/stripe-go-live-checklist.md` — live öncesi hukuki/operasyonel kontrol listesi (KYC, vergi, crowdfunding uygunluk, country support)
+## 8. Belgeler
 
-## 9) Manuel kullanıcı adımları
+Yeni: `docs/finance/stripe-readiness-audit.md`, `docs/finance/stripe-integration-contract.md` (sandbox-first bölümü zorunlu), `docs/finance/edge-function-contracts.md` (madde 10’daki 5 function için auth, schema, idempotency, transaction, rate-limit, replay, test/live davranışı).
 
-1. Stripe test hesabı; sandbox secret'ları `secrets--add_secret` ile gir
-2. Stripe Dashboard → Webhooks → `https://<project>.lovable.app/functions/v1/payment-webhook` endpoint ekle; secret'ı `STRIPE_WEBHOOK_SECRET_TEST` olarak gir
-3. (Opsiyonel) Connect webhook ayrı endpoint
-4. Sandbox connected account oluşturma akışı için Stripe test onboarding linki
+Güncellenir: `docs/money-flow.md`, `docs/domain-glossary.md` (Transfer ≠ Payout, settlement, reservation, sandbox vs live), `docs/contribution-payment-state-machine.md` (yeni domain_status), `docs/campaign-state-machine.md` (publish ≠ payment-ready), `docs/project-knowledge.md`, `docs/environments.md` (sandbox-first vurgusu, live mode açma prosedürü).
 
-## 10) Kabul kriterleri (her biri test/manuel doğrulanır)
+## 9. RLS özet
 
-Spec'teki tüm kabul kriterleri test paketi + manual smoke ile doğrulanır. Live mode bilinçli olarak kapalı kalır.
+- Finans tabloları (`payment_provider_configs`, `webhook_events`, `financial_ledger_entries`, `creator_transfers`, `creator_transfer_reversals`, `provider_payouts`, `campaign_settlements`): authenticated INSERT/UPDATE/DELETE yok; SELECT yalnız ilgili creator/admin.
+- `creator_payment_accounts`: owner SELECT (maskeli view); UPDATE yok, yalnız service role.
+- `reward_reservations`: backer SELECT kendi rezervasyonu; UPDATE/DELETE yok.
+- `payment_transactions`: backer SELECT kendi (maskeli); INSERT/UPDATE yok.
+- Environment spoofing: insert trigger user-supplied environment’ı reddeder; daima config’den türetilir.
 
-## Riskler / açık konular
+## 10. Faz 12 Edge Function contract iskelesi
 
-- Connect Express vs Standard seçimi — Faz 11.5'te Express varsayıldı; Stripe Dashboard'da onaylanmalı
-- Türkiye TRY desteği Stripe Connect için ülke kısıtları olabilir; kullanıcı sandbox hesabı oluştururken bunu doğrulamalı
-- Dispute event şemaları SDK versiyonuna bağlı; Stripe API version `payment_provider_configs.api_version` alanından okunur
+`docs/finance/edge-function-contracts.md` ve `src/lib/payments/contracts/`:
+
+- `create-stripe-checkout-session` (sandbox-first: env=test default; tutarı client’tan kabul etmez, backend re-read)
+- `stripe-webhook` (test/live ayrı secret)
+- `create-stripe-connected-account`
+- `create-stripe-account-link`
+- `get-stripe-account-status`
+
+Her biri için auth, authz, input/output schema, idempotency scope, transaction boundary, Stripe nesneleri, DB yan etkileri, güvenli hata kodları, audit, test/live davranışı, rate limit, replay.
+
+## 11. Testler (Vitest + SQL)
+
+`tests/finance/`, `tests/reservations/`:
+
+- Schema: forward migration replay, generated types regenerate.
+- Reward reservation: concurrent claim, failed/cancelled release, expired job idempotency, paid confirm, double-release stok bozmaz.
+- Payment: simulation ID prefix kontrolü, attempt sırası, URL success parametresi etkisiz, processing/action_required render, prod env rejection, test/live aggregate ayrımı.
+- Sandbox-first: default config’de `live_payments_enabled=false`; live readiness `PAYMENT_PROVIDER_DISABLED` döner; manuel flag açıldığında readiness geçer.
+- Creator account: owner okur, başka okuyamaz, client `payouts_enabled` yazamaz, blocking requirement → not payment-ready.
+- Finance security: client insert/update/delete reddi, duplicate webhook ikinci ledger oluşturmaz, ledger update/delete reddi.
+- Regression smoke: Faz 7/8/9/10/11 mevcut testler geçer.
+
+Build, lint, `tsc --noEmit`, `vitest run` çalıştırılır; hata varsa düzeltilir.
+
+## 12. Yapılmayacaklar
+
+Gerçek Stripe API çağrısı (sandbox dahil), gerçek secret, gerçek Checkout, gerçek webhook, gerçek refund/transfer/payout, live payments aç, hukuki/Stripe onayı alınmış gibi davran, escrow ifadesi, eski migration düzenle, drop/rename/reset, çalışan fazları yeniden yaz.
+
+## 13. Açık riskler / dış onay
+
+- Stripe TR + crowdfunding uygunluk yazılı doğrulanmadan `live_payments_enabled=true` yapılmaz.
+- Sandbox Stripe çağrıları Faz 12’de açılacak; bu fazda yalnız simulation.
+- `payouts` tablosu Faz 12 sonrası temizlik fazında düşürülecek.
+- PII şifreleme (pgcrypto) bu fazda dahil değil; sıkı RLS.
+- Reward reservation cron’u Faz 12’de pg_cron/`/api/public/hooks/release-reservations` ile koşturulacak.
+- Production `app.environment` Postgres setting elle ayarlanmalı.
+
+## 14. Son rapor başlıkları
+
+Mevcut yapı problemleri, eklenen tablolar/enum/index, değişen DB function’lar, RLS değişiklikleri, sandbox-first config seed doğrulaması, frontend/type değişiklikleri, eklenen testler, build/lint/type-check/test çıktıları, Faz 12’ye bırakılan Stripe işleri (sandbox aktivasyonu dahil), manuel Stripe & hukuki adımlar (live mode açma prosedürü), veri kaybı riski (yok bekleniyor), açık blokajlar.
