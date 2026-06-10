@@ -3,7 +3,13 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/unauthorized")({
-  head: () => ({ meta: [{ title: "Yetkisiz — BeniFonla" }] }),
+  head: () => ({
+    meta: [
+      { title: "Yetkisiz — BeniFonla" },
+      { name: "robots", content: "noindex, nofollow" },
+      { name: "googlebot", content: "noindex, nofollow" },
+    ],
+  }),
   component: UnauthorizedPage,
 });
 
