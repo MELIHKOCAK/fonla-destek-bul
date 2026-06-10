@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { getAdminSystemAlerts, type SystemAlerts } from "@/lib/admin/operations";
 import { formatMoneyMinor } from "@/lib/format";
 
-const formatMoney = (minor: number, currency: string) => formatMoneyMinor(minor, currency);
+const formatMoney = (minor: number, currency: string) =>
+  formatMoneyMinor(minor, { currency: (currency as "TRY") || "TRY" });
 
 export const Route = createFileRoute("/_authenticated/admin/system-alerts")({
   head: () => ({ meta: [{ title: "Sistem uyarıları — Admin" }, { name: "robots", content: "noindex" }] }),
