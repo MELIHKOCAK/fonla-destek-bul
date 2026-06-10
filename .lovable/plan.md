@@ -1,103 +1,139 @@
-# Faz 16 — Admin Operasyon Paneli
-
-Kapsam çok geniş, riski düşük tutmak için onayınızla **4 alt-PR** olarak teslim ederim. Hiçbir adım finansal kayıtları doğrudan UPDATE eden bir CRUD üretmez — tüm kritik aksiyonlar mevcut state machine / Stripe komutları üzerinden, `reason` zorunlu, idempotent ve `audit_logs`'a yazılarak çalışır.
+# Faz 17 — In-app bildirim ve transactional email (outbox tabanlı, retry-safe)
 
 ## Ön koşul kapısı
 
-- `has_role(auth.uid(), 'admin')` zaten var (Faz 0). Tüm admin RPC ve route'lar bunu kullanır.
-- `audit_logs`, `idempotency_keys`, `creator_transfers`, `provider_payouts`, `refunds`, `payment_transactions`, `webhook_events`, `campaign_reports` tabloları mevcut — yeniden oluşturulmaz.
-- Mevcut state machine: `src/lib/payments/payment-state-machine.server.ts`, Stripe komutları `src/lib/payments/*.functions.ts`. Admin sadece bunları çağırır.
+- `notifications` tablosu mevcut (`dedupe_key` unique index var) — yeniden oluşturulmaz, sadece okunur ve INSERT'lenir.
+- Mevcut RLS: kullanıcı sadece kendi bildirimlerini okur/günceller — korunacak.
+- Faz 15'te `mark_notification_read` / `mark_all_notifications_read` zaten yazıldı (varsayım: var; yoksa eklenecek).
+- E-posta sağlayıcısı için **Lovable Cloud built-in e-posta** kullanılacak (Resend/SendGrid değil). Domain doğrulanmamışsa: scaffold yapılır ama gerçek gönderim durmuş kalır; `email_deliveries.status = 'pending_provider'` ile beklemede tutulur, e-posta hatası business state'i geri almaz.
 
-## Alt-PR 1 — Admin shell, guard, dashboard, audit, system-alerts (read-only temel)
+## Mimari özet
 
-**Migration:**
-- `is_admin()` SECURITY DEFINER helper (varsa atla).
-- `get_admin_dashboard_overview()` RPC: pending reviews, live campaigns, open reports, failed payment/refund/transfer/payout sayıları, unprocessed webhook, reconciliation mismatch, son 20 kritik audit.
-- `get_admin_system_alerts()` RPC: reconciliation mismatch + webhook tekrarlı fail + transfer overdue + payout fail.
-- `get_admin_audit_log(filters, cursor)` RPC: actor/action/entity/date filtre + maskeli before/after.
-- `admin_audit_logs_immutable` trigger: UPDATE/DELETE blokla.
+```
+business txn ──► outbox row (notification_events) ──┐
+                                                     │
+                                          claim worker (server fn + pg_cron)
+                                                     │
+                            ┌────────────────────────┴────────────┐
+                            │                                     │
+                    insert notifications row              insert email_deliveries
+                    (dedupe key unique)                   (dedupe key unique)
+                                                                  │
+                                                          provider send (idempotent)
+                                                                  │
+                                                  success → status=sent
+                                                  retriable → backoff
+                                                  permanent → status=dead_letter
+```
 
-**Routes / dosyalar:**
-- `src/routes/_authenticated/_admin/route.tsx` — pathless layout, `beforeLoad` `context.auth.hasRole('admin')` değilse `/unauthorized`.
-- `src/routes/_authenticated/_admin/admin.tsx` — `AdminShell` (sidebar + breadcrumb + risk bildirimi).
-- `src/routes/_authenticated/_admin/admin.index.tsx`, `admin.audit.tsx`, `admin.system-alerts.tsx`.
-- `src/components/admin/AdminShell.tsx`, `AdminSidebar.tsx`, `ConfirmActionDialog.tsx` (reason + type-to-confirm + irreversible warn + loading), `StatCard`, `EmptyState`.
-- `src/lib/admin/dashboard.functions.ts`, `audit.functions.ts`, `system-alerts.functions.ts` (hepsi `requireSupabaseAuth` + sunucuda `is_admin` kontrolü).
+Outbox INSERT business transaction içindedir; her şey ondan sonra ayrı işlemde çalışır. E-posta hatası ödeme/kampanya state'ini etkilemez.
 
-## Alt-PR 2 — Reviews, Users, Campaigns, Reports
+## Migration (tek dosya)
 
-**Migration (RPC + command fns):**
-- `get_admin_pending_reviews`, `admin_review_campaign(campaign_id, decision, reason)` — sadece `pending_review` → `approved|rejected`, audit.
-- `get_admin_users(query, cursor)` — güvenli alanlar (email maskesi, display_name, status, roles); password yok.
-- `admin_set_user_role(user_id, role, action, reason)` — son admin koruması (eğer kaldırılacaksa `count(admin)>1` kontrolü), audit.
-- `admin_set_user_status(user_id, status, reason)` — ban/suspend; `users_status` enum yoksa eklenir.
-- `get_admin_campaigns(filters)`, `admin_suspend_campaign(id, reason)`, `admin_cancel_campaign(id, reason)` — mevcut campaign state machine fonksiyonunu çağırır, dropdown ile status set ETMEZ.
-- `get_admin_reports(status)`, `admin_assign_report`, `admin_resolve_report(action, reason)`, `admin_hide_comment(comment_id, reason)`.
+1. `notification_event_type` enum (kapsamdaki 24 olay).
+2. `notification_channel` enum: `in_app`, `email`.
+3. `notification_outbox` tablosu:
+   - `id`, `event_type` (enum), `entity_type`, `entity_id`, `recipient_user_id`, `payload jsonb` (minimum/maskelenmiş), `dedupe_key text UNIQUE`, `status` (`pending`|`processing`|`done`|`failed`|`skipped`), `attempt_count`, `next_attempt_at`, `last_error`, `correlation_id`, `created_at`, `updated_at`.
+   - Indexes: `(status, next_attempt_at)`, `(entity_type, entity_id)`.
+4. `email_deliveries` tablosu:
+   - `id`, `outbox_id` FK, `recipient_email` (maskelenecek logda), `template_name`, `template_data jsonb`, `dedupe_key UNIQUE`, `status` (`queued`|`sent`|`failed`|`dead_letter`|`bounced`|`suppressed`|`pending_provider`), `attempt_count`, `next_attempt_at`, `provider_message_id`, `last_error`, `sent_at`, `created_at`, `updated_at`.
+5. `notification_preferences` tablosu:
+   - `user_id PK`, `transaction_email boolean default true` (kritik finansal sınıfı override edilemez — uygulama katmanında zorlanır), `campaign_updates_email boolean default true`, `marketing_email boolean default false`, `updated_at`.
+   - Trigger: yeni `auth.users` insert'inde default satır.
+6. **RPC'ler:**
+   - `notify_enqueue(event_type, entity_type, entity_id, recipient_user_id, payload, dedupe_key, correlation_id)` — SECURITY DEFINER, idempotent INSERT (`ON CONFLICT (dedupe_key) DO NOTHING`), service_role + business RPC'ler tarafından çağrılır.
+   - `notify_claim_batch(p_limit)` — SELECT ... FOR UPDATE SKIP LOCKED, status='processing' set; sadece `service_role`.
+   - `notify_mark_done(p_id)`, `notify_mark_failed(p_id, p_error, p_retriable)` — sadece `service_role`.
+   - `get_notification_preferences()` ve `update_notification_preferences(...)` — auth.uid scoped.
+   - `get_unread_notification_count()` — zaten dashboard'da olabilir; yoksa eklenir.
+   - `mark_notification_read(p_id)` / `mark_all_notifications_read()` — varsa skip.
+7. GRANT'ler: tüm tablolarda authenticated için yalnız okuma (kendi preferences/notifications), service_role tam erişim. RLS aç. Outbox/email_deliveries için **authenticated rolüne hiçbir policy yok** — sadece service_role / SECURITY DEFINER ile erişilir. Admin için ayrı admin policy (`is_admin()`).
+8. Business RPC entegrasyonu — bu fazda **wire'lanan olaylar (önce kritik 8):**
+   - `payment_succeeded`, `payment_failed`, `payment_action_required`
+   - `refund_started`, `refund_completed`
+   - `creator_transfer_completed`, `creator_transfer_failed`
+   - `campaign_approved`, `campaign_rejected`, `campaign_revision_requested`, `campaign_published`
+   - `campaign_update_published`
+   
+   Her biri mevcut state-transition fonksiyonu içine `PERFORM notify_enqueue(...)` çağrısı eklenir, **payload maskelenmiş**: Stripe internal id, card brand, charge id, customer email yok; sadece `campaign_id`, `amount_minor`, `currency`, kullanıcıya görünür slug/title.
+   
+   Geriye kalan olaylar (`registration_completed`, `contribution_created`, `payment_session_expired`, `campaign_goal_reached`, `campaign_failed`, `transfer_reversal_*`, `provider_payout_*`, `creator_comment_reply`) sonraki alt-PR olarak işaretlenir; şu an enum'a girer ama emitter yazılmaz. Plan'da açıkça belirtilir.
 
-**Routes:** `admin.reviews.tsx`, `admin.users.tsx`, `admin.users.$id.tsx`, `admin.campaigns.tsx`, `admin.campaigns.$id.tsx`, `admin.reports.tsx`, `admin.reports.$id.tsx`.
+## Worker (server route — cron-callable)
 
-## Alt-PR 3 — Payments / Refunds / Transfers / Payouts / Webhooks (read-only tablo + komutlar)
+`src/routes/api/public/hooks/process-notification-outbox.ts`:
+- `apikey` header = Supabase anon ile gate (cron pattern).
+- `supabaseAdmin` ile `notify_claim_batch(25)` çağırır.
+- Her event için:
+  - In-app: `notifications` INSERT (`dedupe_key` = `<event>:<entity>:<user>:in_app`). Conflict → skip ama outbox done.
+  - Email: preference kontrolü (`transaction_email` + critical override list). `email_deliveries` INSERT (`dedupe_key` = `<event>:<entity>:<user>:email`). Sonra adapter `sendEmail(...)`.
+- Sonuç → `notify_mark_done` veya `notify_mark_failed(retriable=true|false)` (HTTP 4xx → permanent, 5xx/timeout → retriable, exponential backoff: `next_attempt_at = now() + (attempt_count^2 * 1 min)`, max 6).
+- E-posta hata yutmaz; **outbox done olur** (notification yapıldı) ama `email_deliveries.status` ayrı izlenir. Email failure asla business state'i etkilemez.
 
-**Sadece okuma RPC'leri** (maskeli, internal stripe id yok kullanıcıya):
-- `get_admin_payments`, `get_admin_refunds`, `get_admin_creator_transfers`, `get_admin_provider_payouts` (ayrı RPC), `get_admin_webhook_events`.
+`pg_cron` her dakikada bir worker'ı çağırır (anon key ile).
 
-**Komut fonksiyonları (hepsi mevcut Faz 13 komutlarını sarar, idempotency key zorunlu, reason zorunlu):**
-- `admin_retry_payment_sync(payment_id, reason)`
-- `admin_create_refund(payment_id, amount, reason)` / `admin_retry_refund(refund_id, reason)`
-- `admin_create_creator_transfer(campaign_id, reason)` / `admin_retry_creator_transfer(id, reason)`
-- `admin_create_transfer_reversal(transfer_id, amount, reason)`
-- `admin_replay_webhook(event_id, reason)` — sadece `signature_valid=true` ve idempotent path.
-- Provider Payout için `admin_reconcile_provider_payout(id, reason)` — manuel `completed` YOK; sadece Stripe'tan sync.
+## Email adapter
 
-**UI kuralı:** Hiçbir tabloda status dropdown YOK. Aksiyonlar `ConfirmActionDialog` ile.
+`src/lib/notifications/email-provider.ts`:
+- `LOVABLE_EMAIL_FROM` env + Lovable email infra varsa send route (`/lovable/email/transactional/send`) çağırır.
+- Yoksa `console.info` ile log + status `pending_provider` (faz 17.5 için manuel queue). Asla "gönderildi" demez.
+- Adapter çıktısı: `{ outcome: 'sent'|'retriable'|'permanent'|'skipped_no_provider', providerMessageId?, error? }`.
 
-**Routes:** `admin.payments.tsx`, `admin.refunds.tsx`, `admin.transfers.tsx`, `admin.payouts.tsx`, `admin.webhooks.tsx`. Raw payload default gizli, "Reveal" butonu audit'e yazar.
+## Email template registry
 
-## Alt-PR 4 — Fees, Categories, Content
+`src/lib/notifications/templates/`:
+- `payment-succeeded.ts`, `payment-failed.ts`, `payment-action-required.ts`, `refund-started.ts`, `refund-completed.ts`, `creator-transfer-completed.ts` (**banka Payout DEĞİL** — net Türkçe: "platformdan hesabınıza aktarım tamamlandı"), `creator-transfer-failed.ts`, `campaign-approved.ts`, `campaign-rejected.ts`, `campaign-revision-requested.ts`, `campaign-published.ts`, `campaign-update-published.ts`.
+- Her şablon: `{ subject, preheader, text, html }` (Türkçe, brand token'lar, semantic HTML, hiçbir Stripe id yok, formatlanmış tutar). Sandbox modda subject `[TEST]` prefix.
+- Marketing footer YOK. Kritik bildirimlerde unsubscribe linki YOK.
 
-- `platform_fee_configs` tablosu (varsa kullan, yoksa migrate): `effective_from`, `fee_bps`, `created_by`, `reason`. Future-dated; geçmiş `campaign_settlements` snapshot etkilenmez (zaten kayıtlı).
-- `admin_create_fee_config(effective_from, fee_bps, reason)` — `fee_bps 0..2000`, `effective_from > now()`, two-step confirm UI.
-- Categories: `admin_create_category`, `admin_update_category`, `admin_deactivate_category` (silme yok; referans varsa deactivate). Slug unique.
-- Static content: `static_pages` (slug, title, body, status: draft|published), `admin_save_static_page(reason)`. Legal "approved" Faz 20 onayına bağlı — UI'da uyarı.
+## In-app UI
 
-**Routes:** `admin.fees.tsx`, `admin.categories.tsx`, `admin.content.tsx`.
+- `src/components/notifications/NotificationBell.tsx` — header'da unread badge, popover ile son 10. Mevcut header'a takılır (varsa)
+- `src/routes/_authenticated/notifications.tsx` mevcut — sayfalama + mark all read + tip ikonu + deep link genişletilir.
+- `src/components/notifications/NotificationItem.tsx` — tip → ikon eşlemesi.
 
-## Sidebar nav linkleri (tüm PR'larda büyüyen)
+## Settings entegrasyonu
 
-Dashboard, Reviews, Users, Campaigns, Reports, Payments, Refunds, Transfers, Payouts, Webhooks, Fees, Categories, Content, Audit, System Alerts.
+- `/settings/notifications` yeni route — `notification_preferences` formu. Kritik finansal bildirim toggle'ı disabled + açıklama: "Yasal/güvenlik nedeniyle kapatılamaz".
 
 ## Testler (Vitest)
 
-- Normal user her admin RPC'sini çağırdığında 403/permission denied.
-- `admin_review_campaign` reason boşsa reject; idempotent (aynı decision 2. çağrı no-op).
-- `admin_set_user_role` son admin'i kaldırmaya çalışırsa reject.
-- `admin_create_refund` aynı idempotency key ile 2. çağrı yeni Stripe call yapmaz, aynı refund_id döner.
-- `admin_create_creator_transfer` ve `admin_reconcile_provider_payout` ayrı RPC; transfer kaydı payout tablosuna yazılmaz.
-- `admin_replay_webhook` `signature_valid=false` reject; valid + zaten processed → ledger duplicate üretmez.
-- `admin_create_fee_config` `effective_from <= now()` reject; mevcut settlement snapshot değişmez.
-- Audit entry her başarılı/başarısız komutta yazılır (`status=success|failed`, masked diff).
-- `audit_logs` UPDATE/DELETE trigger ile bloklu.
-- Mobile: AdminShell drawer açılır, ConfirmActionDialog scroll'lanır.
+- `notify_enqueue` aynı `dedupe_key` ile 2 kez → 1 outbox satırı.
+- Outbox processed → 1 notifications + (preference açıksa) 1 email_deliveries; tekrar processed → INSERT conflict, duplicate yok.
+- E-posta provider 500 → outbox done, email_deliveries `failed` + attempt+1; retry; 6. attempt → `dead_letter`.
+- E-posta provider 4xx (invalid email) → permanent `dead_letter`, retry yok.
+- `marketing_email=false` → `payment_succeeded` email yine gönderilir (kritik override).
+- `transaction_email=false` → kritik finansal (payment/refund/transfer) yine gönderilir, ama `campaign_update_published` skip.
+- Yanlış kullanıcı SELECT → RLS reject.
+- Payload masking: template'ler `stripe_*` / `customer_email` / `pan` / `cvv` içermez (snapshot test).
+- `creator_transfer_completed` template'i "banka" / "payout" kelimelerini içermez.
+- `payment_session_expired` enum'da var, emitter yok (tracked TODO, test sadece var olduğunu kontrol eder).
+- Sandbox flag → subject `[TEST]` prefix.
+- Business RPC: e-posta provider throw → ödeme transaction commit olur (mock provider ile integration test).
+- `mark_notification_read` başka user'ın id'siyle → reject.
 
-## Kapsam dışı (bu fazda yapılmaz)
+## Out of scope
 
-- MFA zorunlu (Faz 20/21), CSV export, e-posta bildirim, real-time push, KYC override, manuel ledger insert UI.
+- Bounce/complaint webhook adapter (Faz 17.5).
+- Push notification.
+- Geriye kalan 12 event emitter (Faz 17.5).
+- Admin UI'dan manuel retry — `/admin/system-alerts` zaten failed transfer/payout gösteriyor; ayrı notification retry UI Faz 17.5.
 
-## Doğrulama
+## Manuel adımlar
 
-`bun run typecheck`, `bun run build`, `bun run lint`, `bunx vitest run src/lib/admin src/components/admin`.
+- E-posta domain doğrulamasını Lovable Cloud → Emails altında tamamla. Doğrulanmamışsa `email_deliveries.status = 'pending_provider'` kalır.
+- `pg_cron` job: `select cron.schedule('process-notification-outbox', '* * * * *', $$select net.http_post(...)$$);` — migration içinde yer alır.
 
-## Manuel yapılacaklar
+## Doğrulamalar
 
-- Test kullanıcısına `admin` rolü atama (insert tool).
-- Stripe sandbox'ta replay/refund/transfer komutlarını uçtan uca dene.
-- `audit_logs` retention politikasını DBA ile netleştir (bu fazda 0 satır silme).
+`bunx tsc --noEmit`, `bun run build`, `bun run lint`, `bunx vitest run src/lib/notifications`.
 
 ## Açık riskler
 
-- Provider Payout komutu Stripe Connect account config'ine bağlı — bazı connected account'larda platform tarafından yönetilemez; UI o satırlarda "Read-only (Stripe-managed)" rozeti gösterir.
-- `audit_logs` büyüme hızı izlenmeli; bu fazda partition eklenmez.
+- E-posta domain yokken gerçek gönderim olmaz — `pending_provider` rows birikir; faz 17.5'te re-queue mekanizması.
+- `pg_cron` her dakikada bir çağrılır; yüksek yük altında batch limit (25) yeterli olmayabilir.
+- Geriye kalan 12 event emitter eklenene kadar UX eksik.
 
 ---
 
-**Onay verirseniz Alt-PR 1 ile başlıyorum** (shell + guard + dashboard + audit + system-alerts). Her PR sonunda type-check/build/lint/test çalıştırıp rapor ederim, sonra bir sonrakine geçerim. Hepsini tek seferde ister misiniz, yoksa PR-by-PR onay mı tercih edersiniz?
+Onayla devam edeyim mi? Onay sonrası tek mesajda migration + worker + adapter + templates + UI + tests'i uygularım.
