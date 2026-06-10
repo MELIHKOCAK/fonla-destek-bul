@@ -6,12 +6,26 @@ const BASE_URL = "https://benifonla.lovable.app";
 
 const STATIC_ENTRIES: ReadonlyArray<{
   path: string;
-  changefreq?: "daily" | "weekly" | "monthly";
+  changefreq?: "daily" | "weekly" | "monthly" | "yearly";
   priority?: string;
 }> = [
   { path: "/", changefreq: "daily", priority: "1.0" },
   { path: "/discover", changefreq: "daily", priority: "0.9" },
   { path: "/search", changefreq: "weekly", priority: "0.5" },
+  // Bilgi sayfaları
+  { path: "/about", changefreq: "monthly", priority: "0.5" },
+  { path: "/how-it-works", changefreq: "monthly", priority: "0.6" },
+  { path: "/faq", changefreq: "monthly", priority: "0.5" },
+  { path: "/contact", changefreq: "monthly", priority: "0.4" },
+  // Hukuki sayfalar
+  { path: "/terms", changefreq: "yearly", priority: "0.3" },
+  { path: "/privacy", changefreq: "yearly", priority: "0.3" },
+  { path: "/cookies", changefreq: "yearly", priority: "0.3" },
+  { path: "/refund-policy", changefreq: "yearly", priority: "0.3" },
+  { path: "/risk-disclosure", changefreq: "yearly", priority: "0.3" },
+  { path: "/creator-agreement", changefreq: "yearly", priority: "0.3" },
+  { path: "/prohibited-campaigns", changefreq: "yearly", priority: "0.3" },
+  { path: "/complaints-and-appeals", changefreq: "yearly", priority: "0.3" },
 ];
 
 function escapeXml(value: string): string {

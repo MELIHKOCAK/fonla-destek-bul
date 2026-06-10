@@ -202,8 +202,8 @@ export function RegisterForm() {
           onCheckedChange={(checked) => setValue("termsAccepted", (checked === true) as true, { shouldValidate: true })}
         />
         <Label htmlFor="register-terms" className="text-sm font-normal leading-tight">
-          <Link to="/" className="text-primary underline-offset-4 hover:underline">Kullanım koşulları</Link> ve{" "}
-          <Link to="/" className="text-primary underline-offset-4 hover:underline">gizlilik politikasını</Link> kabul ediyorum.
+          <Link to="/terms" className="text-primary underline-offset-4 hover:underline">Kullanım koşulları</Link> ve{" "}
+          <Link to="/privacy" className="text-primary underline-offset-4 hover:underline">gizlilik politikasını</Link> kabul ediyorum.
         </Label>
       </div>
       {errors.termsAccepted ? (

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, AlertTriangle, Clock } from "lucide-react";
@@ -28,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/creator/")({
 });
 
 function CreatorOverviewPage() {
+  const navigate = useNavigate();
   const fetchOverview = useServerFn(getCreatorOverview);
   const { data } = useSuspenseQuery({
     queryKey: ["creator", "overview"],
@@ -110,7 +111,7 @@ function CreatorOverviewPage() {
               action={{
                 label: "Hesap oluştur",
                 onClick: () => {
-                  window.location.href = "/creator/payment-account";
+                  navigate({ to: "/creator/payment-account" });
                 },
               }}
             />

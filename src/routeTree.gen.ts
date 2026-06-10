@@ -20,12 +20,16 @@ import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as ProhibitedCampaignsRouteImport } from './routes/prohibited-campaigns'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as FaqRouteImport } from './routes/faq'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as CreatorAgreementRouteImport } from './routes/creator-agreement'
 import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ComplaintsAndAppealsRouteImport } from './routes/complaints-and-appeals'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -133,9 +137,19 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiscoverRoute = DiscoverRouteImport.update({
@@ -158,9 +172,19 @@ const CookiesRoute = CookiesRouteImport.update({
   path: '/cookies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ComplaintsAndAppealsRoute = ComplaintsAndAppealsRouteImport.update({
   id: '/complaints-and-appeals',
   path: '/complaints-and-appeals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SplatRoute = SplatRouteImport.update({
@@ -454,12 +478,16 @@ const AuthenticatedCreatorCampaignsCampaignIdEditStepRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/about': typeof AboutRoute
   '/complaints-and-appeals': typeof ComplaintsAndAppealsRoute
+  '/contact': typeof ContactRoute
   '/cookies': typeof CookiesRoute
   '/creator-agreement': typeof CreatorAgreementRoute
   '/design-system': typeof DesignSystemRoute
   '/discover': typeof DiscoverRoute
+  '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/prohibited-campaigns': typeof ProhibitedCampaignsRoute
@@ -523,12 +551,16 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/about': typeof AboutRoute
   '/complaints-and-appeals': typeof ComplaintsAndAppealsRoute
+  '/contact': typeof ContactRoute
   '/cookies': typeof CookiesRoute
   '/creator-agreement': typeof CreatorAgreementRoute
   '/design-system': typeof DesignSystemRoute
   '/discover': typeof DiscoverRoute
+  '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/prohibited-campaigns': typeof ProhibitedCampaignsRoute
@@ -591,12 +623,16 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/$': typeof SplatRoute
+  '/about': typeof AboutRoute
   '/complaints-and-appeals': typeof ComplaintsAndAppealsRoute
+  '/contact': typeof ContactRoute
   '/cookies': typeof CookiesRoute
   '/creator-agreement': typeof CreatorAgreementRoute
   '/design-system': typeof DesignSystemRoute
   '/discover': typeof DiscoverRoute
+  '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/prohibited-campaigns': typeof ProhibitedCampaignsRoute
@@ -662,12 +698,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/about'
     | '/complaints-and-appeals'
+    | '/contact'
     | '/cookies'
     | '/creator-agreement'
     | '/design-system'
     | '/discover'
+    | '/faq'
     | '/forgot-password'
+    | '/how-it-works'
     | '/login'
     | '/privacy'
     | '/prohibited-campaigns'
@@ -731,12 +771,16 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$'
+    | '/about'
     | '/complaints-and-appeals'
+    | '/contact'
     | '/cookies'
     | '/creator-agreement'
     | '/design-system'
     | '/discover'
+    | '/faq'
     | '/forgot-password'
+    | '/how-it-works'
     | '/login'
     | '/privacy'
     | '/prohibited-campaigns'
@@ -798,12 +842,16 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/$'
+    | '/about'
     | '/complaints-and-appeals'
+    | '/contact'
     | '/cookies'
     | '/creator-agreement'
     | '/design-system'
     | '/discover'
+    | '/faq'
     | '/forgot-password'
+    | '/how-it-works'
     | '/login'
     | '/privacy'
     | '/prohibited-campaigns'
@@ -869,12 +917,16 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   SplatRoute: typeof SplatRoute
+  AboutRoute: typeof AboutRoute
   ComplaintsAndAppealsRoute: typeof ComplaintsAndAppealsRoute
+  ContactRoute: typeof ContactRoute
   CookiesRoute: typeof CookiesRoute
   CreatorAgreementRoute: typeof CreatorAgreementRoute
   DesignSystemRoute: typeof DesignSystemRoute
   DiscoverRoute: typeof DiscoverRoute
+  FaqRoute: typeof FaqRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  HowItWorksRoute: typeof HowItWorksRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   ProhibitedCampaignsRoute: typeof ProhibitedCampaignsRoute
@@ -976,11 +1028,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/forgot-password': {
       id: '/forgot-password'
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/discover': {
@@ -1011,11 +1077,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/complaints-and-appeals': {
       id: '/complaints-and-appeals'
       path: '/complaints-and-appeals'
       fullPath: '/complaints-and-appeals'
       preLoaderRoute: typeof ComplaintsAndAppealsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$': {
@@ -1549,12 +1629,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   SplatRoute: SplatRoute,
+  AboutRoute: AboutRoute,
   ComplaintsAndAppealsRoute: ComplaintsAndAppealsRoute,
+  ContactRoute: ContactRoute,
   CookiesRoute: CookiesRoute,
   CreatorAgreementRoute: CreatorAgreementRoute,
   DesignSystemRoute: DesignSystemRoute,
   DiscoverRoute: DiscoverRoute,
+  FaqRoute: FaqRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  HowItWorksRoute: HowItWorksRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   ProhibitedCampaignsRoute: ProhibitedCampaignsRoute,
