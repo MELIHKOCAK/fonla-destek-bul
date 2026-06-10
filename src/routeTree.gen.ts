@@ -35,6 +35,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as CampaignsSlugBackRouteImport } from './routes/campaigns.$slug.back'
 import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated/settings.security'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
+import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings.notifications'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings.account'
 import { Route as AuthenticatedDashboardRewardsRouteImport } from './routes/_authenticated/dashboard.rewards'
 import { Route as AuthenticatedDashboardRefundsRouteImport } from './routes/_authenticated/dashboard.refunds'
@@ -200,6 +201,12 @@ const AuthenticatedSettingsProfileRoute =
   AuthenticatedSettingsProfileRouteImport.update({
     id: '/profile',
     path: '/profile',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsNotificationsRoute =
+  AuthenticatedSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
 const AuthenticatedSettingsAccountRoute =
@@ -427,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/refunds': typeof AuthenticatedDashboardRefundsRoute
   '/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
+  '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
@@ -485,6 +493,7 @@ export interface FileRoutesByTo {
   '/dashboard/refunds': typeof AuthenticatedDashboardRefundsRoute
   '/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
+  '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -546,6 +555,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/refunds': typeof AuthenticatedDashboardRefundsRoute
   '/_authenticated/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
+  '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
@@ -608,6 +618,7 @@ export interface FileRouteTypes {
     | '/dashboard/refunds'
     | '/dashboard/rewards'
     | '/settings/account'
+    | '/settings/notifications'
     | '/settings/profile'
     | '/settings/security'
     | '/campaigns/$slug/back'
@@ -666,6 +677,7 @@ export interface FileRouteTypes {
     | '/dashboard/refunds'
     | '/dashboard/rewards'
     | '/settings/account'
+    | '/settings/notifications'
     | '/settings/profile'
     | '/settings/security'
     | '/admin'
@@ -726,6 +738,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/refunds'
     | '/_authenticated/dashboard/rewards'
     | '/_authenticated/settings/account'
+    | '/_authenticated/settings/notifications'
     | '/_authenticated/settings/profile'
     | '/_authenticated/settings/security'
     | '/campaigns/$slug/back'
@@ -962,6 +975,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/settings/profile'
       preLoaderRoute: typeof AuthenticatedSettingsProfileRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/notifications': {
+      id: '/_authenticated/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof AuthenticatedSettingsNotificationsRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
     '/_authenticated/settings/account': {
@@ -1247,12 +1267,15 @@ const AuthenticatedDashboardRouteWithChildren =
 
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
+  AuthenticatedSettingsNotificationsRoute: typeof AuthenticatedSettingsNotificationsRoute
   AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
   AuthenticatedSettingsSecurityRoute: typeof AuthenticatedSettingsSecurityRoute
 }
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
+  AuthenticatedSettingsNotificationsRoute:
+    AuthenticatedSettingsNotificationsRoute,
   AuthenticatedSettingsProfileRoute: AuthenticatedSettingsProfileRoute,
   AuthenticatedSettingsSecurityRoute: AuthenticatedSettingsSecurityRoute,
 }
