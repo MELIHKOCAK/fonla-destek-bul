@@ -1,113 +1,116 @@
-# Faz 12 — Stripe Sandbox Ödeme Entegrasyonu
+# Faz 15 — User & Creator Dashboard (Server-Side Projection)
 
-Sadece Stripe **test mode / sandbox** uygulanır. Live mode, Transfer ve Payout kod tarafından açılmaz; Faz 11.5'te eklenen `payment_provider_configs.live_payments_enabled=false` ve `production_approval_status='not_verified'` guard'ları korunur. Stripe + crowdfunding uygunluk yazılı onayı, KYC, vergi/hukuki doğrulamalar bu faz dışıdır.
+Mevcut iskelete (`dashboard.tsx`, `dashboard.contributions.tsx`, `creator.*`, `settings.*`, `notifications.tsx`, `creator.payment-account.tsx`) ek olarak eksik route'ları, server function'ları ve RPC'leri ekleyeceğim. Tüm aggregate/finansal hesaplar Postgres tarafında, RLS + `auth.uid()` ile.
 
-## Kapsam (yapılacak)
+## 1. Database — yeni RPC'ler (migration)
 
-1. **Stripe SDK + adapter**
-   - `bun add stripe` (server-side; frontend'e Stripe.js veya publishable key eklenmeyecek).
-   - `src/lib/payments/provider/stripe-sandbox-adapter.ts` placeholder'ı gerçek implementasyona dönüştürülür: `createCheckoutSession`, `getPaymentStatus`, `expireCheckoutSession`, `createRefund`, `createCreatorTransfer`, `reverseCreatorTransfer`, `createConnectedAccount`, `createAccountOnboardingLink`, `getConnectedAccountStatus`.
-   - `STRIPE_API_VERSION` env ile pinlenir; secret yalnız `process.env.STRIPE_SECRET_KEY` üzerinden okunur, asla VITE_ değişkenine konmaz.
-   - `getProvider` factory'sinde test env için artık Stripe sandbox adapter döner; live yine `PAYMENT_PROVIDER_DISABLED` fırlatır.
-   - Stripe status → domain status için ayrı `stripe-status-mapper.ts`; bilinmeyen status sessizce `paid/failed`'e map edilmez, `unknown` olarak loglanır.
+Tüm fonksiyonlar `security definer`, `search_path=public`, parametre olarak `user_id`/`campaign_id` ALMAZ — `auth.uid()` kullanır (creator versiyonları campaign_id alır + ownership doğrular). Aggregate exact column projeksiyonu döner.
 
-2. **Secrets** (kullanıcıya add_secret ile sorulacak, koda yazılmayacak)
-   - `STRIPE_SECRET_KEY` (test key, `sk_test_...`)
-   - `STRIPE_WEBHOOK_SECRET` (Checkout/PaymentIntent endpoint)
-   - `STRIPE_CONNECT_WEBHOOK_SECRET` (ayrı Connect endpoint için, opsiyonel)
-   - `STRIPE_API_VERSION`
-   - `APP_PUBLIC_URL`
-   - `.env.example` sadece isimleri ve açıklamayı içerir.
+- `get_user_dashboard_overview()` → total_paid_minor, active_supported_count, pending_refund_minor, expected_rewards_count, unread_notifications
+- `get_user_contributions(p_limit, p_offset, p_status_filter)` → campaign safe identity + amount + status + reward + payment safe state + sandbox/live flag
+- `get_user_payments(p_limit, p_offset)` → payment attempt safe state, NO provider internal IDs
+- `get_user_refunds(p_limit, p_offset)` → refund amount, status, requested_at
+- `get_user_rewards()` → reward tier + campaign + estimated_delivery + fulfillment_status (varsa)
+- `get_user_favorites(p_limit, p_offset)` (favori tablosu üzerinden)
+- `get_creator_overview()` → owned campaign status dağılımı, active summary, verified raised, backer count, recent contributions safe feed, review action items, connected account readiness özeti, transfer/refund/payout summary
+- `get_creator_campaign_overview(p_campaign_id)` (ownership check)
+- `get_creator_campaign_analytics(p_campaign_id, p_from, p_to)` → günlük verified funding series + backer series + reward tier distribution. Sorgu indexli.
+- `get_creator_campaign_backers(p_campaign_id, p_limit, p_offset)` → contribution amount, reward, public display name veya "Anonim Destekçi", safe status, fulfillment min info. Email/card/provider secret YOK.
+- `get_creator_campaign_finance(p_campaign_id)` → gross_confirmed, stripe_refunds, provider_fee_estimated, provider_fee_final, platform_fee, net_creator_transferable, latest_transfer{status, amount, created_at}, latest_provider_payout{status, arrival_date} (ayrı alan). Estimate vs finalized flag.
+- `get_creator_campaign_reviews(p_campaign_id)` → creator-facing revision notes + history (internal admin note FILTERED).
+- `mark_notification_read(p_id)` / `mark_all_notifications_read()`
+- `update_notification_preferences(p_prefs jsonb)`
+- Index ekleri: `contributions(campaign_id, status, created_at)`, `creator_transfers(campaign_id, created_at desc)`, `notifications(user_id, read_at)`, `provider_payouts(connected_account_id, arrival_date)`.
 
-3. **Server functions / API routes** (TanStack Start — Lovable Cloud edge function değil)
-   - `src/lib/payments/checkout.functions.ts` → `createCheckoutSession` server fn (`requireSupabaseAuth`):
-     - Contribution ownership, contribution status, campaign live + within window, creator account + readiness, currency=TRY, reward reservation kontrolleri (DB'den yeniden hesap).
-     - Local idempotency key + aktif Checkout Session duplicate guard.
-     - `payment_transactions` satırını `created` ile açar, sonra Stripe API'ye **ayrı bir Stripe-Idempotency-Key** ile çağrı atar.
-     - Metadata: yalnız opaque ID'ler (contribution_id, payment_transaction_id, campaign_id, environment). PII yok.
-     - `payment_intent_data.transfer_group = deterministic_campaign_group(campaign_id)` DB'de saklanır.
-     - `success_url` Stripe `{CHECKOUT_SESSION_ID}` placeholder'ı içerir (sadece lookup).
-     - Dönen `id`, `url`, `payment_intent`, `expires_at`, `livemode` ayrı kolonlara yazılır.
-   - `src/lib/payments/refund.functions.ts` → `requestRefund`: server-side amount hesabı, refundable bakiye kontrolü, yerel + Stripe idempotency, ilk response sonrası `pending`, final state webhook'tan gelir.
-   - `src/lib/payments/transfer.functions.ts` → `createCreatorTransfer` (test mode + feature flag): settlement net amount + transfer_group + destination DB'den; production guard.
-   - `src/lib/payments/settlement.functions.ts` → `calculateCampaignSettlement` (dry-run).
-   - `src/lib/payments/reconciliation.server.ts` → trusted reconciliation servisi (cron-only, user'dan çağrılamaz).
+Tüm RPC'lere `GRANT EXECUTE TO authenticated`; `revoke from anon`.
 
-4. **Public webhook route** — `src/routes/api/public/hooks/stripe-webhook.ts`
-   - Raw body okunur (Request.text()).
-   - `stripe.webhooks.constructEvent(body, sig, STRIPE_WEBHOOK_SECRET)` ile signature + timestamp tolerance.
-   - `webhook_events` tablosuna `provider_event_id` unique ile atomik claim; duplicate event no-op.
-   - `event.livemode` ↔ local environment guard.
-   - İşlenen olaylar: `checkout.session.completed` (sadece `payment_status='paid'` veya bağlı PI succeeded olduğunda fulfill), `checkout.session.async_payment_succeeded/failed`, `checkout.session.expired`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `charge.refunded`, `charge.dispute.*`. Transfer event'leri yalnız Connect endpoint açıksa.
-   - Amount/currency/metadata mismatch → `paid` yapma, security alert + reconciliation kaydı.
-   - Aynı business event'in birden çok Stripe event'iyle fulfillment'ı tekrar tetiklememesi için `payment_transactions.domain_status` transition'ı idempotent state machine üzerinden.
-   - `checkout.session.expired` → payment attempt `expired`, reservation idempotent release; paid kaydı dokunulmaz.
-   - Connect için ayrı route: `src/routes/api/public/hooks/stripe-connect-webhook.ts`.
+## 2. Server functions (`src/lib/dashboard/*.functions.ts`, `src/lib/creator/*.functions.ts`)
 
-5. **Reconciliation**
-   - Pending > N dakika `payment_transactions` için Stripe API'den Session+PI okur; aynı domain transition servisini kullanır.
-   - 429/5xx exponential backoff, 4xx retry yok.
-   - Mismatch raporu (silent failed/paid yok).
-   - pg_cron veya `/api/public/hooks/run-payment-reconciliation` (cron secret korumalı) ile tetiklenir.
+Hepsi `.middleware([requireSupabaseAuth])` ve sadece yukarıdaki RPC'leri çağırır. Hiçbir client param `user_id` kabul etmez. Creator fn'leri `p_campaign_id` alır; RPC ownership doğrular ve yetkisizse `unauthorized` döner → route 404'e map eder.
 
-6. **Frontend (back flow)**
-   - `back/index` adımı: `getCampaignPaymentReadiness` + `createCheckoutSession` server fn → kullanıcı `session.url`'e `window.location.assign` ile yönlendirilir.
-   - `back/result` route'u: URL'deki `?success`/`?canceled`/`{CHECKOUT_SESSION_ID}` ödeme kanıtı olarak kullanılmaz; yalnız reference. TanStack Query ile backend status poll (exponential backoff, max 60s). Status set: `processing | paid | failed | cancelled | expired | action_required`.
-   - Cancel URL'ye dönüş otomatik `failed` yapmaz — pending kalır, webhook karar verir.
-   - Stripe.js veya publishable key eklenmez.
+`src/lib/dashboard/queries.ts`, `src/lib/creator/queries.ts` — `queryOptions` tanımları (query key'ler implicit auth, user id YOK).
 
-7. **Veritabanı (migration — küçük, sadece ek alanlar)**
-   - `payment_transactions`: `stripe_idempotency_key text`, `transfer_group text`, `livemode boolean` (eksikse). Faz 11.5'teki provider_* kolonları zaten var; rename yok.
-   - `webhook_events`: işlem sonucu (`processed_at`, `processing_error`) yoksa eklenir; `provider_event_id` unique zaten var.
-   - `creator_transfers` / `creator_transfer_reversals`: live guard'ı koruyan trigger (env=live için `live_payments_enabled` ve verified zorunlu).
-   - `simulate_test_payment` RPC kapatılmaz ama production env'de zaten trigger ile reddediliyor.
-   - Migration forward-only, drop/rename yok.
+## 3. Yeni route'lar (`src/routes/_authenticated/`)
 
-8. **Testler** (Vitest, Stripe SDK mock)
-   - `tests/payments/stripe-status-mapper.test.ts` — bilinmeyen status `unknown`'a düşer.
-   - `tests/payments/checkout.test.ts` — idempotency, duplicate session guard, amount server-side, metadata PII yok, transfer_group persist.
-   - `tests/payments/webhook.test.ts` — signature fail, replay outside tolerance, raw body değişikliği, duplicate event, amount mismatch, livemode mismatch, async succeeded/failed, expired, completed-without-paid.
-   - `tests/payments/refund.test.ts` — refundable cap, duplicate, partial, Transfer Reversal ayrı işlem.
-   - `tests/payments/reservation.test.ts` — paid → confirm, failed/expired → release (idempotent).
-   - `tests/payments/reconciliation.test.ts` — pending sync, mismatch raporu, Stripe 429 backoff.
-   - Test kartı numarası kaynak koda yazılmaz; sadece `docs/finance/stripe-testing.md` Stripe resmi test docs'a link verir.
+Eksik olanlar:
+- `dashboard.payments.tsx`
+- `dashboard.refunds.tsx`
+- `dashboard.rewards.tsx`
+- `dashboard.favorites.tsx`
+- `settings.security.tsx` (parola değiştir, oturum sonlandır)
+- `creator.index.tsx` (creator overview)
+- `creator.campaigns.$campaignId.overview.tsx`
+- `creator.campaigns.$campaignId.analytics.tsx`
+- `creator.campaigns.$campaignId.backers.tsx`
+- `creator.campaigns.$campaignId.finance.tsx`
+- `creator.campaigns.$campaignId.review.tsx`
 
-9. **Dokümantasyon**
-   - `docs/finance/stripe-integration-contract.md` Faz 12 davranışıyla güncellenir.
-   - `docs/finance/stripe-testing.md` — test matrisi (yukarıdaki 39 senaryo), her biri otomatik test / Stripe CLI / manuel olarak işaretli.
-   - `docs/finance/stripe-runbook.md` — webhook secret rotasyonu, reconciliation tetikleme, live mode'a geçiş prosedürü (admin manuel).
+Mevcut `dashboard.tsx` overview kartlarına dönüştürülür; `dashboard.contributions.tsx`, `notifications.tsx`, `settings.*`, `creator.payment-account.tsx`, `creator.campaigns.*` korunur ve yeni projection RPC'leriyle güçlendirilir.
 
-## Kapsam dışı (Faz 13+)
+Her route Query default şablonu: loader `ensureQueryData(queryOptions)`, component `useSuspenseQuery`. `errorComponent` + `notFoundComponent` zorunlu. Loader'lar `createServerFn` çağırır.
 
-- Stripe live mode aktivasyonu.
-- Production Transfer/Payout otomasyonu.
-- Gerçek dispute/chargeback iş akışı (event log'lanır, manuel ele alınır).
-- PII (shipping) için pgcrypto.
-- Stripe.js Elements (hosted checkout yeterli).
-- Eski `payouts` tablosunun drop'u.
+Creator campaign route'larında ownership fail → `throw notFound()` (private campaign existence sızdırmamak için).
 
-## Teknik notlar
+## 4. Shell & navigation (`src/components/dashboard/`)
 
-- TanStack Start `createServerFn` app-internal logic için; webhook ve cron `/api/public/*` server route ile raw `Response` döner.
-- `attachSupabaseAuth` global functionMiddleware'in `src/start.ts`'de kurulu olduğu doğrulanır.
-- Frontend bundle'a `stripe` paketi sızmaması için yalnız `*.functions.ts`/`*.server.ts` içinde import.
-- Logger: authorization header, secret, raw payload, kart bilgisi, e-posta loglanmaz; sadece event id + type + outcome.
+- `DashboardShell.tsx` — responsive sidebar (desktop) + `Sheet` (mobile), `Breadcrumb`.
+- `DashboardSidebar.tsx` — user link grubu + creator link grubu (creator role veya owned campaign varsa).
+- `CreatorCampaignTabs.tsx` — `$campaignId` route'ları arası tab navigation.
+- Klavye erişimi, görünür focus state, semantic `<nav>`, `aria-current="page"`.
 
-## Doğrulama (kapanış)
+## 5. UI bileşenleri
 
-- `bun run build`, lint, type-check.
-- Vitest payments paketi.
-- `stack_modern--invoke-server-function` ile `/api/public/hooks/stripe-webhook` invalid signature → 400.
-- Manuel: Stripe CLI `stripe listen` + `stripe trigger checkout.session.completed` happy path.
+- `StatCard`, `EmptyState`, `LoadingSkeleton`, `ErrorState` — paylaşılan.
+- `FundingSeriesChart`, `BackerSeriesChart`, `RewardTierDistribution` — Recharts + erişilebilir `<table>` text summary (sr-only veya expandable).
+- `FinanceBreakdown` — Transfer / Payout AYRI başlık. Net etiketler: "Creator'a aktarılabilir net tutar", "Stripe hesabına Transfer", "Banka Payout'u". Estimate vs Finalized badge.
+- `ContributionStatusBadge`, `PaymentEnvironmentBadge` (sandbox/live).
+- `BackerRow` — anonymous handling.
+- `NotificationItem` — mark-as-read mutation + deep link.
 
-## Manuel yapılması gerekenler (kullanıcı)
+Para gösterimi `formatMinorAmount` (mevcut `src/lib/money.ts`); kuruş → TRY.
 
-1. Stripe Dashboard test mode → Webhook endpoint oluştur (Connect için ayrı), secret'ları add_secret ile gir.
-2. Stripe Connect test mode'da bir Express account oluştur (creator onboarding test akışı için).
-3. Live mode'a geçiş: hukuki/uygunluk onayı + DB'de `live_payments_enabled=true` + `production_approval_status='verified'` UPDATE — yalnız admin.
+## 6. Privacy guard'ları
 
-## Açık riskler
+- Hiçbir response shape Stripe Checkout Session/PaymentIntent/Charge/Refund ID, webhook payload, fraud score, başka kullanıcı bilgisi, email içermez. TypeScript tip yalnız izinli alanları içerir.
+- `select` kolon listeleri SQL'de explicit; `select *` yok.
+- Backer list "Anonim Destekçi" label; anonymous contribution display_name döndürmez.
 
-- Connect "separate charges and transfers" + crowdfunding uygunluğu Stripe Türkiye için yazılı onay gerektirir; alınana kadar live blok.
-- Async payment method (örn. iDEAL, BLIK) MVP'de kapalı; ileride açılırsa `async_payment_*` olayları gerçek kullanıma girer.
-- Transfer Reversal başarısızlık senaryosu operasyonel alert gerektirir — bu fazda alert sadece log + admin tablo kaydı.
+## 7. Test'ler (`src/**/__tests__`)
+
+Vitest + RTL + mock Supabase RPC:
+- `user_a` `user_b` dashboard RPC'sini çağıramaz (mock auth değişimi → boş set).
+- `creator_a` kendi campaign analytics görür; `creator_b`'nin campaign_id'siyle çağrı 404.
+- Finance toplamı ledger fixture'ı ile birebir eşleşir.
+- Transfer vs Payout farklı kartlarda render.
+- Connected account readiness yalnız owner.
+- Anonymous contribution display_name "Anonim Destekçi".
+- Response object snapshot'larda Stripe internal alan YOK (anahtar denetimi).
+- Chart empty/loading/error state render.
+- Mobile nav (`Sheet`) açılır.
+- `mark_all_notifications_read` yalnız kendi notif'lerini etkiler.
+
+## 8. Out of scope
+
+- Kargo entegrasyonu.
+- Admin raw ledger / webhook UI.
+- Yeni ödeme akışları, yeni state machine (Faz 13'ün üzerine inşa).
+- Sosyal paylaşım eklemeleri.
+- Realtime push (notification listener yalnız refetch on focus).
+
+## 9. Doğrulama
+
+`bun run typecheck`, `bun run build`, `bun run lint`, `bunx vitest run src/lib/dashboard src/lib/creator src/components/dashboard`. Hatalar gizlenmeyecek.
+
+## 10. Manuel adımlar
+
+- Migration onayı.
+- Creator role atama (mevcut `user_roles` üzerinden) — yeni creator için `creator` rolünün doğru atandığı doğrulanır.
+- Stripe sandbox/live ortam değişiminde badge'in doğru göründüğünün QA'i.
+
+## 11. Açık riskler
+
+- Analytics RPC'sinin büyük campaign'lerde performansı; index'lere rağmen 30+ günlük seriye `EXPLAIN` koşulması gerekebilir.
+- Finance summary'de Transfer henüz tamamlanmadan Payout observation eksik olursa UI "veri yok" şeklinde gösterir; sahte tahmin yapılmaz.
+- Notification preference şeması ileride genişlerse JSON migration gerekli.
+
+Onaylarsanız uygulamaya başlıyorum.

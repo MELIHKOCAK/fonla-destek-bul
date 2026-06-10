@@ -2143,6 +2143,33 @@ export type Database = {
           status: Database["public"]["Enums"]["contribution_status"]
         }[]
       }
+      get_creator_campaign_analytics: {
+        Args: { p_campaign_id: string; p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      get_creator_campaign_backers: {
+        Args: { p_campaign_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          amount_minor: number
+          contribution_id: string
+          created_at: string
+          display_name: string
+          is_anonymous: boolean
+          reward_tier_id: string
+          reward_title: string
+          shipping_required: boolean
+          status: Database["public"]["Enums"]["contribution_status"]
+        }[]
+      }
+      get_creator_campaign_finance: {
+        Args: { p_campaign_id: string }
+        Returns: Json
+      }
+      get_creator_campaign_overview: {
+        Args: { p_campaign_id: string }
+        Returns: Json
+      }
+      get_creator_overview: { Args: never; Returns: Json }
       get_my_contributions: {
         Args: never
         Returns: {
@@ -2287,6 +2314,80 @@ export type Database = {
           total_campaigns: number
           username: string
           website_url: string
+        }[]
+      }
+      get_user_dashboard_overview: {
+        Args: never
+        Returns: {
+          active_supported_count: number
+          expected_rewards_count: number
+          pending_refund_minor: number
+          total_paid_minor: number
+          unread_notifications: number
+        }[]
+      }
+      get_user_favorites: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          campaign_id: string
+          end_at: string
+          favorited_at: string
+          short_description: string
+          slug: string
+          status: Database["public"]["Enums"]["campaign_status"]
+          title: string
+        }[]
+      }
+      get_user_payments: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          amount_minor: number
+          attempt_number: number
+          campaign_slug: string
+          campaign_title: string
+          completed_at: string
+          contribution_id: string
+          created_at: string
+          currency: string
+          domain_status: Database["public"]["Enums"]["payment_domain_status"]
+          environment: Database["public"]["Enums"]["financial_environment"]
+          failure_code: string
+          failure_message_sanitized: string
+          id: string
+          status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
+      get_user_refunds: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          amount_minor: number
+          campaign_slug: string
+          campaign_title: string
+          contribution_id: string
+          created_at: string
+          id: string
+          reason: string
+          status: Database["public"]["Enums"]["refund_status"]
+          updated_at: string
+        }[]
+      }
+      get_user_rewards: {
+        Args: never
+        Returns: {
+          campaign_id: string
+          campaign_slug: string
+          campaign_title: string
+          contribution_id: string
+          contribution_status: Database["public"]["Enums"]["contribution_status"]
+          created_at: string
+          estimated_delivery_date: string
+          quantity: number
+          reservation_id: string
+          reservation_status: Database["public"]["Enums"]["reward_reservation_status"]
+          reward_description: string
+          reward_tier_id: string
+          reward_title: string
+          shipping_required: boolean
         }[]
       }
       has_role: {
