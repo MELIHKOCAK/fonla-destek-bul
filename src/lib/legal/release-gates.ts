@@ -15,7 +15,11 @@ export type ReleaseGateKey =
   | "stripe_live_account_verified"
   | "creator_agreement_approved"
   | "production_payments_enabled"
-  | "production_creator_transfers_enabled";
+  | "production_creator_transfers_enabled"
+  | "production_refund_command_enabled"
+  | "production_transfer_reversal_enabled"
+  | "kill_switch_new_contributions"
+  | "kill_switch_new_creator_transfers";
 
 export const PAYMENT_LIVE_GATE_KEYS: ReadonlyArray<ReleaseGateKey> = [
   "legal_documents_approved",
@@ -23,6 +27,7 @@ export const PAYMENT_LIVE_GATE_KEYS: ReadonlyArray<ReleaseGateKey> = [
   "stripe_platform_country_verified",
   "stripe_live_account_verified",
   "production_payments_enabled",
+  "kill_switch_new_contributions",
 ];
 
 export const CREATOR_TRANSFER_LIVE_GATE_KEYS: ReadonlyArray<ReleaseGateKey> = [
@@ -30,6 +35,17 @@ export const CREATOR_TRANSFER_LIVE_GATE_KEYS: ReadonlyArray<ReleaseGateKey> = [
   "stripe_connect_model_verified",
   "creator_agreement_approved",
   "production_creator_transfers_enabled",
+  "kill_switch_new_creator_transfers",
+];
+
+export const REFUND_LIVE_GATE_KEYS: ReadonlyArray<ReleaseGateKey> = [
+  ...PAYMENT_LIVE_GATE_KEYS,
+  "production_refund_command_enabled",
+];
+
+export const TRANSFER_REVERSAL_LIVE_GATE_KEYS: ReadonlyArray<ReleaseGateKey> = [
+  ...CREATOR_TRANSFER_LIVE_GATE_KEYS,
+  "production_transfer_reversal_enabled",
 ];
 
 export interface GateCheckResult {
