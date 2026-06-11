@@ -10,13 +10,18 @@ import {
 } from "@/components/back/ContributionStatusBadge";
 import { TestEnvironmentBadge } from "@/components/back/TestEnvironmentBadge";
 import { ErrorState } from "@/components/common/ErrorState";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 export const Route = createFileRoute("/_authenticated/dashboard/contributions")({
   head: () => ({ meta: [{ title: "Desteklerim — BeniFonla" }] }),
   component: ContributionsDashboard,
   errorComponent: () => {
     const router = useRouter();
-    return <ErrorState retry={{ onClick: () => router.invalidate() }} />;
+    return (
+      <DashboardLayout>
+        <ErrorState retry={{ onClick: () => router.invalidate() }} />
+      </DashboardLayout>
+    );
   },
 });
 
@@ -28,7 +33,7 @@ function ContributionsDashboard() {
   });
 
   return (
-    <main className="container py-8">
+    <DashboardLayout>
       <header className="mb-6 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Desteklerim</h1>
       </header>
@@ -72,6 +77,6 @@ function ContributionsDashboard() {
           ))}
         </ul>
       )}
-    </main>
+    </DashboardLayout>
   );
 }

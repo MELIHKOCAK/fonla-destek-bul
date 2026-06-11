@@ -61,7 +61,10 @@ function NavGroup({ title, items, current }: { title: string; items: NavItem[]; 
       <p className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
       <ul className="space-y-0.5">
         {items.map((item) => {
-          const active = current === item.to || current.startsWith(item.to + "/");
+          const active =
+            item.to === "/dashboard"
+              ? current === "/dashboard"
+              : current === item.to || current.startsWith(item.to + "/");
           const Icon = item.icon;
           return (
             <li key={item.to}>
