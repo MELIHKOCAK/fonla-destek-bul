@@ -47,11 +47,12 @@ describe("MobileNavigation", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("guest kullanıcıya giriş ve kayıt seçeneklerini gösterir", async () => {
+  it("guest kullanıcıya giriş ve kayıt seçeneklerini gösterir, kampanya başlat gizler", async () => {
     const user = userEvent.setup();
     render(<MobileNavigation />);
     await user.click(screen.getByRole("button", { name: /Menüyü aç/i }));
     expect(await screen.findByRole("link", { name: /Giriş yap/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Kayıt ol/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Kampanya başlat/i })).not.toBeInTheDocument();
   });
 });
