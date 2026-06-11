@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getContributionCheckoutContext } from "@/lib/contributions/contributions.functions";
@@ -7,9 +7,16 @@ import { TestEnvironmentBadge } from "@/components/back/TestEnvironmentBadge";
 import { ErrorState } from "@/components/common/ErrorState";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { translateContributionError } from "@/lib/contributions/errors";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/campaigns/$slug/back")({
   ssr: false,
+  beforeLoad: async ({ location }) => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) {
+      throw redirect({ to: "/auth", search: { redirect: location.href } });
+    }
+  },
   head: ({ params }) => ({ meta: [{ title: `${params.slug} — Destekle` }] }),
   component: BackLayout,
   errorComponent: Err,
