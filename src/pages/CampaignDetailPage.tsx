@@ -260,12 +260,21 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
           <aside className="hidden lg:block">
             <div className="rounded-xl border border-border/60 bg-card p-5">
               <MetricBlock c={c} percent={percent} endLabel={endLabel} />
-              <Button className="mt-4 w-full" onClick={() => setSupportOpen(true)}>
-                <Heart className="size-4" aria-hidden="true" />
-                Destek Ol
-              </Button>
+              {user ? (
+                <Button asChild className="mt-4 w-full">
+                  <Link to="/campaigns/$slug/back" params={{ slug }}>
+                    <Heart className="size-4" aria-hidden="true" />
+                    Destek Ol
+                  </Link>
+                </Button>
+              ) : (
+                <Button className="mt-4 w-full" onClick={() => setSupportOpen(true)}>
+                  <Heart className="size-4" aria-hidden="true" />
+                  Destek Ol
+                </Button>
+              )}
               <p className="mt-3 text-xs text-muted-foreground">
-                Demo aşaması: gerçek ödeme alınmaz.
+                Test modu: ödemeler sandbox altyapısı üzerinden işlenir.
               </p>
             </div>
           </aside>
@@ -276,11 +285,13 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
         open={supportOpen}
         onOpenChange={setSupportOpen}
         campaignTitle={c.title}
+        campaignSlug={slug}
       />
       <ReportDialog
         open={reportOpen}
         onOpenChange={setReportOpen}
         targetLabel={`"${c.title}" kampanyası`}
+        campaignId={c.id}
       />
     </>
   );
