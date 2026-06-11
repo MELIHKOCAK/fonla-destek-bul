@@ -21,24 +21,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const REASONS = [
-  { value: "spam", label: "Spam veya yanıltıcı içerik" },
-  { value: "fraud", label: "Dolandırıcılık şüphesi" },
-  { value: "copyright", label: "Telif hakkı ihlali" },
-  { value: "hate", label: "Nefret söylemi veya taciz" },
-  { value: "other", label: "Diğer" },
-] as const;
+import { REPORT_REASONS, submitCampaignReport, ReportApiError } from "@/lib/reports/api";
+import { useAuth } from "@/hooks/use-auth";
 
 const schema = z.object({
-  reason: z.enum(["spam", "fraud", "copyright", "hate", "other"], {
+  reason: z.enum(["spam", "inappropriate", "policy", "fraud", "other"], {
     message: "Bir sebep seçin.",
   }),
   details: z
     .string()
     .trim()
     .min(10, "Lütfen en az 10 karakterle açıklayın.")
-    .max(1000, "En fazla 1000 karakter olabilir."),
+    .max(500, "En fazla 500 karakter olabilir."),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -47,9 +41,11 @@ interface ReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   targetLabel: string;
+  campaignId: string;
 }
 
-export function ReportDialog({ open, onOpenChange, targetLabel }: ReportDialogProps) {
+export function ReportDialog({ open, onOpenChange, targetLabel, campaignId }: ReportDialogProps) {
+  const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const {
     register,
@@ -65,13 +61,26 @@ export function ReportDialog({ open, onOpenChange, targetLabel }: ReportDialogPr
 
   const reason = watch("reason");
 
-  const onSubmit = handleSubmit(async () => {
+  const onSubmit = handleSubmit(async (values) => {
+    if (!user) {
+      toast.error("Şikâyet göndermek için giriş yapın.");
+      return;
+    }
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 300));
-    setSubmitting(false);
-    toast.success("Şikâyetiniz alındı (demo). Gerçek inceleme süreci henüz aktif değil.");
-    reset();
-    onOpenChange(false);
+    try {
+      await submitCampaignReport({
+        campaignId,
+        reasonCode: values.reason,
+        description: values.details,
+      });
+      toast.success("Şikâyetiniz alındı. Ekibimiz inceleyecektir.");
+      reset();
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof ReportApiError ? err.message : "Şikâyet gönderilemedi.");
+    } finally {
+      setSubmitting(false);
+    }
   });
 
   return (
@@ -80,8 +89,8 @@ export function ReportDialog({ open, onOpenChange, targetLabel }: ReportDialogPr
         <DialogHeader>
           <DialogTitle>Şikâyet et</DialogTitle>
           <DialogDescription>
-            {targetLabel} ile ilgili endişenizi paylaşın. Demo aşamasında gerçek bir aksiyon
-            alınmaz.
+            {targetLabel} ile ilgili endişenizi paylaşın. Şikâyetler ekibimiz tarafından
+            incelenir.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
@@ -95,7 +104,7 @@ export function ReportDialog({ open, onOpenChange, targetLabel }: ReportDialogPr
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {REASONS.map((r) => (
+                {REPORT_REASONS.map((r) => (
                   <SelectItem key={r.value} value={r.value}>
                     {r.label}
                   </SelectItem>
@@ -133,7 +142,7 @@ export function ReportDialog({ open, onOpenChange, targetLabel }: ReportDialogPr
               Vazgeç
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Gönderiliyor…" : "Gönder"}
+              {submitting ? "Gönderiliyor…" : "Şikâyeti gönder"}
             </Button>
           </DialogFooter>
         </form>

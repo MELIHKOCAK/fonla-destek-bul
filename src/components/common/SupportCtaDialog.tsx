@@ -13,27 +13,36 @@ interface SupportCtaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campaignTitle: string;
+  campaignSlug: string;
 }
 
-export function SupportCtaDialog({ open, onOpenChange, campaignTitle }: SupportCtaDialogProps) {
+export function SupportCtaDialog({
+  open,
+  onOpenChange,
+  campaignTitle,
+  campaignSlug,
+}: SupportCtaDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Demo aşaması</DialogTitle>
+          <DialogTitle>Giriş yapın</DialogTitle>
           <DialogDescription>
-            BeniFonla şu an demo aşamasındadır. &ldquo;{campaignTitle}&rdquo; kampanyasına destek
-            olabilmek için giriş yapmanız gerekir; ancak hesap ve ödeme işlemleri henüz etkin
-            değildir.
+            &ldquo;{campaignTitle}&rdquo; kampanyasına destek olmak için giriş yapın ya da
+            yeni bir hesap oluşturun.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Kapat
+            Vazgeç
           </Button>
           <Button asChild>
-            <Link to="/login" onClick={() => onOpenChange(false)}>
-              Giriş sayfasına git
+            <Link
+              to="/login"
+              search={{ redirect: `/campaigns/${campaignSlug}/back` }}
+              onClick={() => onOpenChange(false)}
+            >
+              Giriş yap
             </Link>
           </Button>
         </DialogFooter>
