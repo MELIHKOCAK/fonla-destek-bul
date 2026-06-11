@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AppShell } from "@/components/layout/AppShell";
 import {
   Accordion,
   AccordionContent,
@@ -75,7 +74,7 @@ export const Route = createFileRoute("/faq")({
 
 function FAQPage() {
   return (
-    <AppShell>
+    <>
       <article className="mx-auto max-w-3xl px-4 py-12">
         <header className="mb-6">
           <h1 className="text-3xl font-semibold tracking-tight">Sık sorulan sorular</h1>
@@ -99,6 +98,6 @@ function FAQPage() {
           ))}
         </Accordion>
       </article>
-    </AppShell>
+    </>
   );
 }
