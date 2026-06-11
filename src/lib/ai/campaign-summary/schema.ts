@@ -71,6 +71,11 @@ const SECTION_HEADINGS: Record<SupportedSummaryLanguage, Record<SummarySectionKe
   },
 };
 
+const MISSING_INFORMATION_TEXT: Record<SupportedSummaryLanguage, string> = {
+  tr: "Bilgi sağlanmamış.",
+  en: "Information not provided.",
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -88,8 +93,12 @@ function coerceSection(
   languageCode: SupportedSummaryLanguage,
 ): SummarySection | null {
   if (!isRecord(value)) return null;
-  const content = typeof value.content === "string" ? value.content : "Bilgi sağlanmamış.";
-  const heading = typeof value.heading === "string" ? value.heading : SECTION_HEADINGS[languageCode][key];
+  const content = typeof value.content === "string" && value.content.trim().length > 0
+    ? value.content
+    : MISSING_INFORMATION_TEXT[languageCode];
+  const heading = typeof value.heading === "string" && value.heading.trim().length > 0
+    ? value.heading
+    : SECTION_HEADINGS[languageCode][key];
   const sourceFields = coerceSourceFields(value.sourceFields ?? value.sourceField);
   return { key, heading, content, sourceFields };
 }
