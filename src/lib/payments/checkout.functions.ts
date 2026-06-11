@@ -59,9 +59,27 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       { _campaign_id: campaign.id },
     );
     if (rErr) throw new Error(rErr.message);
-    const r = readiness as unknown as { ready: boolean; reasons: string[]; environment: string };
+    const r = readiness as unknown as {
+      ready: boolean;
+      reasons: string[];
+      environment: string;
+      sandbox_mode?: boolean;
+    };
     if (!r?.ready) {
-      throw new DomainPaymentError("CAMPAIGN_NOT_PAYMENT_READY", (r?.reasons ?? []).join(","));
+      // Sandbox-first: in test mode, allow checkout even if the creator has
+      // not yet completed Stripe Connect onboarding. The platform account
+      // captures the payment; settlement Transfer is gated separately.
+      const CREATOR_ONBOARDING_REASONS = new Set([
+        "CREATOR_PAYMENT_ACCOUNT_MISSING",
+        "CREATOR_PAYMENT_ACCOUNT_NOT_ENABLED",
+        "CREATOR_CHARGES_DISABLED",
+      ]);
+      const blocking = (r?.reasons ?? []).filter(
+        (x) => !(r?.sandbox_mode && CREATOR_ONBOARDING_REASONS.has(x)),
+      );
+      if (blocking.length > 0) {
+        throw new DomainPaymentError("CAMPAIGN_NOT_PAYMENT_READY", blocking.join(","));
+      }
     }
 
     // 3. Idempotency — return existing active session if local key matches
