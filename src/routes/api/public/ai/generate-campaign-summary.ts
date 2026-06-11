@@ -163,6 +163,7 @@ export const Route = createFileRoute("/api/public/ai/generate-campaign-summary")
           .eq("id", campaignId)
           .maybeSingle();
         if (campaignErr) {
+          console.error("[ai-summary] campaign read failed", { campaignId, error: campaignErr });
           return jsonResponse(errorBody("AI_PROVIDER_ERROR", "Kampanya okunamadı."), 500);
         }
         if (!campaign) {
