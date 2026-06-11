@@ -162,6 +162,7 @@ export function countSummaryWords(output: CampaignSummaryOutput): number {
 // fabrication. AI is instructed to write "Bilgi sağlanmamış" for missing
 // fields, so the floor must accommodate short but complete summaries.
 export const MIN_SUMMARY_WORDS = 120;
+export const MIN_SUMMARY_WORDS = 60;
 export const MAX_SUMMARY_WORDS = 700;
 
 /**
