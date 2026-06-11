@@ -193,15 +193,29 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
                         {t.claimed} seçildi
                         {typeof t.limit === "number" ? ` / ${t.limit} sınırlı` : ""}
                       </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="mt-3"
-                        disabled={soldOut}
-                        onClick={() => setSupportOpen(true)}
-                      >
-                        {soldOut ? "Tükendi" : "Bu paketi seç"}
-                      </Button>
+                      {user ? (
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          className="mt-3"
+                          disabled={soldOut}
+                        >
+                          <Link to="/campaigns/$slug/back" params={{ slug }}>
+                            {soldOut ? "Tükendi" : "Bu paketi seç"}
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-3"
+                          disabled={soldOut}
+                          onClick={() => setSupportOpen(true)}
+                        >
+                          {soldOut ? "Tükendi" : "Bu paketi seç"}
+                        </Button>
+                      )}
                     </li>
                   );
                 })}
