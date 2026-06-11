@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/unauthorized")({
@@ -15,7 +14,7 @@ export const Route = createFileRoute("/unauthorized")({
 
 function UnauthorizedPage() {
   return (
-    <AppShell>
+    <>
       <div className="flex min-h-[60vh] items-center justify-center px-4">
         <div className="max-w-md text-center">
           <h1 className="text-3xl font-semibold">Bu sayfaya erişim yetkiniz yok</h1>
@@ -33,6 +32,6 @@ function UnauthorizedPage() {
           </div>
         </div>
       </div>
-    </AppShell>
+    </>
   );
 }

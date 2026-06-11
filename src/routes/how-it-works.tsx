@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AppShell } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/how-it-works")({
   head: () => ({
@@ -64,7 +63,7 @@ function HowItWorksPage() {
   ];
 
   return (
-    <AppShell>
+    <>
       <article className="mx-auto max-w-4xl px-4 py-12">
         <header className="mb-10">
           <h1 className="text-3xl font-semibold tracking-tight">Nasıl çalışır?</h1>
@@ -124,6 +123,6 @@ function HowItWorksPage() {
           </ul>
         </section>
       </article>
-    </AppShell>
+    </>
   );
 }

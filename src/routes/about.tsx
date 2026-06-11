@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -25,7 +24,7 @@ export const Route = createFileRoute("/about")({
 
 function AboutPage() {
   return (
-    <AppShell>
+    <>
       <article className="mx-auto max-w-3xl px-4 py-12">
         <header className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight">Hakkımızda</h1>
@@ -66,6 +65,6 @@ function AboutPage() {
           </p>
         </section>
       </article>
-    </AppShell>
+    </>
   );
 }
