@@ -62,7 +62,9 @@ function buildActorKey(userId: string | null, request: Request): string {
     request.headers.get("x-real-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "";
-  const target = ipHeader ? `ip:${ipHeader}` : "ip:none";
+  // Fall back to UA so guests without trusted IP don't share a single bucket.
+  const ua = request.headers.get("user-agent") ?? "";
+  const target = ipHeader ? `ip:${ipHeader}` : `guest:${ua.slice(0, 200)}`;
   return createHmac("sha256", salt).update(target).digest("hex");
 }
 
