@@ -36,7 +36,8 @@ function getInitials(name: string): string {
 
 export function MobileNavigation() {
   const [open, setOpen] = useState(false);
-  const handleNavigate = () => setOpen(false);
+  const { status, user } = useAuth();
+  const isAuthed = status === "authenticated" && !!user;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -57,14 +58,16 @@ export function MobileNavigation() {
           <NavLinks variant="vertical" onNavigate={() => setOpen(false)} />
         </nav>
 
-        <div className="mt-4">
-          <Button asChild variant="outline" className="w-full justify-start">
-            <Link to="/creator/campaigns/new" onClick={() => setOpen(false)}>
-              <PlusCircle className="mr-2 size-4" aria-hidden="true" />
-              Kampanya başlat
-            </Link>
-          </Button>
-        </div>
+        {isAuthed ? (
+          <div className="mt-4">
+            <Button asChild variant="outline" className="w-full justify-start">
+              <Link to="/creator/campaigns/new" onClick={() => setOpen(false)}>
+                <PlusCircle className="mr-2 size-4" aria-hidden="true" />
+                Kampanya başlat
+              </Link>
+            </Button>
+          </div>
+        ) : null}
 
         <MobileAuthSection onNavigate={() => setOpen(false)} />
       </SheetContent>
