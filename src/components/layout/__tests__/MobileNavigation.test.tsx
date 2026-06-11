@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
-import { screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 
 vi.mock("@/components/layout/NavLinks", () => ({
   NavLinks: () => <div data-testid="mock-navlinks">links</div>,
@@ -17,15 +18,25 @@ vi.mock("@/hooks/use-auth", () => ({
   }),
 }));
 
+// TanStack Link/useNavigate require RouterProvider; bu test sadece drawer
+// davranışını doğruladığından router yerine basit stand-in kullanıyoruz.
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ to, children, onClick, ...rest }: { to: string; children: ReactNode; onClick?: () => void } & Record<string, unknown>) => (
+    <a href={to} onClick={onClick} {...rest}>
+      {children}
+    </a>
+  ),
+  useNavigate: () => () => {},
+}));
+
 import { MobileNavigation } from "@/components/layout/MobileNavigation";
-import { renderWithRouter } from "@/test/render";
 
 describe("MobileNavigation", () => {
   it("trigger butonuyla açılır ve ESC ile kapanır", async () => {
     const user = userEvent.setup();
-    renderWithRouter(<MobileNavigation />);
+    render(<MobileNavigation />);
 
-    const trigger = await screen.findByRole("button", { name: /Menüyü aç/i });
+    const trigger = screen.getByRole("button", { name: /Menüyü aç/i });
     await user.click(trigger);
 
     const dialog = await screen.findByRole("dialog");
@@ -38,9 +49,8 @@ describe("MobileNavigation", () => {
 
   it("guest kullanıcıya giriş ve kayıt seçeneklerini gösterir", async () => {
     const user = userEvent.setup();
-    renderWithRouter(<MobileNavigation />);
-    const trigger = await screen.findByRole("button", { name: /Menüyü aç/i });
-    await user.click(trigger);
+    render(<MobileNavigation />);
+    await user.click(screen.getByRole("button", { name: /Menüyü aç/i }));
     expect(await screen.findByRole("link", { name: /Giriş yap/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Kayıt ol/i })).toBeInTheDocument();
   });
