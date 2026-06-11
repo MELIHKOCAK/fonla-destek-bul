@@ -24,6 +24,8 @@ import { ErrorState } from "@/components/common/ErrorState";
 import { formatMoneyMinor, formatRelativeTime } from "@/lib/format";
 import { getCampaignBySlug } from "@/services/campaigns.service";
 import { CampaignAiSummaryCard } from "@/components/campaign/CampaignAiSummaryCard";
+import { CampaignCommentsSection } from "@/components/campaign/CampaignCommentsSection";
+import { useAuth } from "@/hooks/use-auth";
 
 const AI_SUMMARY_ELIGIBLE_STATUSES = new Set(["live", "successful", "failed"]);
 
@@ -31,6 +33,7 @@ const dateFormatter = new Intl.DateTimeFormat("tr-TR", { dateStyle: "long" });
 const backers = new Intl.NumberFormat("tr-TR");
 
 export function CampaignDetailPage({ slug }: { slug: string }) {
+  const { user } = useAuth();
   const [supportOpen, setSupportOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const q = useQuery({ queryKey: ["campaign", slug], queryFn: () => getCampaignBySlug(slug) });
