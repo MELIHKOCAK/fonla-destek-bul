@@ -23,6 +23,9 @@ import { CampaignGridSkeleton } from "@/components/common/LoadingSkeleton";
 import { ErrorState } from "@/components/common/ErrorState";
 import { formatMoneyMinor, formatRelativeTime } from "@/lib/format";
 import { getCampaignBySlug } from "@/services/campaigns.service";
+import { CampaignAiSummaryCard } from "@/components/campaign/CampaignAiSummaryCard";
+
+const AI_SUMMARY_ELIGIBLE_STATUSES = new Set(["live", "successful", "failed"]);
 
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", { dateStyle: "long" });
 const backers = new Intl.NumberFormat("tr-TR");
@@ -79,7 +82,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
       <Container className="py-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
           <article className="min-w-0 space-y-8">
-            <header className="space-y-3">
+            <header id="campaign-header" className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <CategoryBadge category={c.category} />
                 <StatusBadge type="campaign" status={c.status} />
@@ -99,6 +102,14 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
               </div>
             </header>
 
+            {AI_SUMMARY_ELIGIBLE_STATUSES.has(c.status) ? (
+              <CampaignAiSummaryCard
+                campaignId={c.id}
+                creatorId={c.creator.id}
+                eligible
+              />
+            ) : null}
+
             {/* Mobil metrik kartı (sticky support sağda olduğunda gizlenir) */}
             <section className="rounded-xl border border-border/60 bg-card p-5 lg:hidden">
               <MetricBlock c={c} percent={percent} endLabel={endLabel} />
@@ -110,7 +121,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
               </Button>
             </section>
 
-            <Section title="Hikâye">
+            <Section id="campaign-story" title="Hikâye">
               {c.story.split("\n\n").map((p, i) => (
                 <p key={i} className="text-sm leading-relaxed text-foreground sm:text-base">
                   {p}
@@ -118,7 +129,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
               ))}
             </Section>
 
-            <Section title="Fon kullanım planı">
+            <Section id="fund-usage" title="Fon kullanım planı">
               <ul className="space-y-2">
                 {c.fundingPlan.map((f) => (
                   <li
@@ -137,7 +148,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
               </ul>
             </Section>
 
-            <Section title="Takvim">
+            <Section id="campaign-timeline" title="Takvim">
               <ol className="space-y-3">
                 {c.milestones.map((m) => (
                   <li key={m.id} className="rounded-md border border-border bg-card p-3">
@@ -152,11 +163,11 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
               </ol>
             </Section>
 
-            <Section title="Riskler ve zorluklar">
+            <Section id="risks-and-challenges" title="Riskler ve zorluklar">
               <p className="text-sm leading-relaxed text-foreground">{c.risks}</p>
             </Section>
 
-            <Section title="Ödül paketleri">
+            <Section id="reward-tiers" title="Ödül paketleri">
               <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {c.rewardTiers.map((t) => {
                   const soldOut = typeof t.limit === "number" && t.claimed >= t.limit;
@@ -281,11 +292,12 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
+  const headingId = `section-${id ?? title}`;
   return (
-    <section aria-labelledby={`section-${title}`} className="space-y-3">
+    <section id={id} aria-labelledby={headingId} className="space-y-3 scroll-mt-24">
       <h2
-        id={`section-${title}`}
+        id={headingId}
         className="text-lg font-semibold tracking-tight text-foreground sm:text-xl"
       >
         {title}
