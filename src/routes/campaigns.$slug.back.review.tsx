@@ -99,7 +99,7 @@ function ReviewStep() {
             value={`${state.shipping.recipient_name ?? ""} · ${state.shipping.city ?? ""}`}
           />
         )}
-        <Row label="Ortam" value="Test (gerçek ödeme alınmaz)" />
+        <Row label="Ortam" value="Test (Stripe sandbox)" />
       </dl>
 
       {submitError && (
@@ -122,7 +122,7 @@ function ReviewStep() {
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending}
         >
-          {mutation.isPending ? "Oluşturuluyor…" : "Desteği oluştur"}
+          {mutation.isPending ? "Ödemeye yönlendiriliyor…" : "Ödemeye geç"}
         </Button>
       </div>
     </section>
