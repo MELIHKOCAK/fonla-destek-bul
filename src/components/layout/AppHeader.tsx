@@ -34,17 +34,19 @@ export function AppHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="hidden lg:inline-flex"
-          >
-            <Link to="/creator/campaigns/new">
-              <PlusCircle className="mr-2 size-4" aria-hidden="true" />
-              Kampanya başlat
-            </Link>
-          </Button>
+          {status === "authenticated" && user ? (
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="hidden lg:inline-flex"
+            >
+              <Link to="/creator/campaigns/new">
+                <PlusCircle className="mr-2 size-4" aria-hidden="true" />
+                Kampanya başlat
+              </Link>
+            </Button>
+          ) : null}
 
           <div className="hidden items-center gap-2 md:flex">
             {status === "loading" ? (
