@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Menu, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,12 +36,7 @@ function getInitials(name: string): string {
 
 export function MobileNavigation() {
   const [open, setOpen] = useState(false);
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-
-  // Route değişiminde drawer'ı otomatik kapat.
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
+  const handleNavigate = () => setOpen(false);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
