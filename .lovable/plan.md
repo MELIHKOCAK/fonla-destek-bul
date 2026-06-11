@@ -1,123 +1,65 @@
-# Plan: Lovable AI ile Çok Dilli Kampanya Özetleme
+## Sorunun Özeti
 
-## Mevcut proje analizi (özet)
-- **Detay sayfası**: `src/pages/CampaignDetailPage.tsx` — route `src/routes/campaigns.$slug.tsx`, `slug` ile veri çekiyor. Şu an `services/campaigns.service.ts` üzerinden gerçek DB'ye bağlı (mock değil; `get_public_campaign_by_slug` RPC).
-- **Campaigns tablosu**: `title`, `short_description`, `story_content`, `funds_usage_content`, `timeline_content`, `risks_content`, `goal_amount_minor`, `currency`, `start_at`, `end_at`, `status`, `category_id`, `creator_id`, `slug`.
-- **Reward tiers**: ayrı tablo, `is_active`, `amount_minor`, `title`, `description`, `sort_order`.
-- **Campaign status enum**: `draft, submitted, under_review, revision_requested, approved, scheduled, live, successful, failed, cancelled, suspended, payout_pending, paid_out, refunding, refunded, rejected` — özetlenebilir: `live, successful, failed` (spec'e uyumlu).
-- **Backend**: Edge function yok; pattern olarak `src/routes/api/public/hooks/*` altında TanStack server routes kullanılıyor.
-- **AI**: `LOVABLE_API_KEY` server env'de mevcut. AI gateway henüz kurulu değil — `ai_gateway--create` ile etkinleştirilecek.
-- **i18n**: yok — yeni `summary` özelliği için merkezi allowlist (`tr`, `en`) oluşturulacak.
-- **TanStack Query**: aktif; query keys ve service pattern var.
-- **UI primitives**: shadcn Card, Accordion, Skeleton, Alert, Toast, Select hazır.
+"Özet oluştur" butonuna basınca üretken yapay zekâ uç noktası (`POST /api/public/ai/generate-campaign-summary`) çağrılıyor, fakat istek başarısız bittiği için UI'da kırmızı uyarı (`AI özeti oluşturulurken bir hata oluştu...`) ya da `AI özet üretiminde bir sorun oluştu.` mesajı çıkıyor. Sunucu tarafı log'larında bu uç nokta için kayıt yok (henüz hiç log üretilmemiş) — yani hata sessizce yakalanıp masklenip dönülüyor. Mevcut kodu satır satır okuduğumda en olası 5 kök nedeni belirledim. Tek bir tane değil, birden fazlasının üst üste binmesi olası.
 
-## Yapılacaklar
+## Olası Kök Nedenler (öncelik sırasına göre)
 
-### 1. Migration (`supabase/migrations/<ts>_campaign_ai_summaries.sql`)
-- Enum `campaign_ai_summary_status` ekle: `generating, completed, failed, stale`.
-- `campaign_ai_summaries` tablosu (spec'teki alanlarla): `id, campaign_id (fk cascade), language_code, source_version bigint, source_hash text, prompt_version text, schema_version int, model_identifier text, status enum, summary_json jsonb, word_count int, failure_code text, failure_message_masked text, generation_started_at, generated_at, stale_at, created_at, updated_at`.
-- Partial unique index: `(campaign_id, language_code) WHERE status='generating'` — eş zamanlı tek generating.
-- Unique index: `(campaign_id, language_code, source_hash, prompt_version, schema_version) WHERE status IN ('completed','stale')`.
-- `campaign_ai_summary_rate_limits` tablosu: `actor_key_hash, campaign_id (unique birlikte), last_generation_request_at, created_at, updated_at`.
-- `campaign_ai_summary_audit` (opsiyonel minimal): `campaign_id, language_code, actor_type, cache_hit, result_type, created_at`.
-- `campaigns` tablosuna `ai_summary_source_version bigint not null default 1` ekle.
-- **GRANT'lar**: spec gereği frontend doğrudan summary/rate-limit yazmaz; `authenticated`/`anon` rolleri için yalnız `SELECT` yok — tablo tamamen Edge Function (service_role) üzerinden okunup yazılır. `GRANT ALL ... TO service_role`. RLS aç + tüm policy'leri reddet (no rows for client).
-- Trigger'lar: `campaigns` tablosunda `BEFORE UPDATE` — özetlenen alanların biri değiştiğinde `ai_summary_source_version = ai_summary_source_version + 1`. `AFTER UPDATE` — eski `completed` summary'leri `stale + stale_at=now()` yap.
-- `reward_tiers` `AFTER INSERT/UPDATE/DELETE` trigger — kampanyanın `ai_summary_source_version`'ı artır ve summary'leri stale et.
-- `updated_at` trigger'ları.
-- **DB function**: `claim_campaign_ai_summary_generation(_campaign_id, _language_code, _source_hash, _prompt_version, _schema_version, _actor_key_hash, _rate_limit_seconds)` — `SECURITY DEFINER`, transaction içinde:
-  1) completed + non-stale cache varsa `cache_hit` (+ summary_id).
-  2) generating kayıt varsa `generation_in_progress`.
-  3) Rate limit check (`last_generation_request_at + interval`).
-  4) Yeterliyse `INSERT generating` + rate-limit upsert + `generation_started` döner.
-  - Frontend bu fonksiyonu doğrudan çağıramaz (yalnız service_role).
+### 1) Lovable AI Gateway, `response_format: json_schema` + `strict: true` kombinasyonunu Gemini için reddediyor olabilir
+`src/lib/ai/campaign-summary/gateway.server.ts` şu çağrıyı yapıyor:
+```text
+response_format: { type: "json_schema", json_schema: { name, strict: true, schema } }
+```
+Varsayılan model `google/gemini-2.5-flash`. OpenAI uyumlu Gateway'lerde `json_schema` çoğunlukla yalnızca OpenAI modelleri için destekleniyor; Gemini için 400 dönmesi tipik. Bu durumda kod, `AI_PROVIDER_ERROR` ile 502 dönüp UI'a generic mesaj gösterir.
 
-### 2. Server-side modüller (`src/lib/ai/`)
-- `src/lib/ai/campaign-summary/schema.ts` — Zod schema:
-  - `CampaignSummarySectionKey` enum (8 değer).
-  - `CampaignSummarySourceField` enum (11 değer).
-  - `CampaignSummaryOutput` (schemaVersion=1, languageCode, sections[], missingInformation[], disclaimer).
-  - Section yapısı, word-count, kötü amaçlı HTML reddi.
-- `src/lib/ai/campaign-summary/languages.ts` — `SUPPORTED_LANGUAGES = ['tr','en']` allowlist + label map.
-- `src/lib/ai/campaign-summary/normalize.ts` — HTML→düz metin (script/style/iframe/event-handler temizliği, görünmez karakter normalize), canonical JSON üretici + SHA-256 source hash.
-- `src/lib/ai/campaign-summary/prompt.ts` — `PROMPT_VERSION = 'v1'`, `SCHEMA_VERSION = 1`, system instruction (spec'teki metin), `MAX_CAMPAIGN_SUMMARY_SOURCE_CHARS` sabiti.
-- `src/lib/ai/campaign-summary/types.ts` — yardımcı type'lar (status, response).
-- `src/lib/ai/campaign-summary/disclaimers.ts` — tr/en uyarı metinleri.
+### 2) Kelime sayısı zorunluluğu (300–500) bu kampanya için imkânsız olabilir
+Test kampanyasının içeriği çok ince ("Premier Pro..." cümlesinin tekrarı). Promptta "uydurma yapma, eksikse 'yok' yaz" deniyor, ardından `validateSummary` toplam kelime sayısını 300–500 arasında zorluyor. AI gerçekten kibar davranıp boş tutarsa toplam < 300 oluyor → `WORD_COUNT_OUT_OF_RANGE` → 502.
 
-### 3. Server route (Edge Function eşdeğeri)
-- `src/routes/api/public/ai/generate-campaign-summary.ts` — `POST` handler:
-  1) HTTP method + body schema validation (`{ campaignId: uuid, languageCode }`).
-  2) Optional auth: `Authorization: Bearer` varsa Supabase JWT doğrula (publishable key), kullanıcı id'sini çıkar. Sahte/expired JWT → 401.
-  3) Service-role client (`client.server.ts`) ile `campaigns` + `reward_tiers` oku — yalnız izinli kolonlar.
-  4) Erişim kontrolü: kampanya var mı? status `live|successful|failed` mı? authenticated user `creator_id` ile eşleşiyorsa 403 + `code: CREATOR_FORBIDDEN`.
-  5) Normalize + canonical JSON + source hash. Content > `MAX_CAMPAIGN_SUMMARY_SOURCE_CHARS` → 413 + `CONTENT_TOO_LARGE`.
-  6) Actor key: authenticated → `user:<uuid>`; guest → `ip:HMAC_SHA256(salt=AI_RATE_LIMIT_HASH_SECRET, msg=trusted_ip)`. Güvenilir IP header (`cf-connecting-ip`/`x-forwarded-for`'un ilk değeri) yoksa daha kısıtlı `ip:none` (rapora not).
-  7) `claim_campaign_ai_summary_generation` RPC çağır:
-     - `cache_hit` → completed summary'i sterilize edip dön.
-     - `generation_in_progress` → 202 + `code: GENERATION_IN_PROGRESS`.
-     - `rate_limited` → 429 + `retryAfterSeconds`.
-     - `generation_started` → adım 8.
-  8) Lovable AI Gateway çağrısı (`structured output` / JSON schema). Düşük temperature. `LOVABLE_API_KEY` yalnız server-side.
-     - 402 → completed kaydı `failed` (`AI_BALANCE_UNAVAILABLE`), 503 + güvenli mesaj.
-     - 429 (provider) → `AI_PROVIDER_RATE_LIMITED`, 503/429.
-     - Diğer hata → `AI_PROVIDER_ERROR`, 502.
-  9) Output validation (Zod + ek kurallar: word_count 300–500, language match, sourceFields allowlist, HTML reddi).
-     - Başarısız → kaydı `failed` + `INVALID_STRUCTURED_OUTPUT|WORD_COUNT_OUT_OF_RANGE|UNSAFE_OUTPUT` vs.
-  10) Cache write: kayıt `completed`, `generated_at=now()`, `word_count`, `model_identifier`.
-  11) Response: yalnız güvenli alanlar (sections, languageCode, schemaVersion, generatedAt, source: 'fresh'|'cache', disclaimer). Internal alanlar gizli.
-- Yeni secret: `AI_RATE_LIMIT_HASH_SECRET` (Lovable Cloud secret olarak eklenir).
+### 3) 8 zorunlu bölüm + `additionalProperties: false` + `strict: true` katı şema
+Gemini, şema dışı ufak bir alan (`reasoning`, fazladan boş string) eklediğinde Gateway tarafında schema-validation patlıyor; bu da `AI_PROVIDER_ERROR` olarak dönüp 502 üretiyor.
 
-### 4. Frontend
-- **Service hook** (`src/lib/ai/campaign-summary/api.ts`): `fetchCampaignSummaryStatus({campaignId, languageCode})` (GET status — opsiyonel) ve `generateCampaignSummary(...)` (POST mutation). Sadece bu endpoint'i çağırır, doğrudan DB yok.
-- **TanStack hook** `useCampaignAiSummary(campaignId, languageCode)`:
-  - Query key `['campaign-ai-summary', campaignId, languageCode]`.
-  - Status sorgusu açık aksiyon ile başlar (otomatik AI üretimi yok).
-  - `generation_in_progress` durumunda kontrollü polling (2s → 4s → 8s, max 60s, unmount'ta iptal).
-- **Component** `src/components/campaign/CampaignAiSummaryCard.tsx`:
-  - Mevcut Card/Accordion/Skeleton/Alert/Select/Button kullanır.
-  - States: kapalı / hazır / loading / generating-in-progress / başarılı (8 section + kaynaklar + dil + üretim tarihi + disclaimer) / stale / rate-limited (countdown) / creator-restricted / error.
-  - Creator kısıtı: `useAuth` ile `user.id === creatorId` ise buton kapalı, mesaj.
-  - Status sırf `live|successful|failed` olduğunda render.
-  - Dil seçici (`tr`/`en`) — değişiklik otomatik AI çağrısı yapmaz, status sorgusu tetikler.
-  - Kaynak chip'leri tıklanınca `#campaign-story`, `#fund-usage`, `#campaign-timeline`, `#risks-and-challenges`, `#reward-tiers` anchor'larına kaydırır. Sayfada olmayan anchor için chip pasif.
-  - Output'u **düz metin** olarak render — `dangerouslySetInnerHTML` yasak.
-- **Detay sayfasına entegrasyon**: `CampaignDetailPage.tsx` içine `c.id` ve `c.creator.id` ile karta veri akışı. Mevcut Section'lara `id="campaign-story"` vb. anchor ekle (kaynak chip linkleri için).
-- **i18n metinleri**: UI metinleri Türkçe; AI özet içeriği seçilen dilde.
+### 4) Guest kullanıcı için IP başlığı yoksa rate-limit "aynı anahtar"a düşüyor
+`buildActorKey` cf-connecting-ip / x-real-ip / x-forwarded-for arıyor; bunlar lovableproject.com / cloudflare üzerinde her zaman olmayabilir. Olmadığında tüm guest'ler tek bir hash'e gidiyor. İlk başarısız denemeden sonraki 60 sn içindeki tekrar → 429 `RATE_LIMITED`. Kullanıcının ikinci tıklamasında "Çok sık istek..." yerine generic "hata" mesajını görmesinin sebebi `body.message` öncelikli olduğu için bu şart altında zaten teknik mesajı kullanıcıya yansıtıyor.
 
-### 5. AI Gateway
-- `ai_gateway--create` ile Lovable AI connector etkinleştirilir. Model: hızlı/cost-controlled default (örn. Gemini 2.5 Flash). `MODEL_IDENTIFIER` server-side tek dosyada.
+### 5) `claim_campaign_ai_summary_generation` ilk denemede yarıda kaldıysa
+İlk istek hata verip `failed` yazılırsa sorun yok; ama AI çağrısı sırasında istisna fırlarsa (network) yakalanmıyor olabilir → satır `generating` durumunda kalır → bir sonraki tıklamada `GENERATION_IN_PROGRESS` (202) dönüyor → kullanıcıya "hâlâ üretiliyor" diye görünüyor. Mevcut kodda Gateway çağrısı `try/catch` ile sarılı, ama `validateSummary` veya update sırasında atılan istisna catch dışında kaldığında handler 500 atar ve satır `generating` kalır.
 
-### 6. Testler
-- **Unit** (`vitest`):
-  - `normalize.test.ts`: aynı içerik farklı whitespace → aynı hash; field değişikliği hash değişir; HTML/script temizlenir; reward sıralaması deterministic.
-  - `schema.test.ts`: geçerli output kabul; eksik section/unknown key/unknown sourceField reddedilir; word count < 300 / > 500 reddedilir; HTML reddedilir; geçersiz language code reddedilir.
-  - `prompt.test.ts`: prompt versioning sabit, language allowlist enforce.
-- **Component test** (`CampaignAiSummaryCard.test.tsx`):
-  - Creator için buton disabled + mesaj.
-  - Guest için buton aktif.
-  - Dil değiştirme otomatik mutation tetiklemez.
-  - Rate-limited countdown gösterilir.
-  - Stale durumda eski içerik gösterilmez.
-  - 8 section + kaynak chip'leri render.
-- **Server route test** (handler unit; service-role client mock'lu):
-  - Geçerli guest cache hit / generating / rate-limit / creator-403 / draft-403 / invalid language-400 / invalid jwt-401 / AI provider 402 → 503 mapping / invalid AI output → failed.
-- Edge Function E2E: spec'in 37 senaryosunun mümkün olanları otomatize, deploy bağımlı olanlar manuel raporlanacak.
+### Yan etkiler / kalite sorunları
+- Sunucu tarafında hiç `console.error` yok; teşhis için en azından `console.error("[ai-summary] ...", { code, detail })` gerekli.
+- Hata mesajları kullanıcıya generic; oysa `WORD_COUNT_OUT_OF_RANGE`, `INVALID_STRUCTURED_OUTPUT`, `AI_BALANCE_UNAVAILABLE`, `CAMPAIGN_NOT_ELIGIBLE` için ayrı Türkçe metinler değer katar.
+- `Sayfa bulunamadı` döndü production'da — yayınlama sonrası test edilmesi gerek.
 
-### 7. Doğrulama
-- `bunx tsc --noEmit`, ESLint, `bunx vitest run`, prod build.
-- Preview: guest olarak live kampanya aç → AI kartı görünür → "Yapay Zekâ ile Özetle" butonu çalışır.
+## Önerilen Çözüm Planı (kabul edersen uygularım)
 
-## Kapsam dışı (spec'e uygun)
-- Yeni admin panel, fraud, scoring, RAG/embedding, kampanya yeniden yazımı, SEO/OG için AI özet kullanımı, otomatik üretim, AI chatbot, kampanya karşılaştırma. Mevcut detay sayfası/auth/payment sistemine dokunulmaz.
+### A. AI çağrı şeklini Gemini ile uyumlu hale getir
+- `gateway.server.ts` içinde önce `response_format: { type: "json_schema", strict: true }` deniyoruz; 400/422 alırsak otomatik olarak `{ type: "json_object" }` ile retry.
+- JSON-object modunda gelen string için "robust JSON extraction" yardımcı fonksiyonu (markdown fence/temizleme + lastIndexOf bracket).
 
-## Açık riskler / manuel adımlar
-- `AI_RATE_LIMIT_HASH_SECRET` secret olarak eklenmeli (manuel).
-- Lovable AI connector etkinleştirme + bakiye doğrulaması (manuel rapor).
-- Cloudflare/Lovable edge'den `cf-connecting-ip` veya benzeri güvenilir IP header'ı sağlanmıyorsa guest rate-limit fallback kısıtlı çalışır.
-- Detay sayfasındaki bazı UI alanları (FAQ, comments, milestones detayları, fundingPlan) gerçek DB'de tek text alan; AI server-side ham metni özetler. UI'daki mock yapılar değiştirilmez.
+### B. Kelime sayısını ve şemayı esnet
+- `MIN_SUMMARY_WORDS` 300 → 120, `MAX_SUMMARY_WORDS` 500 → 700.
+- Section content `min(1)` korunur; alt sınırı kelime bazlı kaldırırız.
+- Promptta "bir alan yoksa kısaca 'Bilgi sağlanmamış' yaz, uydurma" netleştirilir.
 
-## Teknik detay (özet)
-- `prompt_version='v1'`, `schema_version=1`. Model identifier ENV ile değişebilir.
-- Source hash: SHA-256, sıralı keys, UTC ISO tarihler, normalize edilmiş düz metin.
-- Rate limit: 60s/actor/campaign, dil bağımsız.
-- Disclaimer her response'a server'dan eklenir (Türkçe/İngilizce sabit metin).
+### C. Hata mesajlarını netleştir + güvenli loglama
+- Route handler içinde her hata dalına `console.error("[ai-summary]", code, maskedDetail)` ekle.
+- UI'da `body.code`'a göre Türkçe mesaj eşlemesi (`AI_BALANCE_UNAVAILABLE` → "AI servisi geçici olarak kullanılamıyor", `WORD_COUNT_OUT_OF_RANGE` → "Kampanya içeriği özet için yetersiz", `CREATOR_FORBIDDEN`, `RATE_LIMITED` retry-after gösterimi, vb.).
+
+### D. `generating` kilitlenmesini önle
+- Handler içindeki tüm AI/persist akışını `try { ... } catch (err) { update status=failed; return 500; }` ile sar.
+- Bir sonraki tıklamada `RATE_LIMITED` yerine doğru "yeniden dene" davranışı.
+
+### E. Rate-limit anahtarını daha sağlam yap (opsiyonel)
+- Guest için IP başlığı yoksa `actorKey`'e `User-Agent` + saat damgası bucket'ı ekle. Bu, "tek guest için sürekli aynı anahtar" sorununu hafifletir.
+
+### F. Doğrulama
+- Yayın dışı (preview) ortamda guest olarak butona bas → cache_hit veya completed dönmeli.
+- Aynı kampanya için ikinci tıkla → CACHE_HIT (200) dönmeli.
+- Auth'lu (creator olmayan) bir kullanıcı ile dene → completed.
+- Creator olarak dene → `CREATOR_FORBIDDEN` mesajı UI'da gözüksün.
+- Yayına alındıktan sonra production endpoint'inin 200 döndüğü `curl` ile doğrulanır.
+
+## Kapsam Dışı
+- Yeni model seçimi (gpt-5-mini'ye geçme) — istersen ayrı bir adım olarak konuşalım.
+- AI Gateway'i ayrıca aktif etmek için migration — `LOVABLE_API_KEY` zaten mevcut.
+- Cache invalidation veya admin paneli.
+
+Onay verirsen tüm adımları (A–F) tek bir build turunda yapayım. Sadece bir kısmını isterseniz, hangilerini söyle.
