@@ -24,6 +24,8 @@ import { ErrorState } from "@/components/common/ErrorState";
 import { formatMoneyMinor, formatRelativeTime } from "@/lib/format";
 import { getCampaignBySlug } from "@/services/campaigns.service";
 import { CampaignAiSummaryCard } from "@/components/campaign/CampaignAiSummaryCard";
+import { CampaignCommentsSection } from "@/components/campaign/CampaignCommentsSection";
+import { useAuth } from "@/hooks/use-auth";
 
 const AI_SUMMARY_ELIGIBLE_STATUSES = new Set(["live", "successful", "failed"]);
 
@@ -31,6 +33,7 @@ const dateFormatter = new Intl.DateTimeFormat("tr-TR", { dateStyle: "long" });
 const backers = new Intl.NumberFormat("tr-TR");
 
 export function CampaignDetailPage({ slug }: { slug: string }) {
+  const { user } = useAuth();
   const [supportOpen, setSupportOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const q = useQuery({ queryKey: ["campaign", slug], queryFn: () => getCampaignBySlug(slug) });
@@ -190,15 +193,29 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
                         {t.claimed} seçildi
                         {typeof t.limit === "number" ? ` / ${t.limit} sınırlı` : ""}
                       </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="mt-3"
-                        disabled={soldOut}
-                        onClick={() => setSupportOpen(true)}
-                      >
-                        {soldOut ? "Tükendi" : "Bu paketi seç"}
-                      </Button>
+                      {user ? (
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          className="mt-3"
+                          disabled={soldOut}
+                        >
+                          <Link to="/campaigns/$slug/back" params={{ slug }}>
+                            {soldOut ? "Tükendi" : "Bu paketi seç"}
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-3"
+                          disabled={soldOut}
+                          onClick={() => setSupportOpen(true)}
+                        >
+                          {soldOut ? "Tükendi" : "Bu paketi seç"}
+                        </Button>
+                      )}
                     </li>
                   );
                 })}
@@ -224,20 +241,11 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             </Section>
 
             <Section title="Yorumlar">
-              <ul className="space-y-3">
-                {c.comments.map((cm) => (
-                  <li key={cm.id} className="rounded-md border border-border bg-card p-3 text-sm">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">{cm.authorName}</span>
-                      <span>{formatRelativeTime(cm.date)}</span>
-                    </div>
-                    <p className="mt-1 text-foreground">{cm.body}</p>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Yorum yazma demo aşamasında devre dışıdır.
-              </p>
+              <CampaignCommentsSection
+                campaignId={c.id}
+                campaignSlug={slug}
+                isAuthenticated={!!user}
+              />
             </Section>
 
             <Section title="Sık sorulan sorular">
@@ -266,12 +274,21 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
           <aside className="hidden lg:block">
             <div className="rounded-xl border border-border/60 bg-card p-5">
               <MetricBlock c={c} percent={percent} endLabel={endLabel} />
-              <Button className="mt-4 w-full" onClick={() => setSupportOpen(true)}>
-                <Heart className="size-4" aria-hidden="true" />
-                Destek Ol
-              </Button>
+              {user ? (
+                <Button asChild className="mt-4 w-full">
+                  <Link to="/campaigns/$slug/back" params={{ slug }}>
+                    <Heart className="size-4" aria-hidden="true" />
+                    Destek Ol
+                  </Link>
+                </Button>
+              ) : (
+                <Button className="mt-4 w-full" onClick={() => setSupportOpen(true)}>
+                  <Heart className="size-4" aria-hidden="true" />
+                  Destek Ol
+                </Button>
+              )}
               <p className="mt-3 text-xs text-muted-foreground">
-                Demo aşaması: gerçek ödeme alınmaz.
+                Test modu: ödemeler sandbox altyapısı üzerinden işlenir.
               </p>
             </div>
           </aside>
@@ -282,11 +299,13 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
         open={supportOpen}
         onOpenChange={setSupportOpen}
         campaignTitle={c.title}
+        campaignSlug={slug}
       />
       <ReportDialog
         open={reportOpen}
         onOpenChange={setReportOpen}
         targetLabel={`"${c.title}" kampanyası`}
+        campaignId={c.id}
       />
     </>
   );

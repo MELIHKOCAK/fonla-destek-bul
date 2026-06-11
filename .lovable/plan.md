@@ -1,65 +1,65 @@
-## Sorunun Özeti
+Demo/placeholder olarak işaretlenmiş tüm akışları gerçek implementasyonlarla değiştireceğim. Kapsam büyük olduğu için fazlara böldüm; her faz bağımsız test edilebilir bir milestone'dur.
 
-"Özet oluştur" butonuna basınca üretken yapay zekâ uç noktası (`POST /api/public/ai/generate-campaign-summary`) çağrılıyor, fakat istek başarısız bittiği için UI'da kırmızı uyarı (`AI özeti oluşturulurken bir hata oluştu...`) ya da `AI özet üretiminde bir sorun oluştu.` mesajı çıkıyor. Sunucu tarafı log'larında bu uç nokta için kayıt yok (henüz hiç log üretilmemiş) — yani hata sessizce yakalanıp masklenip dönülüyor. Mevcut kodu satır satır okuduğumda en olası 5 kök nedeni belirledim. Tek bir tane değil, birden fazlasının üst üste binmesi olası.
+## Faz 1 — Veritabanı & altyapı (1 migration + e-posta altyapısı)
+- `contact_messages` tablosu: ad, e-posta, konu, mesaj, status (`new|read|resolved`), `user_id` (opsiyonel), IP/UA. RLS: insert herkese açık, select sadece admin (`has_role(auth.uid(),'admin')`).
+- `campaign_comments` zaten var → insert/select RLS politikalarını gözden geçir; yorum yazma için authenticated kullanıcıya insert izni.
+- `campaign_reports` zaten var → kullanıcı insert akışı için RLS doğrula.
+- E-posta altyapısı: `email_domain--setup_email_infra` + Lovable Emails ile iletişim formu için "yöneticiye bildirim" + "kullanıcıya teşekkür" şablonları (`scaffold_transactional_email` + `scaffold_auth_email_templates`).
 
-## Olası Kök Nedenler (öncelik sırasına göre)
+## Faz 2 — İletişim formu (gerçek e-posta + DB kaydı)
+- `src/lib/contact/api.ts`: `submitContactMessage` serverFn — Zod doğrulama, `contact_messages` insert (service role), `sendTransactionalEmail` ile teyit e-postası.
+- `ContactForm.tsx`: `useDemoSubmit` kaldırıldı, gerçek mutation + toast.
+- `use-demo-submit.ts` artık başka yerde kullanılmıyorsa kaldırılacak.
 
-### 1) Lovable AI Gateway, `response_format: json_schema` + `strict: true` kombinasyonunu Gemini için reddediyor olabilir
-`src/lib/ai/campaign-summary/gateway.server.ts` şu çağrıyı yapıyor:
-```text
-response_format: { type: "json_schema", json_schema: { name, strict: true, schema } }
-```
-Varsayılan model `google/gemini-2.5-flash`. OpenAI uyumlu Gateway'lerde `json_schema` çoğunlukla yalnızca OpenAI modelleri için destekleniyor; Gemini için 400 dönmesi tipik. Bu durumda kod, `AI_PROVIDER_ERROR` ile 502 dönüp UI'a generic mesaj gösterir.
+## Faz 3 — Şikâyet (ReportDialog)
+- `src/lib/reports/api.ts`: `submitCampaignReport` serverFn (auth zorunlu), `campaign_reports` insert.
+- `ReportDialog.tsx`: `campaignId` prop ekle, gerçek mutation; demo metni temizle.
+- `CampaignDetailPage.tsx`: dialog'a kampanya ID'sini geçir.
 
-### 2) Kelime sayısı zorunluluğu (300–500) bu kampanya için imkânsız olabilir
-Test kampanyasının içeriği çok ince ("Premier Pro..." cümlesinin tekrarı). Promptta "uydurma yapma, eksikse 'yok' yaz" deniyor, ardından `validateSummary` toplam kelime sayısını 300–500 arasında zorluyor. AI gerçekten kibar davranıp boş tutarsa toplam < 300 oluyor → `WORD_COUNT_OUT_OF_RANGE` → 502.
+## Faz 4 — Yorum yazma (CampaignDetailPage)
+- `src/lib/comments/api.ts`: `addCampaignComment` serverFn (auth zorunlu, kampanya bekleyen/aktif kontrolü, length kontrolü).
+- `CampaignDetailPage` "Yorumlar" bölümüne yorum formu (sadece giriş yapmış kullanıcılara; misafire "Yorum yapmak için giriş yapın" CTA).
+- Yorumları gerçek zamanlı yenilemek için React Query invalidate.
 
-### 3) 8 zorunlu bölüm + `additionalProperties: false` + `strict: true` katı şema
-Gemini, şema dışı ufak bir alan (`reasoning`, fazladan boş string) eklediğinde Gateway tarafında schema-validation patlıyor; bu da `AI_PROVIDER_ERROR` olarak dönüp 502 üretiyor.
+## Faz 5 — Hesap silme + e-posta değiştirme
+- `src/lib/account/api.ts`:
+  - `requestEmailChange` serverFn → `supabase.auth.updateUser({ email })` admin client + onay e-postası (Supabase yerleşik akışı kullanır).
+  - `deleteAccount` serverFn → kullanıcı onayı (e-postasını yazmak), admin client ile `auth.admin.deleteUser(userId)`.
+- `settings.account.tsx`: "yakında" kaldır; e-posta değiştirme formu + onay dialog'lu hesap silme.
 
-### 4) Guest kullanıcı için IP başlığı yoksa rate-limit "aynı anahtar"a düşüyor
-`buildActorKey` cf-connecting-ip / x-real-ip / x-forwarded-for arıyor; bunlar lovableproject.com / cloudflare üzerinde her zaman olmayabilir. Olmadığında tüm guest'ler tek bir hash'e gidiyor. İlk başarısız denemeden sonraki 60 sn içindeki tekrar → 429 `RATE_LIMITED`. Kullanıcının ikinci tıklamasında "Çok sık istek..." yerine generic "hata" mesajını görmesinin sebebi `body.message` öncelikli olduğu için bu şart altında zaten teknik mesajı kullanıcıya yansıtıyor.
+## Faz 6 — Ödeme UI'sini aktif et (sandbox kal)
+- `SupportCtaDialog`: "Demo aşaması" başlığını kaldır; misafir → giriş CTA, giriş yapmış → ödeme akışına yönlendir (mevcut `/contributions/...` veya `/checkout` route'u).
+- `CampaignDetailPage`: "Demo aşaması: gerçek ödeme alınmaz" metnini "Test modu — sandbox ödeme" şeklinde yumuşat (ödeme entegrasyonu hâlihazırda sandbox).
+- `HomePage`: "Demo aşamasında sandbox..." metnini düz "Sandbox modda güvenli ödeme test edilir." şeklinde yeniden yaz.
+- `creator.payment-account.tsx`: mevcut Stripe sandbox onboarding'i UI'de açık göster.
 
-### 5) `claim_campaign_ai_summary_generation` ilk denemede yarıda kaldıysa
-İlk istek hata verip `failed` yazılırsa sorun yok; ama AI çağrısı sırasında istisna fırlarsa (network) yakalanmıyor olabilir → satır `generating` durumunda kalır → bir sonraki tıklamada `GENERATION_IN_PROGRESS` (202) dönüyor → kullanıcıya "hâlâ üretiliyor" diye görünüyor. Mevcut kodda Gateway çağrısı `try/catch` ile sarılı, ama `validateSummary` veya update sırasında atılan istisna catch dışında kaldığında handler 500 atar ve satır `generating` kalır.
+## Faz 7 — Mock servis katmanı temizliği
+- `src/services/campaigns.service.ts`, `categories.service.ts`, `creators.service.ts` mock döndüren fonksiyonlar gerçek `src/lib/*/api.ts` çağrılarına proxy olacak.
+- Test dışı `src/services/mock/` ve `src/mocks/` kullanımları kaldırılacak (DesignSystem hariç tutulmaz — bu sayfa renk paletini sergilediği için sadece statik veriyle güncellenecek).
 
-### Yan etkiler / kalite sorunları
-- Sunucu tarafında hiç `console.error` yok; teşhis için en azından `console.error("[ai-summary] ...", { code, detail })` gerekli.
-- Hata mesajları kullanıcıya generic; oysa `WORD_COUNT_OUT_OF_RANGE`, `INVALID_STRUCTURED_OUTPUT`, `AI_BALANCE_UNAVAILABLE`, `CAMPAIGN_NOT_ELIGIBLE` için ayrı Türkçe metinler değer katar.
-- `Sayfa bulunamadı` döndü production'da — yayınlama sonrası test edilmesi gerek.
+## Faz 8 — Doğrulama
+- `bunx vitest run` (etkilenen test dosyaları).
+- Manuel: iletişim formu, şikâyet, yorum, hesap silme onayı, e-posta değiştirme isteği, kampanya destek butonu.
+- Build sağlığı.
 
-## Önerilen Çözüm Planı (kabul edersen uygularım)
+## Teknik notlar
+- Service role isteyen tüm yazma işlemleri `createServerFn` + `requireSupabaseAuth` içinde, `client.server` handler-içi `await import()` ile.
+- Tüm input'lar Zod ile (uzunluk + format).
+- TR copy, sentence case, "Mesajı gönder" / "Şikâyeti gönder" / "Hesabı kalıcı olarak sil" gibi spesifik aksiyonlar.
+- Hesap silme onayı: kullanıcı e-postasını yazıp "Hesabı sil" butonuna basmadan aktifleşmez.
 
-### A. AI çağrı şeklini Gemini ile uyumlu hale getir
-- `gateway.server.ts` içinde önce `response_format: { type: "json_schema", strict: true }` deniyoruz; 400/422 alırsak otomatik olarak `{ type: "json_object" }` ile retry.
-- JSON-object modunda gelen string için "robust JSON extraction" yardımcı fonksiyonu (markdown fence/temizleme + lastIndexOf bracket).
-
-### B. Kelime sayısını ve şemayı esnet
-- `MIN_SUMMARY_WORDS` 300 → 120, `MAX_SUMMARY_WORDS` 500 → 700.
-- Section content `min(1)` korunur; alt sınırı kelime bazlı kaldırırız.
-- Promptta "bir alan yoksa kısaca 'Bilgi sağlanmamış' yaz, uydurma" netleştirilir.
-
-### C. Hata mesajlarını netleştir + güvenli loglama
-- Route handler içinde her hata dalına `console.error("[ai-summary]", code, maskedDetail)` ekle.
-- UI'da `body.code`'a göre Türkçe mesaj eşlemesi (`AI_BALANCE_UNAVAILABLE` → "AI servisi geçici olarak kullanılamıyor", `WORD_COUNT_OUT_OF_RANGE` → "Kampanya içeriği özet için yetersiz", `CREATOR_FORBIDDEN`, `RATE_LIMITED` retry-after gösterimi, vb.).
-
-### D. `generating` kilitlenmesini önle
-- Handler içindeki tüm AI/persist akışını `try { ... } catch (err) { update status=failed; return 500; }` ile sar.
-- Bir sonraki tıklamada `RATE_LIMITED` yerine doğru "yeniden dene" davranışı.
-
-### E. Rate-limit anahtarını daha sağlam yap (opsiyonel)
-- Guest için IP başlığı yoksa `actorKey`'e `User-Agent` + saat damgası bucket'ı ekle. Bu, "tek guest için sürekli aynı anahtar" sorununu hafifletir.
-
-### F. Doğrulama
-- Yayın dışı (preview) ortamda guest olarak butona bas → cache_hit veya completed dönmeli.
-- Aynı kampanya için ikinci tıkla → CACHE_HIT (200) dönmeli.
-- Auth'lu (creator olmayan) bir kullanıcı ile dene → completed.
-- Creator olarak dene → `CREATOR_FORBIDDEN` mesajı UI'da gözüksün.
-- Yayına alındıktan sonra production endpoint'inin 200 döndüğü `curl` ile doğrulanır.
-
-## Kapsam Dışı
-- Yeni model seçimi (gpt-5-mini'ye geçme) — istersen ayrı bir adım olarak konuşalım.
-- AI Gateway'i ayrıca aktif etmek için migration — `LOVABLE_API_KEY` zaten mevcut.
-- Cache invalidation veya admin paneli.
-
-Onay verirsen tüm adımları (A–F) tek bir build turunda yapayım. Sadece bir kısmını isterseniz, hangilerini söyle.
+## İlk dokunulacak dosyalar (özet)
+- migration (Faz 1)
+- src/lib/contact/api.ts (yeni)
+- src/lib/reports/api.ts (yeni)
+- src/lib/comments/api.ts (yeni)
+- src/lib/account/api.ts (yeni)
+- src/components/forms/ContactForm.tsx
+- src/components/common/ReportDialog.tsx
+- src/components/common/SupportCtaDialog.tsx
+- src/components/campaign/CampaignCommentForm.tsx (yeni)
+- src/pages/CampaignDetailPage.tsx
+- src/pages/HomePage.tsx
+- src/routes/_authenticated/settings.account.tsx
+- src/services/campaigns.service.ts, categories.service.ts, creators.service.ts
+- src/hooks/use-demo-submit.ts (silinecek)

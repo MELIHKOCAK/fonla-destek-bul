@@ -674,6 +674,42 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          status: Database["public"]["Enums"]["contact_message_status"]
+          subject: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          status?: Database["public"]["Enums"]["contact_message_status"]
+          subject: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          status?: Database["public"]["Enums"]["contact_message_status"]
+          subject?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       contributions: {
         Row: {
           amount_minor: number
@@ -3389,6 +3425,7 @@ export type Database = {
         | "refunded"
         | "rejected"
       comment_status: "visible" | "hidden_by_admin" | "deleted_by_author"
+      contact_message_status: "new" | "read" | "resolved"
       contribution_status:
         | "pending"
         | "authorized"
@@ -3686,6 +3723,7 @@ export const Constants = {
         "rejected",
       ],
       comment_status: ["visible", "hidden_by_admin", "deleted_by_author"],
+      contact_message_status: ["new", "read", "resolved"],
       contribution_status: [
         "pending",
         "authorized",

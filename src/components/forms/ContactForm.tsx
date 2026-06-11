@@ -1,34 +1,23 @@
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useDemoSubmit } from "@/hooks/use-demo-submit";
+import {
+  contactMessageSchema,
+  submitContactMessage,
+  ContactMessageError,
+} from "@/lib/contact/api";
 
-const schema = z.object({
-  name: z.string().trim().min(2, "Adınızı yazın.").max(100),
-  email: z
-    .string()
-    .trim()
-    .min(1, "E-posta gerekli.")
-    .email("Geçerli bir e-posta adresi girin.")
-    .max(255),
-  subject: z.string().trim().min(3, "Konu en az 3 karakter olmalı.").max(150),
-  message: z
-    .string()
-    .trim()
-    .min(10, "Mesajınız en az 10 karakter olmalı.")
-    .max(2000, "Mesaj çok uzun."),
-});
-
+const schema = contactMessageSchema;
 type FormValues = z.infer<typeof schema>;
 
 export function ContactForm() {
-  const { submit, submitting } = useDemoSubmit(
-    "Demo aşaması — iletişim formu henüz e-posta göndermiyor.",
-  );
+  const [submitting, setSubmitting] = useState(false);
   const {
     register,
     handleSubmit,
@@ -39,9 +28,19 @@ export function ContactForm() {
     defaultValues: { name: "", email: "", subject: "", message: "" },
   });
 
-  const onSubmit = handleSubmit(async () => {
-    await submit();
-    reset();
+  const onSubmit = handleSubmit(async (values) => {
+    setSubmitting(true);
+    try {
+      await submitContactMessage(values);
+      toast.success("Mesajınız iletildi. En kısa sürede dönüş yapacağız.");
+      reset();
+    } catch (err) {
+      const message =
+        err instanceof ContactMessageError ? err.message : "Mesaj gönderilemedi.";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   });
 
   return (
@@ -111,7 +110,7 @@ export function ContactForm() {
         ) : null}
       </div>
       <Button type="submit" disabled={submitting}>
-        {submitting ? "Gönderiliyor…" : "Gönder"}
+        {submitting ? "Gönderiliyor…" : "Mesajı gönder"}
       </Button>
     </form>
   );

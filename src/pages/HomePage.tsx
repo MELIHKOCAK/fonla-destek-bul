@@ -258,8 +258,8 @@ export function HomePage() {
               <Sparkles className="size-5 text-primary" aria-hidden="true" />
               <h3 className="mt-3 text-base font-semibold text-foreground">Ödeme güvenliği</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Ödemeler lisanslı ödeme altyapısı üzerinden işlenir. Demo aşamasında sandbox
-                ödeme kullanılır; hesap bilgileriniz saklanmaz.
+                Ödemeler lisanslı ödeme altyapısı üzerinden işlenir. Sandbox modda güvenli
+                ödeme test edilir; hesap bilgileriniz saklanmaz.
               </p>
             </div>
           </div>
