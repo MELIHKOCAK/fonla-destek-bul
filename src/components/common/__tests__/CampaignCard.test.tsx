@@ -5,11 +5,11 @@ import { campaigns } from "@/mocks";
 import { renderWithRouter } from "@/test/render";
 
 describe("CampaignCard", () => {
-  it("kampanya başlığını, kategorisini ve linki render eder", () => {
+  it("kampanya başlığını, kategorisini ve linki render eder", async () => {
     const c = campaigns[0]!;
     renderWithRouter(<CampaignCard campaign={c} />);
 
-    expect(screen.getByText(c.title)).toBeInTheDocument();
+    expect(await screen.findByText(c.title)).toBeInTheDocument();
     expect(screen.getByText(c.category.label)).toBeInTheDocument();
     expect(screen.getByText(c.creator.displayName)).toBeInTheDocument();
 
