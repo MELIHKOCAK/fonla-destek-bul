@@ -6,6 +6,7 @@ import {
   createContribution,
   getContributionCheckoutContext,
 } from "@/lib/contributions/contributions.functions";
+import { createCheckoutSession } from "@/lib/payments/checkout.functions";
 import { contributionsQueryKeys } from "@/lib/contributions/query-keys";
 import { getBackFlow, setBackFlow } from "@/lib/contributions/back-flow-store";
 import { StepIndicator } from "@/components/back/StepIndicator";
