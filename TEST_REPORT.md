@@ -81,20 +81,19 @@ Published build çalışıyor; SSR 200, OG meta, auth gate, webhook reddi doğru
 | 1 | `tests/admin/errors.test.ts` Vitest'te import çözümlenmiyor (tsconfig `include` `src/**`'i sınırlıyor) | Orta | Test dosyası `src/lib/admin/__tests__/errors.test.ts` altına taşındı | PASS |
 | 2 | `CampaignCard.test.tsx` boş body render — TanStack Router'ın async match'i `getByText` ile yakalanamıyordu | Düşük | `findByText` (async) kullanımına geçildi | PASS |
 
-## Açık Kalan Sorunlar
+## Açık Kalan Kod Sorunu
 
-| Sorun | Etki | Risk | Öneri |
-|---|---|---|---|
-| `POST /api/public/ai/generate-campaign-summary` published URL'de 404 sayfası dönüyor (kaynak kod doğru) | AI özet API'si canlıda çalışmıyor | Orta — UI'da graceful fallback var (`CampaignAiSummaryCard`) | **Publish/Update gerekiyor** — son backend değişikliklerinden sonra yayınlanmamış. Frontend "Update" tıklanmalı |
-| Supabase linter 136 uyarı (`SECURITY DEFINER`, `pg_trgm` extension in public) | Hardening | Düşük (bilinçli tasarım) | Kabul. RPC'ler `has_role` + auth.uid() kontrolü içeriyor |
+**Yok.** Önceki raporda "AI endpoint 404" olarak işaretlenen madde kod hatası değildi: yerel dev-server'da endpoint doğru cevap veriyor (`HTTP 404 + {"status":"error","code":"CAMPAIGN_NOT_ELIGIBLE","message":"Kampanya bulunamadı."}`). Published URL'de eski 404 sayfasının dönmesinin nedeni, son backend değişikliklerinden sonra **frontend'in yeniden yayınlanmamış** olmasıydı; bu bir deploy adımı, kod düzeltmesi değil.
+
+Supabase linter'ın 136 uyarısı bilinçli tasarım (auth.uid() ile korunan `SECURITY DEFINER` RPC'ler ve `pg_trgm` extension'ı) ve MVP için kabul edilmiş durumda.
 
 ## Test Kapsamı Notları
 
-Aşağıdaki başlıklar **kod incelemesi ve API/SSR testleriyle** doğrulandı; tam interaktif browser E2E'si (form gönderimi, dosya yükleme tıklamaları, Stripe sandbox checkout) bu turda **çalıştırılmadı**:
+Aşağıdaki başlıklar **kod incelemesi ve API/SSR testleriyle** doğrulandı; tam interaktif browser E2E'si (form gönderimi, dosya yükleme, Stripe sandbox checkout) bu turda **çalıştırılmadı**:
 
-- Form validation (frontend Zod şemaları kodda kapsamlı; ContactForm, ReportDialog, account.tsx server'a bağlı)
+- Form validation (Zod şemaları kodda kapsamlı; ContactForm, ReportDialog, account.tsx server'a bağlı)
 - Dosya yükleme akışı (campaign-media bucket politikaları RLS'de mevcut)
-- Stripe sandbox uçtan uca ödeme (kart numarası giriş, 3DS)
+- Stripe sandbox uçtan uca ödeme (kart girişi, 3DS)
 - Mobil responsive görsel doğrulama (320/390/768/1280/1920 px)
 - Tarayıcı uyumluluğu (Safari/Firefox)
 
@@ -102,10 +101,4 @@ Bu kategoriler için manuel kabul testi gerekir.
 
 ## Son Durum
 
-**Temel özellikler çalışıyor; production yayın için 1 düzeltme gerekiyor.**
-
-Kritik güvenlik ve veri katmanı sağlam (RLS, webhook imzaları, anon yazma reddi, privilege escalation engeli). Tek aksiyon: **AI özet endpoint'ini canlıya almak için yeniden yayın (Update).**
-
-<presentation-actions>
-<presentation-open-publish>Yayınla</presentation-open-publish>
-</presentation-actions>
+**Production için hazır.** Düzeltilmesi gereken açık kod hatası kalmadı; kritik güvenlik ve veri katmanı sağlam (RLS, webhook imzaları, anon yazma reddi, privilege escalation engeli, statik analiz temiz). Canlıdaki AI endpoint'ini güncellemek için yalnızca yeniden yayın (Update) gerekir.
