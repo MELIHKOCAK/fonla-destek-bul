@@ -53,6 +53,139 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_ai_summaries: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          failure_code: string | null
+          failure_message_masked: string | null
+          generated_at: string | null
+          generation_started_at: string | null
+          id: string
+          language_code: string
+          model_identifier: string | null
+          prompt_version: string
+          schema_version: number
+          source_hash: string
+          source_version: number
+          stale_at: string | null
+          status: Database["public"]["Enums"]["campaign_ai_summary_status"]
+          summary_json: Json | null
+          updated_at: string
+          word_count: number | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          failure_code?: string | null
+          failure_message_masked?: string | null
+          generated_at?: string | null
+          generation_started_at?: string | null
+          id?: string
+          language_code: string
+          model_identifier?: string | null
+          prompt_version: string
+          schema_version: number
+          source_hash: string
+          source_version: number
+          stale_at?: string | null
+          status: Database["public"]["Enums"]["campaign_ai_summary_status"]
+          summary_json?: Json | null
+          updated_at?: string
+          word_count?: number | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          failure_code?: string | null
+          failure_message_masked?: string | null
+          generated_at?: string | null
+          generation_started_at?: string | null
+          id?: string
+          language_code?: string
+          model_identifier?: string | null
+          prompt_version?: string
+          schema_version?: number
+          source_hash?: string
+          source_version?: number
+          stale_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_ai_summary_status"]
+          summary_json?: Json | null
+          updated_at?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_ai_summaries_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_ai_summary_audit: {
+        Row: {
+          actor_type: string
+          cache_hit: boolean
+          campaign_id: string
+          created_at: string
+          id: number
+          language_code: string
+          result_type: string
+        }
+        Insert: {
+          actor_type: string
+          cache_hit: boolean
+          campaign_id: string
+          created_at?: string
+          id?: number
+          language_code: string
+          result_type: string
+        }
+        Update: {
+          actor_type?: string
+          cache_hit?: boolean
+          campaign_id?: string
+          created_at?: string
+          id?: number
+          language_code?: string
+          result_type?: string
+        }
+        Relationships: []
+      }
+      campaign_ai_summary_rate_limits: {
+        Row: {
+          actor_key_hash: string
+          campaign_id: string
+          created_at: string
+          last_generation_request_at: string
+          updated_at: string
+        }
+        Insert: {
+          actor_key_hash: string
+          campaign_id: string
+          created_at?: string
+          last_generation_request_at: string
+          updated_at?: string
+        }
+        Update: {
+          actor_key_hash?: string
+          campaign_id?: string
+          created_at?: string
+          last_generation_request_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_ai_summary_rate_limits_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_comments: {
         Row: {
           author_id: string
@@ -395,6 +528,7 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          ai_summary_source_version: number
           approved_at: string | null
           cancellation_reason: string | null
           category_id: string
@@ -423,6 +557,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_summary_source_version?: number
           approved_at?: string | null
           cancellation_reason?: string | null
           category_id: string
@@ -451,6 +586,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_summary_source_version?: number
           approved_at?: string | null
           cancellation_reason?: string | null
           category_id?: string
@@ -2151,6 +2287,7 @@ export type Database = {
           _internal_note?: string
         }
         Returns: {
+          ai_summary_source_version: number
           approved_at: string | null
           cancellation_reason: string | null
           category_id: string
@@ -2209,6 +2346,19 @@ export type Database = {
         Args: { _username: string }
         Returns: boolean
       }
+      claim_campaign_ai_summary_generation: {
+        Args: {
+          _actor_key_hash: string
+          _campaign_id: string
+          _language_code: string
+          _prompt_version: string
+          _rate_limit_seconds?: number
+          _schema_version: number
+          _source_hash: string
+          _source_version: number
+        }
+        Returns: Json
+      }
       claim_username: { Args: { _username: string }; Returns: undefined }
       claim_webhook_event: {
         Args: {
@@ -2238,6 +2388,7 @@ export type Database = {
       create_campaign_draft: {
         Args: { _category_id: string; _title: string }
         Returns: {
+          ai_summary_source_version: number
           approved_at: string | null
           cancellation_reason: string | null
           category_id: string
@@ -2805,6 +2956,7 @@ export type Database = {
           _reason_code: string
         }
         Returns: {
+          ai_summary_source_version: number
           approved_at: string | null
           cancellation_reason: string | null
           category_id: string
@@ -2879,6 +3031,7 @@ export type Database = {
           _issues?: Json
         }
         Returns: {
+          ai_summary_source_version: number
           approved_at: string | null
           cancellation_reason: string | null
           category_id: string
@@ -3008,9 +3161,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      stale_campaign_ai_summaries_for_campaign: {
+        Args: { _campaign_id: string }
+        Returns: undefined
+      }
       start_campaign_review: {
         Args: { _campaign_id: string; _expected_lock_version: number }
         Returns: {
+          ai_summary_source_version: number
           approved_at: string | null
           cancellation_reason: string | null
           category_id: string
@@ -3048,6 +3206,7 @@ export type Database = {
       submit_campaign_for_review: {
         Args: { _campaign_id: string; _expected_lock_version: number }
         Returns: {
+          ai_summary_source_version: number
           approved_at: string | null
           cancellation_reason: string | null
           category_id: string
@@ -3089,6 +3248,7 @@ export type Database = {
           _reason: string
         }
         Returns: {
+          ai_summary_source_version: number
           approved_at: string | null
           cancellation_reason: string | null
           category_id: string
@@ -3132,6 +3292,7 @@ export type Database = {
           _patch: Json
         }
         Returns: {
+          ai_summary_source_version: number
           approved_at: string | null
           cancellation_reason: string | null
           category_id: string
@@ -3204,6 +3365,11 @@ export type Database = {
       }
     }
     Enums: {
+      campaign_ai_summary_status:
+        | "generating"
+        | "completed"
+        | "failed"
+        | "stale"
       campaign_media_type: "image" | "video" | "document"
       campaign_status:
         | "draft"
@@ -3494,6 +3660,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      campaign_ai_summary_status: [
+        "generating",
+        "completed",
+        "failed",
+        "stale",
+      ],
       campaign_media_type: ["image", "video", "document"],
       campaign_status: [
         "draft",
