@@ -1,103 +1,72 @@
 
-## Tespit edilen kök sebep
+# BeniFonla — AppHeader & Profil Menüsü İyileştirmesi
 
-`public.campaigns` üzerinde `trg_enforce_campaign_field_locks` adlı BEFORE UPDATE trigger'ı var. Bu trigger, kampanya sahibi (ve admin değilse) tarafından yapılan her UPDATE'te `lock_version`, `status`, `submitted_at`, vb. alanların değişmesini yasaklıyor:
+## Hedef
+Mevcut `AppHeader` + `UserMenu` + `NotificationBell` + `MobileNavigation` yapısı korunarak; rol bazlı (user / creator / admin) profil menüsü, "Kampanya Başlat" CTA'sı ve içerik dolu bir mobil drawer eklenir. Paralel auth/profile state veya ikinci navbar oluşturulmaz.
 
-```
-if new.lock_version is distinct from old.lock_version
-  then raise exception 'lock_version is locked' using errcode='42501'; end if;
-```
+## Mevcut altyapı (yeniden kullanılacak)
+- Auth/profile/role: `src/app/auth/AuthProvider.tsx` (`useAuth` → `status`, `user`, `profile`, `isAdmin`, `signOut`)
+- Bildirim: `NotificationBell` + `useMyNotifications` (zaten gerçek veriye bağlı)
+- Avatar imzalı URL: `src/lib/auth/avatar.ts` `getAvatarUrl`
+- shadcn `DropdownMenu`, `Sheet`, `Avatar`, `Button`, `Badge`
+- Tema: `ThemeToggle`
+- Route'lar: `/`, `/discover`, `/how-it-works`, `/about`, `/login`, `/register`, `/notifications`, `/_authenticated/dashboard(.contributions|.favorites|.payments|.refunds|.rewards)`, `/_authenticated/settings(.profile|.security|.notifications|.account)`, `/_authenticated/creator(.index|.campaigns(.index|.new)|.payment-account)`, `/_authenticated/admin(.index|.campaign-reviews.index|.system-alerts|.audit)`, `/creators/$username`
 
-Ancak `update_campaign_draft` RPC'si her başarılı kayıtta zorunlu olarak şunu yapar:
+## Rol tespiti
+- `isAdmin`: zaten `useAuth` üzerinden `user_roles` tablosundan güvenli okunuyor — aynen kullan.
+- Creator: ayrı bir `user_roles.role = 'creator'` kontrolü mevcut değil; bu görev kapsamında yeni rol sistemi kurulmayacak. Bunun yerine `AuthProvider`'a hâlihazırdaki sorguya ek olarak `isCreator` türetilecek: `user_roles.role IN ('creator','admin')` varsa true; aksi halde `campaigns` tablosunda kullanıcıya ait kayıt olup olmadığı **yerine** sadece rol tablosuna dayanılır. Eğer `creator` enum değeri yoksa `isCreator = false` döner ve creator menü öğeleri herkese gizlenir — bu durum raporda "eksik" olarak bildirilir, yeni enum eklenmez. (Bu yalnız UI gizlemesidir; route'ların kendi guard'ları korunur.)
 
-```
-update public.campaigns set ..., lock_version = _row.lock_version + 1, ...
-```
+## Değişiklikler
 
-`SECURITY DEFINER` olsa bile trigger `auth.uid()`'i hâlâ kampanya sahibi olarak görüyor → trigger UPDATE'i `'lock_version is locked'` ile reddediyor → `mapCampaignError` bu mesajı tanımıyor → UI'da "Beklenmeyen bir hata oluştu" toast'u çıkıyor. Bu, kullanıcının bildirdiği tüm alanlardaki (`short_description`, `start_at`/`end_at`, `story_content`, `funds_usage_content`, `timeline_content`, `risks_content`) autosave hatalarının tek sebebi.
+### 1. `src/app/auth/AuthProvider.tsx`
+- `loadProfile` içinde role satırlarından `isCreator` türet (`roles.includes('creator') || roles.includes('admin')`).
+- Context value'ya `isCreator: boolean` ekle.
 
-Aynı sebeple `submit_campaign_for_review`, admin'in `approve_campaign`/`reject_campaign`/`request_revision`/`suspend_campaign` RPC'leri de kendi yetkili akışları içinde `status`, `submitted_at`, `lock_version` gibi alanları değiştirdiğinde aynı trigger tarafından engellenme riski taşıyor.
+### 2. `src/components/layout/NavLinks.tsx`
+- NAV_LINKS'e iki yeni öğe ekle: `Kategoriler` → `/discover` (kategori index route'u yok, en yakın eşleşmeye bağlanır, raporda belirtilir), `Kampanya Başlat` → authenticated ise `/creator/campaigns/new`, değilse `/login?redirect=/creator/campaigns/new`.
+- `Kampanya Başlat` görsel olarak ayrı (outline veya primary-subtle variant ile) ama agresif olmayan bir vurgu.
+- Mobil/desktop tek konfigden render edilir.
 
-## Çözüm
+### 3. `src/components/layout/UserMenu.tsx` (genişletilir)
+- Header'da: avatar + display_name + username + (kendi menüsü olduğu için) e-posta + rol rozeti (Kullanıcı / Proje Sahibi / Admin).
+- Standart öğeler: Profilim (`/creators/$username` — username varsa), Profilimi Düzenle (`/settings/profile`), Desteklediğim Projeler (`/dashboard/contributions`), Favorilerim (`/dashboard/favorites`), Bildirimler (`/notifications`), Hesap Ayarları (`/settings/account`), Güvenlik (`/settings/security`).
+- `isCreator` ise ayraç + Creator Paneli (`/creator`), Kampanyalarım (`/creator/campaigns`), Yeni Kampanya (`/creator/campaigns/new`), Ödeme Hesabı (`/creator/payment-account`). "İnceleme Durumu" için ayrı route yok → Kampanyalarım altında ele alınır, raporda not düşülür.
+- `isAdmin` ise ayraç + Admin Paneli (`/admin`), Kampanya İncelemeleri (`/admin/campaign-reviews`), Sistem Uyarıları (`/admin/system-alerts`), Denetim Kaydı (`/admin/audit`). "Şikâyetler" / "Ödeme Operasyonları" için ayrı route yok → gizlenir, raporda belirtilir.
+- Username yoksa "Profilim" gizlenir (onboarding gate zaten yönlendirir).
+- Menü konfigürasyonu tek `getMenuConfig({ isCreator, isAdmin, username })` fonksiyonundan üretilir; mobil drawer da aynı kaynağı tüketir.
+- Çıkış: mevcut `signOut` (zaten cache.clear + auth signOut yapıyor) sonrası `toast.success` + `/` adresine `replace` navigasyon. Hatada `toast.error`.
+- Loading status'unda ufak skeleton (h-9 w-9 rounded-full) render, guest butonları flaş etmesin.
 
-Trigger'a "yetkili RPC içinden geliyorum" bayrağı tanıt: PostgreSQL session-local GUC (`bfl.allow_internal_update`) ile bypass.
+### 4. `src/components/layout/MobileNavigation.tsx`
+- `MobileAuthActions` yerine `useAuth` ile durum bazlı içerik:
+  - Loading: skeleton.
+  - Guest: Giriş Yap / Kayıt Ol.
+  - Authenticated: profil başlığı (avatar + ad + rol), ardından `getMenuConfig` ile profil + creator + admin bağlantıları, sonda Çıkış Yap (destructive renk tonu).
+- Ana nav linkleri zaten `NavLinks variant="vertical"` ile render ediliyor — korunur.
+- Route değiştiğinde drawer kapanır (`onNavigate`).
 
-### 1. Migration
+### 5. `src/components/layout/AppHeader.tsx`
+- Üç bölümlü grid'i koru. Sticky zaten var.
+- Loading state için sağ tarafta skeleton.
+- Uzun display_name için `max-w-[140px] truncate`.
 
-`enforce_campaign_field_locks()` fonksiyonunu güncelle:
+### 6. Yeni yardımcı
+- `src/components/layout/userMenuConfig.ts`: `ProfileMenuItem` tipi + `getProfileMenuItems({ isCreator, isAdmin, username })` saf fonksiyon. Lucide ikon referansları içerir, `action: 'logout'` destekler.
 
-```sql
-create or replace function public.enforce_campaign_field_locks()
-returns trigger
-language plpgsql
-set search_path = public
-as $$
-begin
-  -- Yetkili RPC'ler (SECURITY DEFINER) içinden geliyorsa bypass.
-  if coalesce(current_setting('bfl.allow_internal_update', true), '') = 'on' then
-    return new;
-  end if;
-  if auth.uid() is not null
-     and auth.uid() = old.creator_id
-     and not public.is_admin() then
-    -- mevcut kilit kontrolleri aynen
-    ...
-  end if;
-  return new;
-end;
-$$;
-```
+### 7. Testler
+- `src/components/layout/__tests__/UserMenu.test.tsx`: guest/auth/creator/admin görünürlüğü, logout signOut çağırıyor, avatar fallback initials, uzun ad truncate.
+- `src/components/layout/__tests__/userMenuConfig.test.ts`: rol bazlı liste filtreleme.
+- Mevcut `MobileNavigation.test.tsx` güncellenir (auth bazlı render).
 
-Sonra GUC'u set eden tüm yetkili RPC'lerin gövdesinin **başına** şu satırı ekle:
+## Yapılmayacaklar
+- Yeni route, sayfa, tablo, RPC, RLS, edge function.
+- `categories` index, "şikâyetler", "ödeme operasyonları" route'ları (yok, raporda eksik olarak belirtilir).
+- Auth sisteminin değiştirilmesi; yeni `useAuth` kopyası.
+- `user_roles` enum'una `creator` eklenmesi (kapsam dışı).
 
-```sql
-perform set_config('bfl.allow_internal_update', 'on', true);
-```
+## Doğrulama
+- Bun typecheck + vitest + build (harness).
+- Manuel: mobil 320px taşma, dark mode, klavyeyle dropdown gezintisi, logout sonrası cache temizliği.
 
-Etkilenen RPC'ler:
-- `public.update_campaign_draft`
-- `public.submit_campaign_for_review`
-- `public.approve_campaign`
-- `public.reject_campaign`
-- `public.request_revision`
-- `public.suspend_campaign`
-- (varsa) `public.publish_due_campaigns`, `public.close_campaign`, `public.cancel_campaign` — `pg_proc`'tan tarayıp aynı satırı ekle.
-
-`set_config(..., is_local=true)` yalnızca o transaction süresince geçerli olduğundan, doğrudan SQL ile yapılan UPDATE'ler trigger'a takılmaya devam eder; güvenlik korunur.
-
-### 2. Frontend hata mesajı dayanıklılığı
-
-`src/lib/campaigns/errors.ts` içine ek koruma: tanımsız trigger/RPC mesajlarında en azından ham mesajı log'a yaz, kullanıcıya generic mesajı göster (mevcut davranış zaten böyle ama log eklenecek ki gelecek hatalar görünür olsun). Ayrıca `BFL_INVALID_SHORT_DESCRIPTION` için açık mesaj ekle:
-
-```ts
-if (message.includes("BFL_INVALID_SHORT_DESCRIPTION"))
-  return { code, message: "Kısa açıklama 40-200 karakter olmalı." };
-```
-
-### 3. Autosave UX iyileştirmesi (küçük)
-
-`useCampaignAutosave.schedule()` `short_description` ve `title` için RPC'nin reddedeceği uzunluklarda bile her tuş vuruşunda RPC çağırıyor → kullanıcı yazarken ara hata toast'ları görüyor. Düzeltme:
-
-- `BasicsStepForm` zaten client-side min/max gösteriyor. `schedule` çağrısını **yalnızca** alan RPC kabul aralığındayken yap; aksi halde sadece local state'i güncelle, RPC tetikleme. `MarkdownStepForm` için RPC zaten min kontrolü yapmıyor; oraya dokunmaya gerek yok ama yine de min karakteri sağlanana kadar autosave'i geciktirmek tutarlı bir deneyim sağlar.
-
-(Bu sadece UX iyileştirmesi; ana hatayı (1) gideriyor.)
-
-### 4. Doğrulama
-
-Migration uygulandıktan sonra:
-- Wizard'da Temel/Hedef/Hikâye/Fon/Takvim/Risk adımlarında alanları doldurup autosave + "Kaydet ve devam et" düğmelerinin başarıyla geçmesini manuel olarak doğrula.
-- "Önizle" sayfasını aç, alanların geldiğini gör.
-- Submit adımına git, kampanyayı incelemeye gönder (status değişimi); aynı trigger'ın hâlâ doğrudan SQL UPDATE'lerini reddettiğini `psql` ile tek bir UPDATE deneyerek doğrula (regresyon yok).
-- Otomatik: `bun run test` ile mevcut campaign validation testlerini çalıştır.
-
-## Kapsam dışı
-
-- Tablo şemasını değiştirmek, RLS politikalarını yeniden yazmak, lock_version mekanizmasını kaldırmak.
-- Reward tier / media adımlarında düzeltme (bu adımlar sorun olarak bildirilmedi; ayrı tablolar, aynı trigger'dan etkilenmiyor).
-- Genel error reporting altyapısı (sadece bilinen kodları ekle).
-
-## Etkilenen dosyalar
-
-- Yeni migration: `supabase/migrations/<ts>_fix_campaign_field_lock_bypass.sql` — trigger fonksiyonu + 6 RPC.
-- `src/lib/campaigns/errors.ts` — yeni hata kodu eşlemeleri + bilinmeyen mesaj loglaması.
-- `src/components/creator/BasicsStepForm.tsx` (varsa) — autosave'i sadece geçerli aralıkta tetikle.
+## Çıktı raporu (10 başlık)
+İmplementasyon sonunda istenen formatta rapor verilecek; eksik route'lar ("kategoriler index", "creator inceleme durumu", "şikâyetler", "ödeme operasyonları") ve `user_roles` içinde `creator` enum değerinin yokluğu açıkça belirtilecek.
