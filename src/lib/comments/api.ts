@@ -28,11 +28,13 @@ interface CommentRow {
   author_id: string;
   body: string;
   created_at: string;
-  author: {
-    display_name: string | null;
-    username: string | null;
-    avatar_url: string | null;
-  } | null;
+}
+
+interface ProfileRow {
+  id: string;
+  display_name: string | null;
+  username: string | null;
+  avatar_path: string | null;
 }
 
 export async function listCampaignComments(
@@ -41,9 +43,7 @@ export async function listCampaignComments(
 ): Promise<CampaignCommentItem[]> {
   const { data, error } = await supabase
     .from("campaign_comments")
-    .select(
-      "id, author_id, body, created_at, author:profiles!campaign_comments_author_id_fkey(display_name, username, avatar_url)",
-    )
+    .select("id, author_id, body, created_at")
     .eq("campaign_id", campaignId)
     .eq("status", "visible")
     .is("parent_id", null)
@@ -52,15 +52,30 @@ export async function listCampaignComments(
 
   if (error) throw new CommentApiError("Yorumlar yüklenemedi.", error);
 
-  const rows = (data ?? []) as unknown as CommentRow[];
-  return rows.map((r) => ({
-    id: r.id,
-    authorId: r.author_id,
-    authorName: r.author?.display_name ?? r.author?.username ?? "Kullanıcı",
-    authorAvatarUrl: r.author?.avatar_url ?? null,
-    body: r.body,
-    createdAt: r.created_at,
-  }));
+  const rows = (data ?? []) as CommentRow[];
+  if (rows.length === 0) return [];
+
+  const authorIds = Array.from(new Set(rows.map((r) => r.author_id)));
+  const { data: profileRows } = await supabase
+    .from("profiles")
+    .select("id, display_name, username, avatar_path")
+    .in("id", authorIds);
+
+  const profileMap = new Map<string, ProfileRow>(
+    ((profileRows ?? []) as ProfileRow[]).map((p) => [p.id, p]),
+  );
+
+  return rows.map((r) => {
+    const p = profileMap.get(r.author_id);
+    return {
+      id: r.id,
+      authorId: r.author_id,
+      authorName: p?.display_name ?? p?.username ?? "Kullanıcı",
+      authorAvatarUrl: p?.avatar_path ?? null,
+      body: r.body,
+      createdAt: r.created_at,
+    };
+  });
 }
 
 export async function addCampaignComment(params: {
