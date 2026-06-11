@@ -227,20 +227,11 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             </Section>
 
             <Section title="Yorumlar">
-              <ul className="space-y-3">
-                {c.comments.map((cm) => (
-                  <li key={cm.id} className="rounded-md border border-border bg-card p-3 text-sm">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">{cm.authorName}</span>
-                      <span>{formatRelativeTime(cm.date)}</span>
-                    </div>
-                    <p className="mt-1 text-foreground">{cm.body}</p>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Yorum yazma demo aşamasında devre dışıdır.
-              </p>
+              <CampaignCommentsSection
+                campaignId={c.id}
+                campaignSlug={slug}
+                isAuthenticated={!!user}
+              />
             </Section>
 
             <Section title="Sık sorulan sorular">
