@@ -15,6 +15,7 @@ interface AuthContextValue {
   profile: Profile | null;
   profileLoading: boolean;
   isAdmin: boolean;
+  isCreator: boolean;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
   const mountedRef = useRef(true);
 
   const loadProfile = useCallback(async (userId: string) => {
@@ -42,13 +44,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         supabase.from("user_roles").select("role").eq("user_id", userId),
       ]);
       if (!mountedRef.current) return;
+      const roles = (roleRows ?? []).map((r) => r.role);
       setProfile(profileRow ?? null);
-      setIsAdmin((roleRows ?? []).some((r) => r.role === "admin"));
+      setIsAdmin(roles.includes("admin"));
+      setIsCreator(roles.includes("admin") || roles.includes("creator"));
     } catch (err) {
       console.error("[auth] loadProfile failed", err);
       if (mountedRef.current) {
         setProfile(null);
         setIsAdmin(false);
+        setIsCreator(false);
       }
     } finally {
       if (mountedRef.current) setProfileLoading(false);
@@ -69,6 +74,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (event === "SIGNED_OUT") {
         setProfile(null);
         setIsAdmin(false);
+        setIsCreator(false);
         return;
       }
 
@@ -116,10 +122,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       profile,
       profileLoading,
       isAdmin,
+      isCreator,
       refreshProfile,
       signOut,
     }),
-    [status, session, profile, profileLoading, isAdmin, refreshProfile, signOut],
+    [status, session, profile, profileLoading, isAdmin, isCreator, refreshProfile, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
