@@ -147,8 +147,15 @@ export const simulateTestPayment = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    // App-level guard: refuse in production env
-    if (process.env.APP_ENV === "production") {
+    // Multi-factor guard: default-deny when APP_ENV is missing or unknown,
+    // and refuse whenever the Stripe key looks live. Defense in depth so an
+    // accidentally unset env var on a production deployment cannot expose
+    // this endpoint.
+    const appEnv = process.env.APP_ENV;
+    const { getEnvironment } = await import("@/lib/payments/stripe.server");
+    const stripeEnv = getEnvironment();
+    const allowedEnv = appEnv === "development" || appEnv === "test" || appEnv === "staging";
+    if (!allowedEnv || stripeEnv === "live") {
       throw new Error("BFL_SIMULATION_DISABLED");
     }
     const { supabase } = context;
