@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Heart } from "lucide-react";
+import { Heart, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Container } from "@/components/common/Container";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { MobileNavigation } from "./MobileNavigation";
@@ -33,13 +34,27 @@ export function AppHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="hidden lg:inline-flex"
+          >
+            <Link to="/creator/campaigns/new">
+              <PlusCircle className="mr-2 size-4" aria-hidden="true" />
+              Kampanya başlat
+            </Link>
+          </Button>
+
           <div className="hidden items-center gap-2 md:flex">
-            {status === "authenticated" && user ? (
+            {status === "loading" ? (
+              <Skeleton className="size-9 rounded-full" />
+            ) : status === "authenticated" && user ? (
               <>
                 <NotificationBell />
                 <UserMenu />
               </>
-            ) : status === "unauthenticated" ? (
+            ) : (
               <>
                 <Button asChild variant="ghost" size="sm">
                   <Link to="/login">Giriş yap</Link>
@@ -48,7 +63,7 @@ export function AppHeader() {
                   <Link to="/register">Kayıt ol</Link>
                 </Button>
               </>
-            ) : null}
+            )}
           </div>
           {status === "authenticated" && user ? (
             <div className="md:hidden">

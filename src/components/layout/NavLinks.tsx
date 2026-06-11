@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { cn } from "@/lib/utils";
 
 export interface NavLinkItem {
   to: "/" | "/discover" | "/how-it-works" | "/about";
@@ -21,10 +22,10 @@ interface NavLinksProps {
 export function NavLinks({ onNavigate, className, variant = "horizontal" }: NavLinksProps) {
   return (
     <ul
-      className={
-        (variant === "horizontal" ? "flex items-center gap-1 " : "flex flex-col gap-1 ") +
-        (className ?? "")
-      }
+      className={cn(
+        variant === "horizontal" ? "flex items-center gap-1" : "flex flex-col gap-1",
+        className,
+      )}
     >
       {NAV_LINKS.map((link) => (
         <li key={link.to}>
