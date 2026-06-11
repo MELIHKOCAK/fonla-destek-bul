@@ -1,65 +1,117 @@
-Demo/placeholder olarak işaretlenmiş tüm akışları gerçek implementasyonlarla değiştireceğim. Kapsam büyük olduğu için fazlara böldüm; her faz bağımsız test edilebilir bir milestone'dur.
 
-## Faz 1 — Veritabanı & altyapı (1 migration + e-posta altyapısı)
-- `contact_messages` tablosu: ad, e-posta, konu, mesaj, status (`new|read|resolved`), `user_id` (opsiyonel), IP/UA. RLS: insert herkese açık, select sadece admin (`has_role(auth.uid(),'admin')`).
-- `campaign_comments` zaten var → insert/select RLS politikalarını gözden geçir; yorum yazma için authenticated kullanıcıya insert izni.
-- `campaign_reports` zaten var → kullanıcı insert akışı için RLS doğrula.
-- E-posta altyapısı: `email_domain--setup_email_infra` + Lovable Emails ile iletişim formu için "yöneticiye bildirim" + "kullanıcıya teşekkür" şablonları (`scaffold_transactional_email` + `scaffold_auth_email_templates`).
+# BeniFonla — Production Öncesi Uçtan Uca Test Planı
 
-## Faz 2 — İletişim formu (gerçek e-posta + DB kaydı)
-- `src/lib/contact/api.ts`: `submitContactMessage` serverFn — Zod doğrulama, `contact_messages` insert (service role), `sendTransactionalEmail` ile teyit e-postası.
-- `ContactForm.tsx`: `useDemoSubmit` kaldırıldı, gerçek mutation + toast.
-- `use-demo-submit.ts` artık başka yerde kullanılmıyorsa kaldırılacak.
+Amaç: tüm sayfa, route, akış, veritabanı işlemi, Edge Function ve güvenlik kuralını gerçek davranışla doğrulamak; bulunan hataları güvenli şekilde düzeltip regresyonla onaylamak; sonunda kanıta dayalı bir rapor üretmek.
 
-## Faz 3 — Şikâyet (ReportDialog)
-- `src/lib/reports/api.ts`: `submitCampaignReport` serverFn (auth zorunlu), `campaign_reports` insert.
-- `ReportDialog.tsx`: `campaignId` prop ekle, gerçek mutation; demo metni temizle.
-- `CampaignDetailPage.tsx`: dialog'a kampanya ID'sini geçir.
+Çalışma kuralı: her aşama "Test → Hata → Düzeltme → Yeniden Test → Regresyon" döngüsüyle yürür. Hiçbir bölüm test edilmeden başarılı sayılmaz.
 
-## Faz 4 — Yorum yazma (CampaignDetailPage)
-- `src/lib/comments/api.ts`: `addCampaignComment` serverFn (auth zorunlu, kampanya bekleyen/aktif kontrolü, length kontrolü).
-- `CampaignDetailPage` "Yorumlar" bölümüne yorum formu (sadece giriş yapmış kullanıcılara; misafire "Yorum yapmak için giriş yapın" CTA).
-- Yorumları gerçek zamanlı yenilemek için React Query invalidate.
+## Faz 0 — Envanter Çıkarma (salt okunur)
 
-## Faz 5 — Hesap silme + e-posta değiştirme
-- `src/lib/account/api.ts`:
-  - `requestEmailChange` serverFn → `supabase.auth.updateUser({ email })` admin client + onay e-postası (Supabase yerleşik akışı kullanır).
-  - `deleteAccount` serverFn → kullanıcı onayı (e-postasını yazmak), admin client ile `auth.admin.deleteUser(userId)`.
-- `settings.account.tsx`: "yakında" kaldır; e-posta değiştirme formu + onay dialog'lu hesap silme.
+`src/routes/`, `src/components/`, `src/lib/`, `src/hooks/`, `supabase/migrations/`, `src/routes/api/` taranır. Çıktı: tek bir `TEST_INVENTORY.md` (geçici, raporun ekine girer).
 
-## Faz 6 — Ödeme UI'sini aktif et (sandbox kal)
-- `SupportCtaDialog`: "Demo aşaması" başlığını kaldır; misafir → giriş CTA, giriş yapmış → ödeme akışına yönlendir (mevcut `/contributions/...` veya `/checkout` route'u).
-- `CampaignDetailPage`: "Demo aşaması: gerçek ödeme alınmaz" metnini "Test modu — sandbox ödeme" şeklinde yumuşat (ödeme entegrasyonu hâlihazırda sandbox).
-- `HomePage`: "Demo aşamasında sandbox..." metnini düz "Sandbox modda güvenli ödeme test edilir." şeklinde yeniden yaz.
-- `creator.payment-account.tsx`: mevcut Stripe sandbox onboarding'i UI'de açık göster.
+- Tüm route'lar (public / `_authenticated/` / admin / dinamik / `api/public/*`)
+- Tüm formlar, butonlar, modallar, dosya yükleme alanları
+- Tüm `createServerFn` ve server route handler'ları
+- Supabase tabloları, RLS politikaları, RPC'ler, trigger'lar, storage bucket'ları
+- Kullanılan secret/env değişkenleri ve harici entegrasyonlar (Stripe, Lovable AI)
+- Roller: guest, user (backer), creator, moderator, admin
 
-## Faz 7 — Mock servis katmanı temizliği
-- `src/services/campaigns.service.ts`, `categories.service.ts`, `creators.service.ts` mock döndüren fonksiyonlar gerçek `src/lib/*/api.ts` çağrılarına proxy olacak.
-- Test dışı `src/services/mock/` ve `src/mocks/` kullanımları kaldırılacak (DesignSystem hariç tutulmaz — bu sayfa renk paletini sergilediği için sadece statik veriyle güncellenecek).
+## Faz 1 — Statik Doğrulama
 
-## Faz 8 — Doğrulama
-- `bunx vitest run` (etkilenen test dosyaları).
-- Manuel: iletişim formu, şikâyet, yorum, hesap silme onayı, e-posta değiştirme isteği, kampanya destek butonu.
-- Build sağlığı.
+- `tsc` (strict) + lint + production build
+- `supabase--linter` (security + performance)
+- `rg` ile yasaklı kalıplar: `any`, `@ts-ignore`, `console.log`, `service_role`, sabit token
+- Mevcut Vitest suite tam çalıştırma (önceki turda 111/112 → 112/112 hedef)
 
-## Teknik notlar
-- Service role isteyen tüm yazma işlemleri `createServerFn` + `requireSupabaseAuth` içinde, `client.server` handler-içi `await import()` ile.
-- Tüm input'lar Zod ile (uzunluk + format).
-- TR copy, sentence case, "Mesajı gönder" / "Şikâyeti gönder" / "Hesabı kalıcı olarak sil" gibi spesifik aksiyonlar.
-- Hesap silme onayı: kullanıcı e-postasını yazıp "Hesabı sil" butonuna basmadan aktifleşmez.
+## Faz 2 — Route ve Navigasyon Testleri
 
-## İlk dokunulacak dosyalar (özet)
-- migration (Faz 1)
-- src/lib/contact/api.ts (yeni)
-- src/lib/reports/api.ts (yeni)
-- src/lib/comments/api.ts (yeni)
-- src/lib/account/api.ts (yeni)
-- src/components/forms/ContactForm.tsx
-- src/components/common/ReportDialog.tsx
-- src/components/common/SupportCtaDialog.tsx
-- src/components/campaign/CampaignCommentForm.tsx (yeni)
-- src/pages/CampaignDetailPage.tsx
-- src/pages/HomePage.tsx
-- src/routes/_authenticated/settings.account.tsx
-- src/services/campaigns.service.ts, categories.service.ts, creators.service.ts
-- src/hooks/use-demo-submit.ts (silinecek)
+Her route için: doğrudan URL, refresh, geri/ileri, geçersiz param, silinmiş kayıt, 404. Public sayfaların SSR yanıtı + `<title>` / OG / JSON-LD doğrulanır (`curl`). `_authenticated/*` için anonim erişim → `/auth` redirect testi.
+
+## Faz 3 — Authentication
+
+E-posta+şifre kayıt/giriş/çıkış, Google OAuth (broker), şifre sıfırlama, e-posta değiştirme, hesap silme. Session refresh, çok sekmeli logout, token süresi dolması.
+
+## Faz 4 — Authorization & RLS (saldırgan modeli)
+
+Anon ve `authenticated` rolleriyle doğrudan PostgREST istekleri:
+- Başka kullanıcının `contributions`, `campaigns`, `profiles`, `notifications`, `campaign_reports` kayıtlarına SELECT/UPDATE/DELETE
+- `user_roles` tablosuna self-insert denemesi (privilege escalation)
+- `INSERT` sırasında `user_id` / `creator_id` override
+- `payment_transactions`, `financial_ledger_entries`, `payouts`, `audit_logs` üzerinde her türlü yazma
+- Admin RPC'leri (`is_admin`, moderation aksiyonları) normal kullanıcıyla çağırma
+- Storage bucket'larında başka kullanıcının dosyasına erişim
+
+Beklenen: tüm yetkisiz işlemler RLS seviyesinde reddedilir.
+
+## Faz 5 — Veritabanı & Server Functions
+
+Her `createServerFn` için: doğru/eksik/zararlı input, auth gerektiren fn'lerin anonim çağrısı (401), idempotency, hata mesajının kullanıcıya sızdırdığı detay.
+
+CRUD: kampanya oluştur → düzenle → submit → review → publish → contribute → refund → payout zinciri. İlişkili kayıtların tutarlılığı ve cache invalidation kontrolü.
+
+## Faz 6 — Server Routes / Webhook'lar
+
+- `POST /api/public/hooks/stripe-webhook`: imzasız 400, geçersiz imza 401, geçerli imza 200 + idempotent
+- `POST /api/public/hooks/publish-due-campaigns`: yetkisiz 401, yetkili akış
+- AI summary endpoint: rate limit, provider hata fallback'i
+
+## Faz 7 — Formlar & Validation
+
+İletişim formu, kayıt/giriş, kampanya wizard (6 adım), reward tier, yorum, rapor, profil, şifre değiştirme. Her alanda boş/uzun/HTML/emoji/Türkçe karakter/SQL benzeri girdi. Çift submit, ağ kesintisi, server hatası senaryoları. Hata mesajlarının Türkçe, alan-bazlı, teknik detay içermemesi.
+
+## Faz 8 — Dosya Yükleme
+
+Kampanya medya yükleme: MIME + boyut + uzantı, kötü adlandırma, başka kullanıcının path'ine yazma denemesi, eski medyanın temizlenmesi, public/private bucket politikası.
+
+## Faz 9 — Arama, Filtre, Sıralama, Pagination
+
+Ana sayfa ve kategori sayfasında: Türkçe karakter, debounce, boş sonuç, URL query persistence, son sayfa, kayıt silindiğinde sayfa kayması.
+
+## Faz 10 — State, Console, Network
+
+Browser ile kritik akışlarda: hydration error, infinite render, "update on unmounted", missing key, controlled/uncontrolled. Network'te 401/403/404/CORS, gereksiz refetch, payload'da hassas veri sızıntısı.
+
+## Faz 11 — Responsive & Accessibility
+
+320 / 390 / 768 / 1280 / 1920 px'de ana akışlar. Klavye navigasyonu, focus trap (modal), alt text, kontrast, ikon-buton aria-label.
+
+## Faz 12 — Performans
+
+Lighthouse hızlı taraması ana sayfa + kampanya detay. N+1 sorgu, paginate edilmemiş select, bundle boyutu, lazy loading.
+
+## Faz 13 — Güvenlik Tarama
+
+`security--run_security_scan`, secret leak grep, redirect URL doğrulama, IDOR vakaları (Faz 4 sonuçlarıyla birlikte), Stripe sandbox akışının canlı veriye dokunmadığının teyidi.
+
+## Faz 14 — Production Build & Smoke
+
+`build:dev` + published preview üzerinde smoke: SSR 200, OG meta, auth gate, webhook imza reddi, 404, asset 200.
+
+## Faz 15 — Düzeltme Döngüsü
+
+Önem sırası: Güvenlik → Veri kaybı → Auth/Authz → Kırık route → Kırık fonksiyon → DB/Edge → Form → Responsive → Console → Performans → UX. Her düzeltme sonrası ilgili faz + ilgili Vitest dosyaları yeniden koşturulur.
+
+## Faz 16 — Otomatik Test Eklemeleri
+
+Eksik kritik akışlar için Vitest + RTL testi (kayıt, giriş, protected route, role guard, kampanya CRUD, RLS reddi smoke, 404). Playwright halihazırda kurulu değilse eklenmez; mevcut altyapıda kalınır.
+
+## Faz 17 — Final Rapor
+
+`TEST_REPORT.md` üretilir:
+- Envanter sayıları (route, sayfa, form, server fn, tablo, rol)
+- Tespit edilen sorunlar tablosu (önem, neden, düzeltme, retest sonucu)
+- Başarılı test kategorileri
+- Açık kalan sorunlar (varsa) + risk + öneri
+- Final durum: kanıta dayalı tek bir cümle
+
+## Teknik Notlar
+
+- Yazma testleri yalnızca test kullanıcıları üzerinde; gerçek `contact_messages`, `campaigns`, `contributions` üretim kayıtlarına dokunulmaz.
+- Stripe akışı yalnızca sandbox key ile.
+- Hesap silme testi yalnızca özel test hesabıyla.
+- Migration gerektiren düzeltmeler kullanıcı onayı ile uygulanır.
+- `src/integrations/supabase/*` auto-generated dosyalarına dokunulmaz.
+
+---
+
+Onaylarsan Faz 0'dan başlayıp her fazın sonunda bulguları + uygulanan düzeltmeleri özetleyerek ilerlerim.
