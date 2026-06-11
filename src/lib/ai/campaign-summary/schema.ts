@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { SUPPORTED_SUMMARY_LANGUAGES } from "./languages";
+import { SUMMARY_DISCLAIMER } from "./disclaimers";
+import { SUPPORTED_SUMMARY_LANGUAGES, type SupportedSummaryLanguage } from "./languages";
 
 /** All 8 sections required in every AI summary. */
 export const SUMMARY_SECTION_KEYS = [
@@ -47,6 +48,88 @@ export const SummarySectionSchema = z.object({
 });
 export type SummarySection = z.infer<typeof SummarySectionSchema>;
 
+const SECTION_HEADINGS: Record<SupportedSummaryLanguage, Record<SummarySectionKey, string>> = {
+  tr: {
+    generalSummary: "Genel özet",
+    campaignPurpose: "Kampanya amacı",
+    fundUsage: "Fon kullanımı",
+    importantDates: "Önemli tarihler",
+    risksAndChallenges: "Riskler ve zorluklar",
+    rewards: "Ödüller",
+    attentionPoints: "Dikkat edilmesi gerekenler",
+    campaignPeriod: "Kampanya dönemi",
+  },
+  en: {
+    generalSummary: "General summary",
+    campaignPurpose: "Campaign purpose",
+    fundUsage: "Use of funds",
+    importantDates: "Important dates",
+    risksAndChallenges: "Risks and challenges",
+    rewards: "Rewards",
+    attentionPoints: "Attention points",
+    campaignPeriod: "Campaign period",
+  },
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function coerceSourceFields(value: unknown): SummarySourceField[] {
+  const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  return values.filter((item): item is SummarySourceField =>
+    typeof item === "string" && (SUMMARY_SOURCE_FIELDS as readonly string[]).includes(item),
+  );
+}
+
+function coerceSection(
+  key: SummarySectionKey,
+  value: unknown,
+  languageCode: SupportedSummaryLanguage,
+): SummarySection | null {
+  if (!isRecord(value)) return null;
+  const content = typeof value.content === "string" ? value.content : "Bilgi sağlanmamış.";
+  const heading = typeof value.heading === "string" ? value.heading : SECTION_HEADINGS[languageCode][key];
+  const sourceFields = coerceSourceFields(value.sourceFields ?? value.sourceField);
+  return { key, heading, content, sourceFields };
+}
+
+function coerceSummaryOutput(raw: unknown, expectedLanguage: string): unknown {
+  if (!isRecord(raw)) return raw;
+  const languageCode: SupportedSummaryLanguage = SUPPORTED_SUMMARY_LANGUAGES.includes(
+    raw.languageCode as SupportedSummaryLanguage,
+  )
+    ? (raw.languageCode as SupportedSummaryLanguage)
+    : SUPPORTED_SUMMARY_LANGUAGES.includes(expectedLanguage as SupportedSummaryLanguage)
+    ? (expectedLanguage as SupportedSummaryLanguage)
+    : "tr";
+
+  const sectionsSource = raw.sections;
+  const sections = Array.isArray(sectionsSource)
+    ? sectionsSource.map((section) => {
+        if (!isRecord(section)) return section;
+        const key = section.key;
+        if (typeof key !== "string" || !(SUMMARY_SECTION_KEYS as readonly string[]).includes(key)) {
+          return section;
+        }
+        return coerceSection(key as SummarySectionKey, section, languageCode) ?? section;
+      })
+    : SUMMARY_SECTION_KEYS.map((key) => coerceSection(key, raw[key], languageCode)).filter(
+        (section): section is SummarySection => section !== null,
+      );
+
+  return {
+    schemaVersion: raw.schemaVersion ?? 1,
+    languageCode,
+    sections,
+    missingInformation: coerceSourceFields(raw.missingInformation),
+    disclaimer:
+      typeof raw.disclaimer === "string" && raw.disclaimer.trim().length > 0
+        ? raw.disclaimer
+        : SUMMARY_DISCLAIMER[languageCode],
+  };
+}
+
 export const CampaignSummaryOutputSchema = z.object({
   schemaVersion: z.literal(1),
   languageCode: z.enum(SUPPORTED_SUMMARY_LANGUAGES),
@@ -89,7 +172,7 @@ export function validateSummary(
   raw: unknown,
   expectedLanguage: string,
 ): SummaryValidationResult {
-  const parsed = CampaignSummaryOutputSchema.safeParse(raw);
+  const parsed = CampaignSummaryOutputSchema.safeParse(coerceSummaryOutput(raw, expectedLanguage));
   if (!parsed.success) {
     return {
       ok: false,
