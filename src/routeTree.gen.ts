@@ -40,8 +40,8 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedCreatorIndexRouteImport } from './routes/_authenticated/creator.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as CampaignsSlugBackRouteImport } from './routes/campaigns.$slug.back'
@@ -238,16 +238,17 @@ const AuthenticatedNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDashboardIndexRoute =
+  AuthenticatedDashboardIndexRouteImport.update({
+    id: '/dashboard/',
+    path: '/dashboard/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCreatorIndexRoute =
   AuthenticatedCreatorIndexRouteImport.update({
     id: '/creator/',
@@ -290,33 +291,33 @@ const AuthenticatedSettingsAccountRoute =
   } as any)
 const AuthenticatedDashboardRewardsRoute =
   AuthenticatedDashboardRewardsRouteImport.update({
-    id: '/rewards',
-    path: '/rewards',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/rewards',
+    path: '/dashboard/rewards',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedDashboardRefundsRoute =
   AuthenticatedDashboardRefundsRouteImport.update({
-    id: '/refunds',
-    path: '/refunds',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/refunds',
+    path: '/dashboard/refunds',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedDashboardPaymentsRoute =
   AuthenticatedDashboardPaymentsRouteImport.update({
-    id: '/payments',
-    path: '/payments',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/payments',
+    path: '/dashboard/payments',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedDashboardFavoritesRoute =
   AuthenticatedDashboardFavoritesRouteImport.update({
-    id: '/favorites',
-    path: '/favorites',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/favorites',
+    path: '/dashboard/favorites',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedDashboardContributionsRoute =
   AuthenticatedDashboardContributionsRouteImport.update({
-    id: '/contributions',
-    path: '/contributions',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/contributions',
+    path: '/dashboard/contributions',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCreatorPaymentAccountRoute =
   AuthenticatedCreatorPaymentAccountRouteImport.update({
@@ -507,7 +508,6 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -531,6 +531,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/creator/': typeof AuthenticatedCreatorIndexRoute
+  '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/ai/generate-campaign-summary': typeof ApiPublicAiGenerateCampaignSummaryRoute
@@ -580,7 +581,6 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/unauthorized': typeof UnauthorizedRoute
-  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -602,6 +602,7 @@ export interface FileRoutesByTo {
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/creator': typeof AuthenticatedCreatorIndexRoute
+  '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/ai/generate-campaign-summary': typeof ApiPublicAiGenerateCampaignSummaryRoute
@@ -654,7 +655,6 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -678,6 +678,7 @@ export interface FileRoutesById {
   '/campaigns/$slug/back': typeof CampaignsSlugBackRouteWithChildren
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/creator/': typeof AuthenticatedCreatorIndexRoute
+  '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/ai/generate-campaign-summary': typeof ApiPublicAiGenerateCampaignSummaryRoute
@@ -730,7 +731,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unauthorized'
     | '/admin'
-    | '/dashboard'
     | '/notifications'
     | '/onboarding'
     | '/settings'
@@ -754,6 +754,7 @@ export interface FileRouteTypes {
     | '/campaigns/$slug/back'
     | '/admin/'
     | '/creator/'
+    | '/dashboard/'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/api/public/ai/generate-campaign-summary'
@@ -803,7 +804,6 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/unauthorized'
-    | '/dashboard'
     | '/notifications'
     | '/onboarding'
     | '/settings'
@@ -825,6 +825,7 @@ export interface FileRouteTypes {
     | '/settings/security'
     | '/admin'
     | '/creator'
+    | '/dashboard'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/api/public/ai/generate-campaign-summary'
@@ -876,7 +877,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unauthorized'
     | '/_authenticated/admin'
-    | '/_authenticated/dashboard'
     | '/_authenticated/notifications'
     | '/_authenticated/onboarding'
     | '/_authenticated/settings'
@@ -900,6 +900,7 @@ export interface FileRouteTypes {
     | '/campaigns/$slug/back'
     | '/_authenticated/admin/'
     | '/_authenticated/creator/'
+    | '/_authenticated/dashboard/'
     | '/_authenticated/admin/campaign-reviews/$campaignId'
     | '/_authenticated/creator/campaigns/new'
     | '/api/public/ai/generate-campaign-summary'
@@ -1182,18 +1183,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard/': {
+      id: '/_authenticated/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/creator/': {
@@ -1247,38 +1248,38 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/dashboard/rewards': {
       id: '/_authenticated/dashboard/rewards'
-      path: '/rewards'
+      path: '/dashboard/rewards'
       fullPath: '/dashboard/rewards'
       preLoaderRoute: typeof AuthenticatedDashboardRewardsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard/refunds': {
       id: '/_authenticated/dashboard/refunds'
-      path: '/refunds'
+      path: '/dashboard/refunds'
       fullPath: '/dashboard/refunds'
       preLoaderRoute: typeof AuthenticatedDashboardRefundsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard/payments': {
       id: '/_authenticated/dashboard/payments'
-      path: '/payments'
+      path: '/dashboard/payments'
       fullPath: '/dashboard/payments'
       preLoaderRoute: typeof AuthenticatedDashboardPaymentsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard/favorites': {
       id: '/_authenticated/dashboard/favorites'
-      path: '/favorites'
+      path: '/dashboard/favorites'
       fullPath: '/dashboard/favorites'
       preLoaderRoute: typeof AuthenticatedDashboardFavoritesRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard/contributions': {
       id: '/_authenticated/dashboard/contributions'
-      path: '/contributions'
+      path: '/dashboard/contributions'
       fullPath: '/dashboard/contributions'
       preLoaderRoute: typeof AuthenticatedDashboardContributionsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/creator/payment-account': {
       id: '/_authenticated/creator/payment-account'
@@ -1503,29 +1504,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
-interface AuthenticatedDashboardRouteChildren {
-  AuthenticatedDashboardContributionsRoute: typeof AuthenticatedDashboardContributionsRoute
-  AuthenticatedDashboardFavoritesRoute: typeof AuthenticatedDashboardFavoritesRoute
-  AuthenticatedDashboardPaymentsRoute: typeof AuthenticatedDashboardPaymentsRoute
-  AuthenticatedDashboardRefundsRoute: typeof AuthenticatedDashboardRefundsRoute
-  AuthenticatedDashboardRewardsRoute: typeof AuthenticatedDashboardRewardsRoute
-}
-
-const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
-  {
-    AuthenticatedDashboardContributionsRoute:
-      AuthenticatedDashboardContributionsRoute,
-    AuthenticatedDashboardFavoritesRoute: AuthenticatedDashboardFavoritesRoute,
-    AuthenticatedDashboardPaymentsRoute: AuthenticatedDashboardPaymentsRoute,
-    AuthenticatedDashboardRefundsRoute: AuthenticatedDashboardRefundsRoute,
-    AuthenticatedDashboardRewardsRoute: AuthenticatedDashboardRewardsRoute,
-  }
-
-const AuthenticatedDashboardRouteWithChildren =
-  AuthenticatedDashboardRoute._addFileChildren(
-    AuthenticatedDashboardRouteChildren,
-  )
-
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
   AuthenticatedSettingsNotificationsRoute: typeof AuthenticatedSettingsNotificationsRoute
@@ -1590,18 +1568,22 @@ const AuthenticatedCreatorCampaignsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedCreatorCampaignsRoute: typeof AuthenticatedCreatorCampaignsRouteWithChildren
   AuthenticatedCreatorPaymentAccountRoute: typeof AuthenticatedCreatorPaymentAccountRoute
+  AuthenticatedDashboardContributionsRoute: typeof AuthenticatedDashboardContributionsRoute
+  AuthenticatedDashboardFavoritesRoute: typeof AuthenticatedDashboardFavoritesRoute
+  AuthenticatedDashboardPaymentsRoute: typeof AuthenticatedDashboardPaymentsRoute
+  AuthenticatedDashboardRefundsRoute: typeof AuthenticatedDashboardRefundsRoute
+  AuthenticatedDashboardRewardsRoute: typeof AuthenticatedDashboardRewardsRoute
   AuthenticatedCreatorIndexRoute: typeof AuthenticatedCreatorIndexRoute
+  AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
@@ -1609,7 +1591,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedCreatorCampaignsRouteWithChildren,
   AuthenticatedCreatorPaymentAccountRoute:
     AuthenticatedCreatorPaymentAccountRoute,
+  AuthenticatedDashboardContributionsRoute:
+    AuthenticatedDashboardContributionsRoute,
+  AuthenticatedDashboardFavoritesRoute: AuthenticatedDashboardFavoritesRoute,
+  AuthenticatedDashboardPaymentsRoute: AuthenticatedDashboardPaymentsRoute,
+  AuthenticatedDashboardRefundsRoute: AuthenticatedDashboardRefundsRoute,
+  AuthenticatedDashboardRewardsRoute: AuthenticatedDashboardRewardsRoute,
   AuthenticatedCreatorIndexRoute: AuthenticatedCreatorIndexRoute,
+  AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1690,3 +1679,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
