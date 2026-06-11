@@ -32,13 +32,17 @@ export const SUMMARY_SOURCE_FIELDS = [
 export type SummarySourceField = (typeof SUMMARY_SOURCE_FIELDS)[number];
 
 const HTML_PATTERN = /<\s*\/?\s*(script|iframe|style|img|svg|object|embed|link|meta|on[a-z]+\s*=)/i;
-const NO_HTML = (msg = "HTML reddedildi") =>
-  z.string().refine((v) => !HTML_PATTERN.test(v), { message: msg });
+const noHtml = (max: number) =>
+  z
+    .string()
+    .min(1)
+    .max(max)
+    .refine((v) => !HTML_PATTERN.test(v), { message: "HTML reddedildi" });
 
 export const SummarySectionSchema = z.object({
   key: z.enum(SUMMARY_SECTION_KEYS),
-  heading: NO_HTML().min(1).max(200),
-  content: NO_HTML().min(1).max(4000),
+  heading: noHtml(200),
+  content: noHtml(4000),
   sourceFields: z.array(z.enum(SUMMARY_SOURCE_FIELDS)).max(SUMMARY_SOURCE_FIELDS.length),
 });
 export type SummarySection = z.infer<typeof SummarySectionSchema>;
@@ -50,7 +54,7 @@ export const CampaignSummaryOutputSchema = z.object({
     .array(SummarySectionSchema)
     .length(SUMMARY_SECTION_KEYS.length),
   missingInformation: z.array(z.enum(SUMMARY_SOURCE_FIELDS)).max(SUMMARY_SOURCE_FIELDS.length),
-  disclaimer: NO_HTML().min(1).max(1000),
+  disclaimer: noHtml(1000),
 });
 export type CampaignSummaryOutput = z.infer<typeof CampaignSummaryOutputSchema>;
 
