@@ -36,7 +36,7 @@ export function buildSystemInstruction(language: SupportedSummaryLanguage): stri
     "- Do NOT present creator claims as verified facts.",
     "- Do NOT turn the summary into marketing copy. Use neutral language.",
     "- Do NOT include HTML, scripts, links, images, or markdown formatting.",
-    "- Keep total user-facing content between 120 and 700 words across all sections.",
+    "- Keep total user-facing content between 60 and 700 words across all sections.",
     `- Write all section headings and content in ${languageName}.`,
     "- Respond ONLY with a JSON object matching the provided schema. No prose, no",
     "  markdown code fences, no commentary.",
