@@ -341,7 +341,7 @@ export const Route = createFileRoute("/api/public/ai/generate-campaign-summary")
           .from("campaign_ai_summaries")
           .update({
             status: "completed",
-            summary_json: validation.value as unknown as Record<string, unknown>,
+            summary_json: JSON.parse(JSON.stringify(validation.value)),
             word_count: validation.wordCount,
             model_identifier: aiResult.modelIdentifier,
             generated_at: generatedAt,
