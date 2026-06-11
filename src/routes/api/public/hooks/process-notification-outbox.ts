@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { timingSafeEqual } from "node:crypto";
 import {
   CAMPAIGN_UPDATE_EVENTS,
   CRITICAL_EMAIL_EVENTS,
@@ -8,6 +9,7 @@ import {
 import { renderInApp } from "@/lib/notifications/in-app";
 import { hasTemplate, renderTemplate } from "@/lib/notifications/templates";
 import { sendTransactionalEmail } from "@/lib/notifications/email-provider";
+
 
 /**
  * Outbox worker: claims pending notification events, fans out to in-app
@@ -23,13 +25,23 @@ export const Route = createFileRoute("/api/public/hooks/process-notification-out
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = request.headers.get("apikey");
-        if (!apiKey || apiKey !== process.env.SUPABASE_PUBLISHABLE_KEY) {
+        const expected = process.env.NOTIFICATION_OUTBOX_CRON_SECRET;
+        if (!expected) {
+          return new Response(JSON.stringify({ error: "misconfigured" }), {
+            status: 500,
+            headers: { "content-type": "application/json" },
+          });
+        }
+        const header = request.headers.get("x-cron-secret") ?? "";
+        const a = Buffer.from(header);
+        const b = Buffer.from(expected);
+        if (a.length !== b.length || !timingSafeEqual(a, b)) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
             headers: { "content-type": "application/json" },
           });
         }
+
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
