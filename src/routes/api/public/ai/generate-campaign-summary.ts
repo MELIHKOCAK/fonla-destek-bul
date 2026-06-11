@@ -295,76 +295,125 @@ export const Route = createFileRoute("/api/public/ai/generate-campaign-summary")
         const systemInstruction = buildSystemInstruction(languageCode);
         const userPrompt = buildUserPrompt(canonicalJson);
 
-        // 8. Call AI
-        const aiResult = await callCampaignSummaryGateway({
-          apiKey: lovableApiKey,
-          model: DEFAULT_MODEL_IDENTIFIER,
-          systemInstruction,
-          userPrompt,
-        });
+        try {
+          // 8. Call AI
+          const aiResult = await callCampaignSummaryGateway({
+            apiKey: lovableApiKey,
+            model: DEFAULT_MODEL_IDENTIFIER,
+            systemInstruction,
+            userPrompt,
+          });
 
-        if (!aiResult.ok) {
+          if (!aiResult.ok) {
+            console.error("[ai-summary] gateway failed", {
+              campaignId,
+              languageCode,
+              code: aiResult.code,
+              detail: maskAiDetail(aiResult.detail),
+            });
+            await supabaseAdmin
+              .from("campaign_ai_summaries")
+              .update({
+                status: "failed",
+                failure_code: aiResult.code,
+                failure_message_masked: maskAiDetail(aiResult.detail),
+              })
+              .eq("id", summaryId);
+            const httpStatus =
+              aiResult.code === "AI_BALANCE_UNAVAILABLE"
+                ? 503
+                : aiResult.code === "AI_PROVIDER_RATE_LIMITED"
+                ? 429
+                : 502;
+            const message =
+              aiResult.code === "AI_BALANCE_UNAVAILABLE"
+                ? "AI servisi şu an kullanılamıyor. Daha sonra tekrar deneyin."
+                : aiResult.code === "AI_PROVIDER_RATE_LIMITED"
+                ? "AI servisi yoğun. Lütfen biraz sonra tekrar deneyin."
+                : "AI özet üretiminde bir sorun oluştu. Lütfen tekrar deneyin.";
+            return jsonResponse(errorBody(aiResult.code, message), httpStatus);
+          }
+
+          // 9. Validate
+          const validation = validateSummary(aiResult.raw, languageCode);
+          if (!validation.ok) {
+            console.error("[ai-summary] validation failed", {
+              campaignId,
+              languageCode,
+              code: validation.code,
+              detail: maskAiDetail(validation.detail),
+            });
+            await supabaseAdmin
+              .from("campaign_ai_summaries")
+              .update({
+                status: "failed",
+                failure_code: validation.code,
+                failure_message_masked: maskAiDetail(validation.detail),
+              })
+              .eq("id", summaryId);
+            const validationMessage =
+              validation.code === "WORD_COUNT_OUT_OF_RANGE"
+                ? "Kampanya içeriği AI özeti için yetersiz görünüyor. Kampanya sahibi daha fazla içerik ekledikten sonra tekrar deneyin."
+                : validation.code === "UNSUPPORTED_LANGUAGE_OUTPUT"
+                ? "AI yanıtı seçtiğiniz dilde üretilemedi. Lütfen tekrar deneyin."
+                : "AI çıktısı doğrulanamadı. Lütfen tekrar deneyin.";
+            return jsonResponse(errorBody(validation.code, validationMessage), 502);
+          }
+
+          // 10. Persist
+          const generatedAt = new Date().toISOString();
           await supabaseAdmin
             .from("campaign_ai_summaries")
             .update({
-              status: "failed",
-              failure_code: aiResult.code,
-              failure_message_masked: maskAiDetail(aiResult.detail),
+              status: "completed",
+              summary_json: JSON.parse(JSON.stringify(validation.value)),
+              word_count: validation.wordCount,
+              model_identifier: aiResult.modelIdentifier,
+              generated_at: generatedAt,
             })
             .eq("id", summaryId);
-          const httpStatus = aiResult.code === "AI_BALANCE_UNAVAILABLE" ? 503 : aiResult.code === "AI_PROVIDER_RATE_LIMITED" ? 429 : 502;
-          const message =
-            aiResult.code === "AI_BALANCE_UNAVAILABLE"
-              ? "AI servisi şu an kullanılamıyor. Daha sonra tekrar deneyin."
-              : aiResult.code === "AI_PROVIDER_RATE_LIMITED"
-              ? "AI servisi yoğun. Lütfen biraz sonra tekrar deneyin."
-              : "AI özet üretiminde bir sorun oluştu.";
-          return jsonResponse(errorBody(aiResult.code, message), httpStatus);
-        }
 
-        // 9. Validate
-        const validation = validateSummary(aiResult.raw, languageCode);
-        if (!validation.ok) {
-          await supabaseAdmin
-            .from("campaign_ai_summaries")
-            .update({
-              status: "failed",
-              failure_code: validation.code,
-              failure_message_masked: maskAiDetail(validation.detail),
-            })
-            .eq("id", summaryId);
+          const summary: PublicCampaignSummary = {
+            schemaVersion: 1,
+            languageCode,
+            sections: validation.value.sections,
+            missingInformation: validation.value.missingInformation,
+            disclaimer: SUMMARY_DISCLAIMER[languageCode],
+            generatedAt,
+            source: "fresh",
+          };
           return jsonResponse(
-            errorBody(validation.code, "AI çıktısı doğrulanamadı. Lütfen tekrar deneyin."),
-            502,
+            { status: "completed", code: "GENERATION_STARTED", summary } satisfies SummaryResponseBody,
+            200,
+          );
+        } catch (err) {
+          const detail = (err as Error)?.message ?? "unknown error";
+          console.error("[ai-summary] unexpected failure", {
+            campaignId,
+            languageCode,
+            summaryId,
+            detail,
+          });
+          try {
+            await supabaseAdmin
+              .from("campaign_ai_summaries")
+              .update({
+                status: "failed",
+                failure_code: "AI_PROVIDER_ERROR",
+                failure_message_masked: maskAiDetail(detail),
+              })
+              .eq("id", summaryId);
+          } catch (updateErr) {
+            console.error("[ai-summary] failed to mark failure row", {
+              summaryId,
+              error: (updateErr as Error)?.message,
+            });
+          }
+          return jsonResponse(
+            errorBody("AI_PROVIDER_ERROR", "AI özet üretiminde beklenmeyen bir hata oluştu. Lütfen tekrar deneyin."),
+            500,
           );
         }
-
-        // 10. Persist
-        const generatedAt = new Date().toISOString();
-        await supabaseAdmin
-          .from("campaign_ai_summaries")
-          .update({
-            status: "completed",
-            summary_json: JSON.parse(JSON.stringify(validation.value)),
-            word_count: validation.wordCount,
-            model_identifier: aiResult.modelIdentifier,
-            generated_at: generatedAt,
-          })
-          .eq("id", summaryId);
-
-        const summary: PublicCampaignSummary = {
-          schemaVersion: 1,
-          languageCode,
-          sections: validation.value.sections,
-          missingInformation: validation.value.missingInformation,
-          disclaimer: SUMMARY_DISCLAIMER[languageCode],
-          generatedAt,
-          source: "fresh",
-        };
-        return jsonResponse(
-          { status: "completed", code: "GENERATION_STARTED", summary } satisfies SummaryResponseBody,
-          200,
-        );
       },
     },
   },
