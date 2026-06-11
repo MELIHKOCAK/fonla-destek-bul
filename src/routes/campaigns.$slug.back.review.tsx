@@ -25,6 +25,7 @@ function ReviewStep() {
   const queryClient = useQueryClient();
   const fetch = useServerFn(getContributionCheckoutContext);
   const create = useServerFn(createContribution);
+  const startCheckout = useServerFn(createCheckoutSession);
   const { data } = useQuery({
     queryKey: contributionsQueryKeys.checkout(slug),
     queryFn: () => fetch({ data: { slug } }),
@@ -39,7 +40,7 @@ function ReviewStep() {
       if (!state || !state.campaignId || !state.amountMinor) {
         throw new Error("BFL_INVALID_AMOUNT");
       }
-      return create({
+      const row = await create({
         data: {
           campaignId: state.campaignId,
           rewardTierId: state.rewardTierId,
@@ -50,10 +51,21 @@ function ReviewStep() {
           idempotencyKey: state.idempotencyKey,
         },
       });
-    },
-    onSuccess: (row) => {
       setBackFlow(slug, { contributionId: row.id });
+      const session = await startCheckout({
+        data: {
+          contributionId: row.id,
+          idempotencyKey: state.idempotencyKey,
+        },
+      });
+      return { contributionId: row.id, url: session.url };
+    },
+    onSuccess: ({ url }) => {
       queryClient.invalidateQueries({ queryKey: contributionsQueryKeys.mine() });
+      if (typeof window !== "undefined" && url) {
+        window.location.href = url;
+        return;
+      }
       navigate({ to: "/campaigns/$slug/back/result", params: { slug } });
     },
     onError: (e) => setSubmitError(translateContributionError(e)),
