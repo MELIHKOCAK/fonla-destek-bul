@@ -1,72 +1,54 @@
-
-# BeniFonla — AppHeader & Profil Menüsü İyileştirmesi
+# Plan: AppHeader'ı tüm sayfalara taşı + guest görünümünü sadeleştir
 
 ## Hedef
-Mevcut `AppHeader` + `UserMenu` + `NotificationBell` + `MobileNavigation` yapısı korunarak; rol bazlı (user / creator / admin) profil menüsü, "Kampanya Başlat" CTA'sı ve içerik dolu bir mobil drawer eklenir. Paralel auth/profile state veya ikinci navbar oluşturulmaz.
+1. Yeni `AppHeader` (ile `AppShell`) **istisnasız tüm sayfalarda** en üstte yer alsın.
+2. Guest (oturum açmamış) kullanıcılar için header'da şunlar **gizlensin**:
+   - "Kampanya başlat" CTA (desktop + mobile drawer)
+   - Bildirim çanı (`NotificationBell`)
+   - Profil avatarı / `UserMenu`
+   - Yalnızca: logo, ana nav linkleri, tema toggle, "Giriş yap" + "Kayıt ol", mobil menü düğmesi görünür.
+3. User ve Admin görünümünde değişiklik yok.
 
-## Mevcut altyapı (yeniden kullanılacak)
-- Auth/profile/role: `src/app/auth/AuthProvider.tsx` (`useAuth` → `status`, `user`, `profile`, `isAdmin`, `signOut`)
-- Bildirim: `NotificationBell` + `useMyNotifications` (zaten gerçek veriye bağlı)
-- Avatar imzalı URL: `src/lib/auth/avatar.ts` `getAvatarUrl`
-- shadcn `DropdownMenu`, `Sheet`, `Avatar`, `Button`, `Badge`
-- Tema: `ThemeToggle`
-- Route'lar: `/`, `/discover`, `/how-it-works`, `/about`, `/login`, `/register`, `/notifications`, `/_authenticated/dashboard(.contributions|.favorites|.payments|.refunds|.rewards)`, `/_authenticated/settings(.profile|.security|.notifications|.account)`, `/_authenticated/creator(.index|.campaigns(.index|.new)|.payment-account)`, `/_authenticated/admin(.index|.campaign-reviews.index|.system-alerts|.audit)`, `/creators/$username`
+## Yaklaşım — Tek noktadan AppShell
 
-## Rol tespiti
-- `isAdmin`: zaten `useAuth` üzerinden `user_roles` tablosundan güvenli okunuyor — aynen kullan.
-- Creator: ayrı bir `user_roles.role = 'creator'` kontrolü mevcut değil; bu görev kapsamında yeni rol sistemi kurulmayacak. Bunun yerine `AuthProvider`'a hâlihazırdaki sorguya ek olarak `isCreator` türetilecek: `user_roles.role IN ('creator','admin')` varsa true; aksi halde `campaigns` tablosunda kullanıcıya ait kayıt olup olmadığı **yerine** sadece rol tablosuna dayanılır. Eğer `creator` enum değeri yoksa `isCreator = false` döner ve creator menü öğeleri herkese gizlenir — bu durum raporda "eksik" olarak bildirilir, yeni enum eklenmez. (Bu yalnız UI gizlemesidir; route'ların kendi guard'ları korunur.)
+Şu an shell sarmalama dağınık: bazı sayfa route'ları (`about`, `contact`, `faq`, `how-it-works`, `unauthorized`) `AppShell` kullanıyor, çoğu (`index`, `discover`, `search`, `campaigns/$slug`, `creators/$username`, `categories/$slug`, legal sayfaları, design-system, `$`, `campaigns/$slug/back/*`) hiç sarmıyor. `_authenticated/route.tsx` kendi içinde `AppShell` kullanıyor. Auth sayfaları (`login`, `register`, `forgot-password`, `reset-password`, `auth/callback`) `AuthLayout` kullanıyor.
 
-## Değişiklikler
+Kullanıcı **tüm sayfalarda** (auth + back flow dahil) yeni navbar'ı istiyor. En temiz çözüm: `__root.tsx` içindeki `<Outlet />`'i tek `AppShell` ile sarmak ve diğer sarmaları kaldırmak.
 
-### 1. `src/app/auth/AuthProvider.tsx`
-- `loadProfile` içinde role satırlarından `isCreator` türet (`roles.includes('creator') || roles.includes('admin')`).
-- Context value'ya `isCreator: boolean` ekle.
+### Değişiklikler
 
-### 2. `src/components/layout/NavLinks.tsx`
-- NAV_LINKS'e iki yeni öğe ekle: `Kategoriler` → `/discover` (kategori index route'u yok, en yakın eşleşmeye bağlanır, raporda belirtilir), `Kampanya Başlat` → authenticated ise `/creator/campaigns/new`, değilse `/login?redirect=/creator/campaigns/new`.
-- `Kampanya Başlat` görsel olarak ayrı (outline veya primary-subtle variant ile) ama agresif olmayan bir vurgu.
-- Mobil/desktop tek konfigden render edilir.
+1. **`src/routes/__root.tsx`** — `RootComponent` içinde `<Outlet />` `AppShell` ile sarılır. `NotFoundComponent` ve `ErrorComponent` artık iç içe shell vermemek için `AppShell` sarmalını kaldırır (zaten root'tan gelecek).
 
-### 3. `src/components/layout/UserMenu.tsx` (genişletilir)
-- Header'da: avatar + display_name + username + (kendi menüsü olduğu için) e-posta + rol rozeti (Kullanıcı / Proje Sahibi / Admin).
-- Standart öğeler: Profilim (`/creators/$username` — username varsa), Profilimi Düzenle (`/settings/profile`), Desteklediğim Projeler (`/dashboard/contributions`), Favorilerim (`/dashboard/favorites`), Bildirimler (`/notifications`), Hesap Ayarları (`/settings/account`), Güvenlik (`/settings/security`).
-- `isCreator` ise ayraç + Creator Paneli (`/creator`), Kampanyalarım (`/creator/campaigns`), Yeni Kampanya (`/creator/campaigns/new`), Ödeme Hesabı (`/creator/payment-account`). "İnceleme Durumu" için ayrı route yok → Kampanyalarım altında ele alınır, raporda not düşülür.
-- `isAdmin` ise ayraç + Admin Paneli (`/admin`), Kampanya İncelemeleri (`/admin/campaign-reviews`), Sistem Uyarıları (`/admin/system-alerts`), Denetim Kaydı (`/admin/audit`). "Şikâyetler" / "Ödeme Operasyonları" için ayrı route yok → gizlenir, raporda belirtilir.
-- Username yoksa "Profilim" gizlenir (onboarding gate zaten yönlendirir).
-- Menü konfigürasyonu tek `getMenuConfig({ isCreator, isAdmin, username })` fonksiyonundan üretilir; mobil drawer da aynı kaynağı tüketir.
-- Çıkış: mevcut `signOut` (zaten cache.clear + auth signOut yapıyor) sonrası `toast.success` + `/` adresine `replace` navigasyon. Hatada `toast.error`.
-- Loading status'unda ufak skeleton (h-9 w-9 rounded-full) render, guest butonları flaş etmesin.
+2. **`src/routes/_authenticated/route.tsx`** — İçerideki `AppShell` kullanımı kaldırılır, `<Outlet />` doğrudan render edilir (oturum kontrolü ve onboarding yönlendirme korunur). "Oturum kontrol ediliyor…" placeholder'ı da shell'siz döner.
 
-### 4. `src/components/layout/MobileNavigation.tsx`
-- `MobileAuthActions` yerine `useAuth` ile durum bazlı içerik:
-  - Loading: skeleton.
-  - Guest: Giriş Yap / Kayıt Ol.
-  - Authenticated: profil başlığı (avatar + ad + rol), ardından `getMenuConfig` ile profil + creator + admin bağlantıları, sonda Çıkış Yap (destructive renk tonu).
-- Ana nav linkleri zaten `NavLinks variant="vertical"` ile render ediliyor — korunur.
-- Route değiştiğinde drawer kapanır (`onNavigate`).
+3. **`AuthLayout` (`src/components/layout/AuthLayout.tsx`)** — Kendi mini header'ı (logo + tema) kaldırılır; `<main>` sarmalayıcısı korunur (kart düzeni aynı kalır), `min-h-screen` yerine sayfa içeriğine uygun düzen. Böylece root'tan gelen `AppHeader` üstte tek başına görünür ve auth sayfalarında çift header oluşmaz.
 
-### 5. `src/components/layout/AppHeader.tsx`
-- Üç bölümlü grid'i koru. Sticky zaten var.
-- Loading state için sağ tarafta skeleton.
-- Uzun display_name için `max-w-[140px] truncate`.
+4. **Sayfa-bazlı `AppShell` kullanımlarını temizle** (artık root sağlıyor):
+   - `src/routes/about.tsx`, `contact.tsx`, `faq.tsx`, `how-it-works.tsx`, `unauthorized.tsx` — `AppShell` import + sarmalı kaldır, içerik doğrudan döner.
 
-### 6. Yeni yardımcı
-- `src/components/layout/userMenuConfig.ts`: `ProfileMenuItem` tipi + `getProfileMenuItems({ isCreator, isAdmin, username })` saf fonksiyon. Lucide ikon referansları içerir, `action: 'logout'` destekler.
+5. **`AppHeader` (`src/components/layout/AppHeader.tsx`)** — guest sadeleştirmesi:
+   - "Kampanya başlat" `Button` artık yalnızca `status === "authenticated"` ise render edilir.
+   - `NotificationBell` ve `UserMenu` zaten authenticated dalında — değişiklik yok.
+   - Guest dalı sade kalır: "Giriş yap" + "Kayıt ol" + tema + mobil menü.
+   - `loading` durumunda küçük skeleton görünmeye devam eder; ancak guest sadeleştirmesi gereği yalnızca avatar skeleton'ı yerine boş tutulabilir (mevcut davranış korunur, sadece CTA gizlenir).
 
-### 7. Testler
-- `src/components/layout/__tests__/UserMenu.test.tsx`: guest/auth/creator/admin görünürlüğü, logout signOut çağırıyor, avatar fallback initials, uzun ad truncate.
-- `src/components/layout/__tests__/userMenuConfig.test.ts`: rol bazlı liste filtreleme.
-- Mevcut `MobileNavigation.test.tsx` güncellenir (auth bazlı render).
+6. **`MobileNavigation` (`src/components/layout/MobileNavigation.tsx`)** — guest drawer sadeleştirmesi:
+   - "Kampanya başlat" butonu yalnızca authenticated ise gösterilir (auth bölümünden önce yerine, üstte koşullu render).
+   - Guest dalı: ana nav linkleri + "Giriş yap" / "Kayıt ol". CTA yok, profil bloğu yok (zaten yok).
+   - Authenticated davranış aynı kalır.
 
-## Yapılmayacaklar
-- Yeni route, sayfa, tablo, RPC, RLS, edge function.
-- `categories` index, "şikâyetler", "ödeme operasyonları" route'ları (yok, raporda eksik olarak belirtilir).
-- Auth sisteminin değiştirilmesi; yeni `useAuth` kopyası.
-- `user_roles` enum'una `creator` eklenmesi (kapsam dışı).
+7. **Testler** — `MobileNavigation.test.tsx` güncellenir: guest durumunda "Kampanya başlat" butonunun render edilmediği assert edilir; authenticated durumda hâlâ render edildiği doğrulanır. Mümkünse `AppHeader` için minimal bir render testi eklenir (guest → CTA/bell yok, authenticated → CTA var).
+
+## Kapsam dışı
+- Yeni route, sayfa, RPC, RLS, tablo, edge function eklenmez.
+- `NotificationBell`, `UserMenu`, `userMenuConfig`, `NavLinks` davranışları değişmez.
+- Tema, auth altyapısı, rol türetimi değişmez.
+
+## Riskler / dikkat
+- `_authenticated/route.tsx`'in shell'i kaldırıldığında root shell devreye girer; korumalı sayfalarda görünüm değişmemeli (aynı `AppHeader` + `AppFooter`).
+- `AuthLayout`'tan header kaldırılınca giriş/kayıt sayfalarının üstünde tek bir global navbar görünür — kullanıcı bunu onayladı.
+- `__root.tsx` `ErrorComponent`/`NotFoundComponent` artık çift shell oluşturmamalı; sarmalar kaldırılacak.
 
 ## Doğrulama
-- Bun typecheck + vitest + build (harness).
-- Manuel: mobil 320px taşma, dark mode, klavyeyle dropdown gezintisi, logout sonrası cache temizliği.
-
-## Çıktı raporu (10 başlık)
-İmplementasyon sonunda istenen formatta rapor verilecek; eksik route'lar ("kategoriler index", "creator inceleme durumu", "şikâyetler", "ödeme operasyonları") ve `user_roles` içinde `creator` enum değerinin yokluğu açıkça belirtilecek.
+- `bunx tsc --noEmit`, `bunx eslint`, `bunx vitest run`, prod build.
+- Preview üzerinde: guest olarak `/`, `/discover`, `/login`, `/about`, `/campaigns/$slug` ve `/campaigns/$slug/back` — navbar üstte, CTA + bell + avatar yok. Authenticated olarak aynı sayfalar — CTA + bell + avatar var. Mobil drawer her iki durumda doğru.
