@@ -10,7 +10,7 @@ import { getDashboardOverview } from "@/lib/dashboard/dashboard.functions";
 import { formatMoneyMinor } from "@/lib/format";
 import type { DashboardOverview } from "@/lib/dashboard/types";
 
-export const Route = createFileRoute("/_authenticated/dashboard")({
+export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () => ({ meta: [{ title: "Panel — BeniFonla" }] }),
   component: DashboardPage,
   errorComponent: ({ error, reset }) => (
