@@ -25,7 +25,7 @@ describe("MobileNavigation", () => {
     const user = userEvent.setup();
     renderWithRouter(<MobileNavigation />);
 
-    const trigger = screen.getByRole("button", { name: /Menüyü aç/i });
+    const trigger = await screen.findByRole("button", { name: /Menüyü aç/i });
     await user.click(trigger);
 
     const dialog = await screen.findByRole("dialog");
@@ -39,7 +39,8 @@ describe("MobileNavigation", () => {
   it("guest kullanıcıya giriş ve kayıt seçeneklerini gösterir", async () => {
     const user = userEvent.setup();
     renderWithRouter(<MobileNavigation />);
-    await user.click(screen.getByRole("button", { name: /Menüyü aç/i }));
+    const trigger = await screen.findByRole("button", { name: /Menüyü aç/i });
+    await user.click(trigger);
     expect(await screen.findByRole("link", { name: /Giriş yap/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Kayıt ol/i })).toBeInTheDocument();
   });
