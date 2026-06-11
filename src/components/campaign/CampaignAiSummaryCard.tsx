@@ -77,7 +77,30 @@ export function CampaignAiSummaryCard({
               `Çok sık istek gönderildi. Lütfen ${body.retryAfterSeconds} saniye sonra tekrar deneyin.`,
             );
           } else {
-            setErrorMessage(body.message ?? "AI özeti oluşturulamadı.");
+            // error envelope — prefer a code-specific Turkish message
+            const codeMessages: Partial<Record<string, string>> = {
+              AI_BALANCE_UNAVAILABLE:
+                "AI servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+              AI_PROVIDER_RATE_LIMITED:
+                "AI servisi şu an yoğun. Lütfen birkaç saniye sonra tekrar deneyin.",
+              WORD_COUNT_OUT_OF_RANGE:
+                "Kampanya içeriği AI özeti için yetersiz görünüyor. Kampanya sahibi daha fazla içerik ekledikten sonra tekrar deneyin.",
+              INVALID_STRUCTURED_OUTPUT:
+                "AI çıktısı beklenen yapıda dönmedi. Lütfen tekrar deneyin.",
+              UNSUPPORTED_LANGUAGE_OUTPUT:
+                "AI yanıtı seçtiğiniz dilde üretilemedi. Lütfen tekrar deneyin.",
+              CONTENT_TOO_LARGE:
+                "Kampanya içeriği AI özeti için fazla uzun.",
+              CAMPAIGN_NOT_ELIGIBLE:
+                "Bu kampanya için AI özeti üretilemez.",
+              CREATOR_FORBIDDEN:
+                "Kendi kampanyanız için AI özeti üretemezsiniz.",
+              UNAUTHORIZED: "Oturumunuz geçersiz. Lütfen tekrar giriş yapın.",
+              INVALID_REQUEST: "İstek bilgileri hatalı.",
+            };
+            setErrorMessage(
+              codeMessages[body.code] ?? body.message ?? "AI özeti oluşturulamadı.",
+            );
           }
         },
         onError: () => {
