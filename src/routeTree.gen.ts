@@ -41,6 +41,7 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as CampaignsSlugIndexRouteImport } from './routes/campaigns.$slug.index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedCreatorIndexRouteImport } from './routes/_authenticated/creator.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
@@ -242,6 +243,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const CampaignsSlugIndexRoute = CampaignsSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CampaignsSlugRoute,
 } as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
@@ -532,6 +538,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/creator/': typeof AuthenticatedCreatorIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/campaigns/$slug/': typeof CampaignsSlugIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/ai/generate-campaign-summary': typeof ApiPublicAiGenerateCampaignSummaryRoute
@@ -585,7 +592,6 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
-  '/campaigns/$slug': typeof CampaignsSlugRouteWithChildren
   '/categories/$slug': typeof CategoriesSlugRoute
   '/creators/$username': typeof CreatorsUsernameRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -603,6 +609,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/creator': typeof AuthenticatedCreatorIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/campaigns/$slug': typeof CampaignsSlugIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/ai/generate-campaign-summary': typeof ApiPublicAiGenerateCampaignSummaryRoute
@@ -679,6 +686,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/creator/': typeof AuthenticatedCreatorIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/campaigns/$slug/': typeof CampaignsSlugIndexRoute
   '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
   '/api/public/ai/generate-campaign-summary': typeof ApiPublicAiGenerateCampaignSummaryRoute
@@ -755,6 +763,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/creator/'
     | '/dashboard/'
+    | '/campaigns/$slug/'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/api/public/ai/generate-campaign-summary'
@@ -808,7 +817,6 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/settings'
     | '/auth/callback'
-    | '/campaigns/$slug'
     | '/categories/$slug'
     | '/creators/$username'
     | '/admin/audit'
@@ -826,6 +834,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/creator'
     | '/dashboard'
+    | '/campaigns/$slug'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
     | '/api/public/ai/generate-campaign-summary'
@@ -901,6 +910,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/creator/'
     | '/_authenticated/dashboard/'
+    | '/campaigns/$slug/'
     | '/_authenticated/admin/campaign-reviews/$campaignId'
     | '/_authenticated/creator/campaigns/new'
     | '/api/public/ai/generate-campaign-summary'
@@ -1189,6 +1199,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/campaigns/$slug/': {
+      id: '/campaigns/$slug/'
+      path: '/'
+      fullPath: '/campaigns/$slug/'
+      preLoaderRoute: typeof CampaignsSlugIndexRouteImport
+      parentRoute: typeof CampaignsSlugRoute
     }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
@@ -1625,10 +1642,12 @@ const CampaignsSlugBackRouteWithChildren =
 
 interface CampaignsSlugRouteChildren {
   CampaignsSlugBackRoute: typeof CampaignsSlugBackRouteWithChildren
+  CampaignsSlugIndexRoute: typeof CampaignsSlugIndexRoute
 }
 
 const CampaignsSlugRouteChildren: CampaignsSlugRouteChildren = {
   CampaignsSlugBackRoute: CampaignsSlugBackRouteWithChildren,
+  CampaignsSlugIndexRoute: CampaignsSlugIndexRoute,
 }
 
 const CampaignsSlugRouteWithChildren = CampaignsSlugRoute._addFileChildren(
