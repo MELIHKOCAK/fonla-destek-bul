@@ -130,7 +130,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <Outlet />
+          <AppShell>
+            <Outlet />
+          </AppShell>
           <Toaster richColors closeButton />
         </AuthProvider>
       </ThemeProvider>
