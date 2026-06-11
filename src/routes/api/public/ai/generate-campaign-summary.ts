@@ -249,6 +249,7 @@ export const Route = createFileRoute("/api/public/ai/generate-campaign-summary")
           },
         );
         if (claimErr) {
+          console.error("[ai-summary] claim RPC failed", { campaignId, languageCode, error: claimErr });
           return jsonResponse(errorBody("AI_PROVIDER_ERROR", "İstek işlenemedi."), 500);
         }
         const claim = claimRaw as {
