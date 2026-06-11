@@ -66,8 +66,11 @@ export function countSummaryWords(output: CampaignSummaryOutput): number {
   }, 0);
 }
 
-export const MIN_SUMMARY_WORDS = 300;
-export const MAX_SUMMARY_WORDS = 500;
+// Relaxed bounds: thin campaigns can't legitimately reach 300 words without
+// fabrication. AI is instructed to write "Bilgi sağlanmamış" for missing
+// fields, so the floor must accommodate short but complete summaries.
+export const MIN_SUMMARY_WORDS = 120;
+export const MAX_SUMMARY_WORDS = 700;
 
 /**
  * Apply structural checks beyond Zod (unique section keys, all 8 keys present,
