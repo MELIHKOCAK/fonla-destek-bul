@@ -1,19 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 
-// NavLinks içindeki TanStack <Link> testte router context gerektirir.
-// Mobile navigation davranışını test etmek için bu içerik mocklanır.
 vi.mock("@/components/layout/NavLinks", () => ({
   NavLinks: () => <div data-testid="mock-navlinks">links</div>,
 }));
 
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    status: "unauthenticated",
+    user: null,
+    profile: null,
+    isAdmin: false,
+    isCreator: false,
+    signOut: vi.fn(),
+  }),
+}));
+
 import { MobileNavigation } from "@/components/layout/MobileNavigation";
+import { renderWithRouter } from "@/test/render";
 
 describe("MobileNavigation", () => {
   it("trigger butonuyla açılır ve ESC ile kapanır", async () => {
     const user = userEvent.setup();
-    render(<MobileNavigation />);
+    renderWithRouter(<MobileNavigation />);
 
     const trigger = screen.getByRole("button", { name: /Menüyü aç/i });
     await user.click(trigger);
@@ -24,5 +34,13 @@ describe("MobileNavigation", () => {
 
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("guest kullanıcıya giriş ve kayıt seçeneklerini gösterir", async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<MobileNavigation />);
+    await user.click(screen.getByRole("button", { name: /Menüyü aç/i }));
+    expect(await screen.findByRole("link", { name: /Giriş yap/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Kayıt ol/i })).toBeInTheDocument();
   });
 });
