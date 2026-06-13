@@ -40,12 +40,16 @@ export interface StripeSandboxProvider extends PaymentProvider {
 }
 
 function mapStripeError(err: unknown, fallback: DomainPaymentError["code"]): DomainPaymentError {
+  const rawMessage =
+    err && typeof err === "object" && "message" in err && typeof (err as { message?: unknown }).message === "string"
+      ? ((err as { message: string }).message).slice(0, 240)
+      : undefined;
   if (err && typeof err === "object" && "type" in err) {
     const t = (err as { type?: string }).type;
-    if (t === "StripeCardError") return new DomainPaymentError("PAYMENT_FAILED");
-    if (t === "StripeIdempotencyError") return new DomainPaymentError("DUPLICATE_PAYMENT_ATTEMPT");
+    if (t === "StripeCardError") return new DomainPaymentError("PAYMENT_FAILED", rawMessage);
+    if (t === "StripeIdempotencyError") return new DomainPaymentError("DUPLICATE_PAYMENT_ATTEMPT", rawMessage);
   }
-  return new DomainPaymentError(fallback);
+  return new DomainPaymentError(fallback, rawMessage);
 }
 
 export function createStripeSandboxAdapter(): StripeSandboxProvider {
