@@ -161,42 +161,63 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
     }) as StripeSandboxProvider;
 
     const baseUrl = getAppPublicUrl();
-    const result = await provider.createCheckoutSessionExt({
-      contributionId: contribution.id,
-      paymentTransactionId: ptInsert.id,
-      campaignId: campaign.id,
-      amountMinor: Number(contribution.amount_minor),
-      currency: "TRY",
-      environment: env,
-      returnUrl: `${baseUrl}/campaigns/${campaign.slug}/back/result`,
-      cancelUrl: `${baseUrl}/campaigns/${campaign.slug}/back/result?cancel=1`,
-      stripeIdempotencyKey: `pt_${ptInsert.id}_${data.idempotencyKey.slice(0, 24)}`,
-      transferGroup,
-      connectedAccountId: creatorAcct?.provider_account_id ?? null,
-    });
+    try {
+      const result = await provider.createCheckoutSessionExt({
+        contributionId: contribution.id,
+        paymentTransactionId: ptInsert.id,
+        campaignId: campaign.id,
+        amountMinor: Number(contribution.amount_minor),
+        currency: "TRY",
+        environment: env,
+        returnUrl: `${baseUrl}/campaigns/${campaign.slug}/back/result`,
+        cancelUrl: `${baseUrl}/campaigns/${campaign.slug}/back/result?cancel=1`,
+        stripeIdempotencyKey: `pt_${ptInsert.id}_${data.idempotencyKey.slice(0, 24)}`,
+        transferGroup,
+        connectedAccountId: creatorAcct?.provider_account_id ?? null,
+      });
 
-    // 8. Persist provider references
-    await supabaseAdmin
-      .from("payment_transactions")
-      .update({
-        provider_checkout_session_id: result.providerSessionId,
-        provider_payment_intent_id: result.paymentIntentId,
-        provider_status: "open",
-        domain_status: "pending",
-        status: "pending",
-        livemode: result.livemode,
-        checkout_expires_at: result.expiresAt,
-        provider_created_at: new Date().toISOString(),
-      })
-      .eq("id", ptInsert.id);
+      // 8. Persist provider references
+      await supabaseAdmin
+        .from("payment_transactions")
+        .update({
+          provider_checkout_session_id: result.providerSessionId,
+          provider_payment_intent_id: result.paymentIntentId,
+          provider_status: "open",
+          domain_status: "pending",
+          status: "pending",
+          livemode: result.livemode,
+          checkout_expires_at: result.expiresAt,
+          provider_created_at: new Date().toISOString(),
+        })
+        .eq("id", ptInsert.id);
 
-    if (!result.url) throw new Error("BFL_NO_CHECKOUT_URL");
-    return {
-      paymentTransactionId: ptInsert.id,
-      providerSessionId: result.providerSessionId,
-      url: result.url,
-      expiresAt: result.expiresAt,
-    };
+      if (!result.url) throw new Error("BFL_NO_CHECKOUT_URL");
+      return {
+        paymentTransactionId: ptInsert.id,
+        providerSessionId: result.providerSessionId,
+        url: result.url,
+        expiresAt: result.expiresAt,
+      };
+    } catch (err) {
+      // Stripe veya sonraki adım patlarsa PT satırını "failed" olarak işaretle,
+      // aksi halde "duplicate active session" kontrolü ileride yanlış pozitif verir.
+      const errCode =
+        err instanceof DomainPaymentError ? err.code : err instanceof Error ? err.name : "UNKNOWN";
+      const errMessage =
+        err instanceof Error ? err.message.slice(0, 240) : String(err).slice(0, 240);
+      await supabaseAdmin
+        .from("payment_transactions")
+        .update({
+          status: "failed",
+          domain_status: "failed",
+          sanitized_metadata: {
+            campaign_id: campaign.id,
+            error: { code: errCode, message: errMessage },
+          },
+        })
+        .eq("id", ptInsert.id);
+      throw err;
+    }
   });
 
 export interface PaymentStatusView {
