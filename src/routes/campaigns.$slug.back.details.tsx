@@ -74,7 +74,7 @@ function DetailsStep() {
             <Field label="Alıcı adı" id="recipient_name" value={shipping.recipient_name ?? ""} onChange={(v) => update("recipient_name", v)} required />
             <Field label="Adres satırı 1" id="line1" value={shipping.line1 ?? ""} onChange={(v) => update("line1", v)} required />
             <Field label="Adres satırı 2 (opsiyonel)" id="line2" value={shipping.line2 ?? ""} onChange={(v) => update("line2", v)} />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Şehir" id="city" value={shipping.city ?? ""} onChange={(v) => update("city", v)} required />
               <Field label="Posta kodu" id="postal_code" value={shipping.postal_code ?? ""} onChange={(v) => update("postal_code", v)} required />
             </div>
@@ -115,15 +115,16 @@ function DetailsStep() {
           </p>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
           <Button
             type="button"
             variant="outline"
+            className="w-full sm:w-auto"
             onClick={() => navigate({ to: "/campaigns/$slug/back/reward", params: { slug } })}
           >
             Geri
           </Button>
-          <Button type="submit">Devam et</Button>
+          <Button type="submit" className="w-full sm:w-auto">Devam et</Button>
         </div>
       </form>
     </section>

@@ -108,10 +108,11 @@ function ReviewStep() {
         </p>
       )}
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
         <Button
           type="button"
           variant="outline"
+          className="w-full sm:w-auto"
           onClick={() => navigate({ to: "/campaigns/$slug/back/details", params: { slug } })}
           disabled={mutation.isPending}
         >
@@ -119,6 +120,7 @@ function ReviewStep() {
         </Button>
         <Button
           type="button"
+          className="w-full sm:w-auto"
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending}
         >
@@ -131,9 +133,9 @@ function ReviewStep() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 break-words text-right font-medium">{value}</dd>
     </div>
   );
 }

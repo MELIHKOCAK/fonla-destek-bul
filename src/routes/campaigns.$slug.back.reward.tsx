@@ -63,10 +63,10 @@ function RewardStep() {
               }`}
             >
               <RadioGroupItem id={`r-${r.id}`} value={r.id} disabled={soldOut} />
-              <div className="flex-1">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium">{r.title}</p>
-                  <p className="font-semibold">{formatMoneyMinor(r.amount_minor)}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="min-w-0 truncate font-medium">{r.title}</p>
+                  <p className="shrink-0 font-semibold">{formatMoneyMinor(r.amount_minor)}</p>
                 </div>
                 {r.description && (
                   <p className="mt-1 text-sm text-muted-foreground">{r.description}</p>
@@ -85,15 +85,16 @@ function RewardStep() {
           );
         })}
       </RadioGroup>
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
         <Button
           type="button"
           variant="outline"
+          className="w-full sm:w-auto"
           onClick={() => navigate({ to: "/campaigns/$slug/back", params: { slug } })}
         >
           Geri
         </Button>
-        <Button type="button" onClick={next}>
+        <Button type="button" onClick={next} className="w-full sm:w-auto">
           Devam et
         </Button>
       </div>
