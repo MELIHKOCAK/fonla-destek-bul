@@ -105,19 +105,19 @@ function ReviewDetailPage() {
               </Card>
               <Card className="p-4">
                 <h3 className="font-medium">Hikâye</h3>
-                <p className="mt-1 whitespace-pre-line text-sm">{c.story_content ?? "—"}</p>
+                {c.story_content ? <RichTextViewer html={c.story_content} className="mt-1" /> : <p className="mt-1 text-sm">—</p>}
               </Card>
               <Card className="p-4">
                 <h3 className="font-medium">Fon kullanım planı</h3>
-                <p className="mt-1 whitespace-pre-line text-sm">{c.funds_usage_content ?? "—"}</p>
+                {c.funds_usage_content ? <RichTextViewer html={c.funds_usage_content} className="mt-1" /> : <p className="mt-1 text-sm">—</p>}
               </Card>
               <Card className="p-4">
                 <h3 className="font-medium">Takvim</h3>
-                <p className="mt-1 whitespace-pre-line text-sm">{c.timeline_content ?? "—"}</p>
+                {c.timeline_content ? <RichTextViewer html={c.timeline_content} className="mt-1" /> : <p className="mt-1 text-sm">—</p>}
               </Card>
               <Card className="p-4">
                 <h3 className="font-medium">Riskler</h3>
-                <p className="mt-1 whitespace-pre-line text-sm">{c.risks_content ?? "—"}</p>
+                {c.risks_content ? <RichTextViewer html={c.risks_content} className="mt-1" /> : <p className="mt-1 text-sm">—</p>}
               </Card>
             </TabsContent>
             <TabsContent value="media" className="space-y-2">
