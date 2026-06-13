@@ -115,15 +115,16 @@ function DetailsStep() {
           </p>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
           <Button
             type="button"
             variant="outline"
+            className="w-full sm:w-auto"
             onClick={() => navigate({ to: "/campaigns/$slug/back/reward", params: { slug } })}
           >
             Geri
           </Button>
-          <Button type="submit">Devam et</Button>
+          <Button type="submit" className="w-full sm:w-auto">Devam et</Button>
         </div>
       </form>
     </section>
