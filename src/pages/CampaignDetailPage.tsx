@@ -85,7 +85,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
       />
       <Container className="py-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
-          <article className="min-w-0 space-y-8">
+          <article className="min-w-0 space-y-10 sm:space-y-12">
             <header id="campaign-header" className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <CategoryBadge category={c.category} />
