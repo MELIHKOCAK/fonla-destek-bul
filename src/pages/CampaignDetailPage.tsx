@@ -25,6 +25,7 @@ import { formatMoneyMinor, formatRelativeTime } from "@/lib/format";
 import { getCampaignBySlug } from "@/services/campaigns.service";
 import { CampaignAiSummaryCard } from "@/components/campaign/CampaignAiSummaryCard";
 import { CampaignCommentsSection } from "@/components/campaign/CampaignCommentsSection";
+import { RichTextViewer } from "@/components/common/RichTextViewer";
 import { useAuth } from "@/hooks/use-auth";
 
 const AI_SUMMARY_ELIGIBLE_STATUSES = new Set(["live", "successful", "failed"]);
