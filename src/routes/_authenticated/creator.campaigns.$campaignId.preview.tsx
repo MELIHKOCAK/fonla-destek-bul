@@ -7,6 +7,7 @@ import {
   type CampaignFull,
 } from "@/lib/campaigns/api";
 import { formatMoneyMinor } from "@/lib/format";
+import { RichTextViewer } from "@/components/common/RichTextViewer";
 
 export const Route = createFileRoute("/_authenticated/creator/campaigns/$campaignId/preview")({
   component: PreviewPage,
