@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -160,7 +161,12 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       stripeSandboxActivated: true,
     }) as StripeSandboxProvider;
 
-    const baseUrl = getAppPublicUrl();
+    const req = (() => { try { return getRequest(); } catch { return null; } })();
+    const originHeader = req?.headers.get("origin") ?? req?.headers.get("referer") ?? null;
+    const requestOrigin = originHeader ? (() => {
+      try { return new URL(originHeader).origin; } catch { return null; }
+    })() : null;
+    const baseUrl = getAppPublicUrl(requestOrigin);
     try {
       const result = await provider.createCheckoutSessionExt({
         contributionId: contribution.id,

@@ -35,10 +35,25 @@ export function isStripeConfigured(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY);
 }
 
-export function getAppPublicUrl(): string {
-  const url = process.env.APP_PUBLIC_URL;
-  if (!url) throw new Error("APP_PUBLIC_URL missing — required for Stripe redirect URLs.");
-  return url.replace(/\/$/, "");
+/**
+ * Returns an absolute public base URL (scheme + host, no trailing slash)
+ * to use for Stripe redirect URLs. Resolution order:
+ *   1. APP_PUBLIC_URL env (if present AND contains an explicit scheme)
+ *   2. requestOrigin argument (e.g. derived from the incoming Request's Origin/Referer header)
+ *   3. Hard fallback to the published Lovable URL
+ *
+ * Stripe requires success_url / cancel_url to be fully-qualified URLs with a
+ * scheme (https://). A bare host like "benifonla.lovable.app" triggers
+ * "Invalid URL: An explicit scheme (such as https) must be provided."
+ */
+export function getAppPublicUrl(requestOrigin?: string | null): string {
+  const raw = process.env.APP_PUBLIC_URL?.trim();
+  const candidate = raw && /^https?:\/\//i.test(raw)
+    ? raw
+    : requestOrigin && /^https?:\/\//i.test(requestOrigin)
+    ? requestOrigin
+    : "https://benifonla.lovable.app";
+  return candidate.replace(/\/$/, "");
 }
 
 export function getEnvironment(): "test" | "live" {
