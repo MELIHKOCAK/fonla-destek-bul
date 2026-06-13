@@ -214,16 +214,22 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
 
             <Section title="Güncellemeler">
               {c.updates.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Henüz güncelleme yok.</p>
+                <p className="text-base leading-relaxed text-muted-foreground">
+                  Henüz güncelleme yok.
+                </p>
               ) : (
-                <ul className="space-y-3">
+                <ul className="space-y-4">
                   {c.updates.map((u) => (
-                    <li key={u.id} className="rounded-md border border-border bg-card p-4">
-                      <p className="text-xs text-muted-foreground">
+                    <li key={u.id} className="rounded-lg border border-border bg-card p-5">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         {dateFormatter.format(new Date(u.date))}
                       </p>
-                      <h3 className="mt-1 text-sm font-semibold text-foreground">{u.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{u.body}</p>
+                      <h3 className="mt-2 text-base font-semibold text-foreground sm:text-lg">
+                        {u.title}
+                      </h3>
+                      <p className="mt-2 max-w-prose text-base leading-relaxed text-foreground/90">
+                        {u.body}
+                      </p>
                     </li>
                   ))}
                 </ul>
