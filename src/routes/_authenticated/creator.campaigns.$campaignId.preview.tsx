@@ -7,6 +7,7 @@ import {
   type CampaignFull,
 } from "@/lib/campaigns/api";
 import { formatMoneyMinor } from "@/lib/format";
+import { RichTextViewer } from "@/components/common/RichTextViewer";
 
 export const Route = createFileRoute("/_authenticated/creator/campaigns/$campaignId/preview")({
   component: PreviewPage,
@@ -88,7 +89,7 @@ function PreviewPage() {
       <section>
         <h2 className="mb-2 text-xl font-semibold">Hikâye</h2>
         {c.story_content ? (
-          <div className="whitespace-pre-wrap text-sm leading-relaxed">{c.story_content}</div>
+          <RichTextViewer html={c.story_content} />
         ) : (
           <Placeholder>Hikâye yazılmadı — Hikâye adımını tamamlayın.</Placeholder>
         )}
@@ -97,7 +98,7 @@ function PreviewPage() {
       <section>
         <h2 className="mb-2 text-xl font-semibold">Fon kullanımı</h2>
         {c.funds_usage_content ? (
-          <div className="whitespace-pre-wrap text-sm leading-relaxed">{c.funds_usage_content}</div>
+          <RichTextViewer html={c.funds_usage_content} />
         ) : (
           <Placeholder>Fon kullanım planı eklenmedi.</Placeholder>
         )}
@@ -106,7 +107,7 @@ function PreviewPage() {
       <section>
         <h2 className="mb-2 text-xl font-semibold">Takvim</h2>
         {c.timeline_content ? (
-          <div className="whitespace-pre-wrap text-sm leading-relaxed">{c.timeline_content}</div>
+          <RichTextViewer html={c.timeline_content} />
         ) : (
           <Placeholder>Takvim eklenmedi.</Placeholder>
         )}
@@ -115,7 +116,7 @@ function PreviewPage() {
       <section>
         <h2 className="mb-2 text-xl font-semibold">Riskler</h2>
         {c.risks_content ? (
-          <div className="whitespace-pre-wrap text-sm leading-relaxed">{c.risks_content}</div>
+          <RichTextViewer html={c.risks_content} />
         ) : (
           <Placeholder>Riskler bölümü eklenmedi.</Placeholder>
         )}

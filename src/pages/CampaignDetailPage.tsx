@@ -25,6 +25,7 @@ import { formatMoneyMinor, formatRelativeTime } from "@/lib/format";
 import { getCampaignBySlug } from "@/services/campaigns.service";
 import { CampaignAiSummaryCard } from "@/components/campaign/CampaignAiSummaryCard";
 import { CampaignCommentsSection } from "@/components/campaign/CampaignCommentsSection";
+import { RichTextViewer } from "@/components/common/RichTextViewer";
 import { useAuth } from "@/hooks/use-auth";
 
 const AI_SUMMARY_ELIGIBLE_STATUSES = new Set(["live", "successful", "failed"]);
@@ -132,11 +133,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             </section>
 
             <Section id="campaign-story" title="Hikâye">
-              {c.story.split("\n\n").map((p, i) => (
-                <p key={i} className="text-sm leading-relaxed text-foreground sm:text-base">
-                  {p}
-                </p>
-              ))}
+              <RichTextViewer html={c.story} className="text-sm sm:text-base" />
             </Section>
 
             <Section id="fund-usage" title="Fon kullanım planı">
@@ -174,7 +171,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             </Section>
 
             <Section id="risks-and-challenges" title="Riskler ve zorluklar">
-              <p className="text-sm leading-relaxed text-foreground">{c.risks}</p>
+              <RichTextViewer html={c.risks} className="text-sm" />
             </Section>
 
             <Section id="reward-tiers" title="Ödül paketleri">
