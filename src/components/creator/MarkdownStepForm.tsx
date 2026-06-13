@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/common/RichTextEditor";
 import type { CampaignRow } from "@/lib/campaigns/api";
 import { WIZARD_STEPS, type WizardStep } from "@/lib/campaigns/config";
 import { useCampaignAutosave } from "./useCampaignAutosave";
@@ -24,28 +24,36 @@ interface Props {
 export function MarkdownStepForm({ campaign, onSaved, step, field, label, hint, min, max }: Props) {
   const navigate = useNavigate();
   const { status, schedule, saveNow, errorMessage } = useCampaignAutosave({ campaign, onSaved });
-  const initial = (campaign[field] as string | null) ?? "";
-  const [value, setValue] = useState(initial);
+  const initialHtml = (campaign[field] as string | null) ?? "";
+  const [html, setHtml] = useState(initialHtml);
+  const plainTextRef = useRef<string>(stripHtml(initialHtml));
+  const [plainLen, setPlainLen] = useState(plainTextRef.current.trim().length);
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {
     if (errorMessage && (status === "error" || status === "conflict")) toast.error(errorMessage);
   }, [errorMessage, status]);
 
-  const onChange = (v: string) => {
-    setValue(v);
+  const onEditorChange = (nextHtml: string, nextText: string) => {
+    if (nextHtml.length > max) {
+      toast.error(`İçerik en fazla ${max} karakter olabilir.`);
+      return;
+    }
+    setHtml(nextHtml);
+    plainTextRef.current = nextText;
+    setPlainLen(nextText.trim().length);
     setTouched(true);
-    schedule({ [field]: v } as never);
+    schedule({ [field]: nextHtml } as never);
   };
 
-  const error = touched && value.trim().length < min ? `${label} en az ${min} karakter olmalı.` : null;
+  const error = touched && plainLen < min ? `${label} en az ${min} karakter olmalı.` : null;
 
   const onNext = async () => {
-    if (error || value.trim().length < min) {
+    if (error || plainLen < min) {
       setTouched(true);
       return;
     }
-    await saveNow({ [field]: value } as never);
+    await saveNow({ [field]: html } as never);
     const idx = WIZARD_STEPS.indexOf(step);
     navigate({
       to: "/creator/campaigns/$campaignId/edit/$step",
@@ -53,14 +61,23 @@ export function MarkdownStepForm({ campaign, onSaved, step, field, label, hint, 
     });
   };
 
+  const labelId = `${field}-label`;
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor={field}>{label}</Label>
+        <Label id={labelId} htmlFor={field}>
+          {label}
+        </Label>
         <p className="text-sm text-muted-foreground">{hint}</p>
-        <Textarea id={field} rows={14} value={value} maxLength={max} onChange={(e) => onChange(e.target.value)} />
+        <RichTextEditor
+          value={html}
+          onChange={onEditorChange}
+          ariaLabelledBy={labelId}
+          placeholder={`${label} içeriğini yazın…`}
+        />
         <p className="text-xs text-muted-foreground">
-          {value.length}/{max} karakter (min {min})
+          {plainLen} karakter (min {min})
         </p>
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
@@ -73,4 +90,14 @@ export function MarkdownStepForm({ campaign, onSaved, step, field, label, hint, 
       />
     </div>
   );
+}
+
+function stripHtml(html: string): string {
+  if (!html) return "";
+  if (typeof window === "undefined") {
+    return html.replace(/<[^>]*>/g, "");
+  }
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return tmp.textContent ?? tmp.innerText ?? "";
 }
