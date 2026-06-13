@@ -14,6 +14,7 @@ import { ApproveDialog } from "@/components/admin/dialogs/ApproveDialog";
 import { RejectDialog } from "@/components/admin/dialogs/RejectDialog";
 import { SuspendDialog } from "@/components/admin/dialogs/SuspendDialog";
 import { formatMoneyMinor } from "@/lib/format";
+import { RichTextViewer } from "@/components/common/RichTextViewer";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/campaign-reviews/$campaignId")({
