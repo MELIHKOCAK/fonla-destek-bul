@@ -47,12 +47,14 @@ function BackLayout() {
 
   return (
     <main className="container py-8">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <header className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap sm:justify-between">
+        <div className="min-w-0">
           <p className="text-sm text-muted-foreground">Destekliyorsunuz:</p>
-          <h1 className="text-xl font-bold">{data.campaign.title}</h1>
+          <h1 className="truncate text-lg font-bold sm:text-xl">{data.campaign.title}</h1>
         </div>
-        <TestEnvironmentBadge />
+        <div className="shrink-0">
+          <TestEnvironmentBadge />
+        </div>
       </header>
       {!data.eligibility.canBack && (
         <div
