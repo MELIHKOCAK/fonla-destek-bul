@@ -124,9 +124,17 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       }
     }
 
-    // 5. Create payment_transaction row
+    // 5. Create payment_transaction row — compute next attempt_number for this contribution
     const env = getEnvironment();
     const transferGroup = `cmp_${campaign.id.replace(/-/g, "").slice(0, 16)}`;
+    const { data: lastAttempt } = await supabaseAdmin
+      .from("payment_transactions")
+      .select("attempt_number")
+      .eq("contribution_id", contribution.id)
+      .order("attempt_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextAttempt = (lastAttempt?.attempt_number ?? 0) + 1;
     const { data: ptInsert, error: ptErr } = await supabaseAdmin
       .from("payment_transactions")
       .insert({
@@ -140,6 +148,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
         sanitized_metadata: { campaign_id: campaign.id },
         stripe_idempotency_key: data.idempotencyKey,
         transfer_group: transferGroup,
+        attempt_number: nextAttempt,
       })
       .select("id, attempt_number")
       .single();
