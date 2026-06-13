@@ -85,7 +85,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
       />
       <Container className="py-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
-          <article className="min-w-0 space-y-8">
+          <article className="min-w-0 space-y-10 sm:space-y-12">
             <header id="campaign-header" className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <CategoryBadge category={c.category} />
@@ -94,7 +94,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
               <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                 {c.title}
               </h1>
-              <p className="text-base text-muted-foreground">{c.shortDescription}</p>
+              <p className="max-w-prose text-base leading-relaxed text-muted-foreground sm:text-lg">{c.shortDescription}</p>
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <Link
                   to="/creators/$username"
@@ -133,51 +133,62 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             </section>
 
             <Section id="campaign-story" title="Hikâye">
-              <RichTextViewer html={c.story} className="text-sm sm:text-base" />
+              <RichTextViewer html={c.story} />
             </Section>
 
             <Section id="fund-usage" title="Fon kullanım planı">
-              <RichTextViewer html={c.fundsUsage} className="text-sm" />
+              <RichTextViewer html={c.fundsUsage} />
             </Section>
 
             <Section id="campaign-timeline" title="Takvim">
-              <RichTextViewer html={c.timeline} className="text-sm" />
+              <RichTextViewer html={c.timeline} />
             </Section>
 
-
             <Section id="risks-and-challenges" title="Riskler ve zorluklar">
-              <RichTextViewer html={c.risks} className="text-sm" />
+              <RichTextViewer html={c.risks} />
             </Section>
 
             <Section id="reward-tiers" title="Ödül paketleri">
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {c.rewardTiers.map((t) => {
                   const soldOut = typeof t.limit === "number" && t.claimed >= t.limit;
                   return (
                     <li
                       key={t.id}
-                      className="flex flex-col rounded-lg border border-border bg-card p-4"
+                      className="flex flex-col rounded-lg border border-border bg-card p-5"
                     >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <h3 className="text-sm font-semibold text-foreground">{t.title}</h3>
-                        <span className="text-sm font-semibold text-primary">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <h3 className="text-base font-semibold text-foreground">{t.title}</h3>
+                        <span className="shrink-0 text-base font-semibold text-primary">
                           {formatMoneyMinor(t.priceMinor)}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{t.description}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Tahmini teslim: {t.estimatedDelivery}
+                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                        {t.description}
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {t.claimed} seçildi
-                        {typeof t.limit === "number" ? ` / ${t.limit} sınırlı` : ""}
-                      </p>
+                      <dl className="mt-4 space-y-1.5 text-sm">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Tahmini teslim
+                          </dt>
+                          <dd className="text-sm text-foreground">{t.estimatedDelivery}</dd>
+                        </div>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Seçim
+                          </dt>
+                          <dd className="text-sm text-foreground">
+                            {t.claimed}
+                            {typeof t.limit === "number" ? ` / ${t.limit}` : ""}
+                          </dd>
+                        </div>
+                      </dl>
                       {user ? (
                         <Button
                           asChild
                           size="sm"
                           variant="outline"
-                          className="mt-3"
+                          className="mt-4"
                           disabled={soldOut}
                         >
                           <Link to="/campaigns/$slug/back" params={{ slug }}>
@@ -188,7 +199,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="mt-3"
+                          className="mt-4"
                           disabled={soldOut}
                           onClick={() => setSupportOpen(true)}
                         >
@@ -203,16 +214,22 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
 
             <Section title="Güncellemeler">
               {c.updates.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Henüz güncelleme yok.</p>
+                <p className="text-base leading-relaxed text-muted-foreground">
+                  Henüz güncelleme yok.
+                </p>
               ) : (
-                <ul className="space-y-3">
+                <ul className="space-y-4">
                   {c.updates.map((u) => (
-                    <li key={u.id} className="rounded-md border border-border bg-card p-4">
-                      <p className="text-xs text-muted-foreground">
+                    <li key={u.id} className="rounded-lg border border-border bg-card p-5">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         {dateFormatter.format(new Date(u.date))}
                       </p>
-                      <h3 className="mt-1 text-sm font-semibold text-foreground">{u.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{u.body}</p>
+                      <h3 className="mt-2 text-base font-semibold text-foreground sm:text-lg">
+                        {u.title}
+                      </h3>
+                      <p className="mt-2 max-w-prose text-base leading-relaxed text-foreground/90">
+                        {u.body}
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -293,14 +310,14 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
 function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
   const headingId = `section-${id ?? title}`;
   return (
-    <section id={id} aria-labelledby={headingId} className="space-y-3 scroll-mt-24">
+    <section id={id} aria-labelledby={headingId} className="scroll-mt-24">
       <h2
         id={headingId}
-        className="text-lg font-semibold tracking-tight text-foreground sm:text-xl"
+        className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
       >
         {title}
       </h2>
-      <div>{children}</div>
+      <div className="mt-4 sm:mt-5">{children}</div>
     </section>
   );
 }
