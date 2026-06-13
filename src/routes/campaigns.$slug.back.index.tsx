@@ -73,7 +73,7 @@ function AmountStep() {
             {err}
           </p>
         )}
-        <Button type="submit" disabled={!canSubmit}>
+        <Button type="submit" disabled={!canSubmit} className="w-full sm:w-auto">
           Devam et
         </Button>
       </form>
