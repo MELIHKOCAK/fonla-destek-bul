@@ -1,35 +1,52 @@
-## Sorun
 
-Destek ol akışındaki formlar dar ekranda bozuluyor:
-- Layout header (`campaigns.$slug.back.tsx`): `flex flex-wrap justify-between` + uzun kampanya başlığı → başlık taşıyor, badge yan yana sıkışıyor.
-- `StepIndicator`: 5 adım + ok karakterleri tek satıra sığmıyor, kötü kırılıyor.
-- `back.index.tsx`: tek butonlu form mobil için tam genişlik değil.
-- `back.reward.tsx`: ödül kartı başı `flex justify-between` — uzun başlık fiyatı dışarı itiyor; "Geri/Devam et" satırı dar ekranda dar kalıyor.
-- `back.details.tsx`: Şehir/Posta kodu her zaman `grid-cols-2` (mobilde sıkışık); buton satırı mobilde tam genişlik değil.
-- `back.review.tsx`: özet satırlarında uzun değerler ekrandan taşıyor (`flex justify-between` + `min-w-0` yok); butonlar mobilde tam genişlik değil.
+## Teşhis
 
-## Yapılacaklar (yalnız sunum)
+"Ödemeye geç" butonu `createCheckoutSession` server fonksiyonunu çağırıyor. DB'de görülen kanıt:
 
-1. `src/routes/campaigns.$slug.back.tsx`
-   - Header'ı `grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:flex sm:flex-wrap sm:justify-between` yap; sol blok `min-w-0`, başlık `truncate sm:text-xl text-lg`, badge `shrink-0`.
+- Son 3 destek girişiminde `contributions.status = pending` oluşmuş.
+- Karşılık gelen `payment_transactions` satırları `status = initiated`, `provider_checkout_session_id = NULL` durumda kalmış.
+- Yani akışın "5. PT satırı oluştur" adımı başarılı, ama "7. Stripe checkout session oluştur" adımı patlıyor ve hata fırlatılırken PT satırı `failed`'e güncellenmeden bırakılıyor.
 
-2. `src/components/back/StepIndicator.tsx`
-   - `<ol>`'u mobilde yatay kaydırılabilir yap: `flex flex-nowrap overflow-x-auto whitespace-nowrap -mx-4 px-4 sm:flex-wrap sm:mx-0 sm:px-0`.
-   - Adım öğelerine `shrink-0` ekle.
+Frontend tarafında hata `translateContributionError` ile çevriliyor; mesajda `BFL_*` öneki yoksa (Stripe / DomainPaymentError mesajları içermez) generic **"Beklenmeyen bir hata oluştu"** gösteriliyor. Bu nedenle gerçek Stripe hatası kullanıcıya da geliştiriciye de görünmüyor.
 
-3. `src/routes/campaigns.$slug.back.index.tsx`
-   - Submit butonuna `w-full sm:w-auto`.
+**En olası kök neden:** Stripe test hesabınız Türkiye dışında bir ülkede açılmış olduğu için `currency: "try"` ile `checkout.sessions.create` çağrısı Stripe tarafından reddediliyor (örn. "The currency provided (try) is invalid" / "Your account cannot currently make live charges in this currency"). Adapter bu hatayı `DomainPaymentError("PAYMENT_FAILED", "...")` olarak yeniden fırlatıyor, frontend'de `BFL_*` bulunmadığı için generic mesaj çıkıyor.
 
-4. `src/routes/campaigns.$slug.back.reward.tsx`
-   - Kart başlığı satırına `min-w-0`; başlık `truncate`; fiyat `shrink-0`.
-   - Buton satırı `flex flex-col-reverse gap-2 sm:flex-row sm:gap-3`; her iki butona `w-full sm:w-auto`.
+## Yapılacaklar
 
-5. `src/routes/campaigns.$slug.back.details.tsx`
-   - Şehir/Posta kodu grid'i `grid-cols-1 sm:grid-cols-2`.
-   - Buton satırı `flex flex-col-reverse gap-2 sm:flex-row sm:gap-3`; butonlar `w-full sm:w-auto`.
+### 1) Gerçek hatayı görünür kıl
+`src/lib/contributions/errors.ts` içindeki `translateContributionError`'a Stripe / domain ödeme hatalarını da Türkçeleştiren bir kademe ekle:
+- `CAMPAIGN_NOT_PAYMENT_READY` → "Bu kampanya henüz ödeme almaya hazır değil."
+- `DUPLICATE_PAYMENT_ATTEMPT` → "Bu destek için zaten aktif bir ödeme oturumu var. Lütfen birkaç dakika sonra tekrar deneyin."
+- `PAYMENT_FAILED` / Stripe `StripeInvalidRequestError`, `StripeAuthenticationError`, `StripeAPIError`, `StripeConnectionError` → "Ödeme sağlayıcısı isteği reddetti: {kısa mesaj}" (kısa mesaj sanitize edilerek, sadece Stripe'ın `message` alanı kullanılır; secret/anahtar sızmaz).
+- `BFL_CURRENCY_UNSUPPORTED` mesajını `contributionErrorMessages`'a ekle: "Bu kampanyanın para birimi (TRY) ödeme sağlayıcısı tarafından desteklenmiyor."
+- Bilinmeyen Error mesajının ilk 140 karakterini fallback olarak ekrana yaz (yine de generic'i geri planda tut).
 
-6. `src/routes/campaigns.$slug.back.review.tsx`
-   - `Row` bileşeni: `flex items-baseline justify-between gap-3`, `dt` `shrink-0`, `dd` `min-w-0 text-right break-words`.
-   - Buton satırı `flex flex-col-reverse gap-2 sm:flex-row sm:gap-3`; butonlar `w-full sm:w-auto`.
+### 2) Server tarafında "failed" işaretle (orphan kayıt bırakma)
+`src/lib/payments/checkout.functions.ts` 6–7. adımlarındaki Stripe çağrısını try/catch'e al:
+- Stripe veya sonraki update hata fırlatırsa `payment_transactions` satırını
+  `status = 'failed'`, `domain_status = 'failed'`, `sanitized_metadata.error = { code, message }` ile güncelle.
+- Sonra hatayı yeniden fırlat (kullanıcıya ulaşması için).
+Bu, "duplicate active session" kontrolünün ilerideki denemelerde yanlış pozitif vermesini de önler.
 
-Akış, mantık ve state değişmeyecek. Mobil viewport (676px ve daha dar) ve sm/md kırılma noktalarında görsel doğrulama yapılacak.
+### 3) Mevcut 3 yarım kayıt için temizlik migrasyonu
+Migration:
+```sql
+update payment_transactions
+set status = 'failed', domain_status = 'failed'
+where provider_checkout_session_id is null
+  and status = 'initiated';
+```
+Aynı migrasyon, ilgili `contributions.status = 'pending'` kayıtlarını da `failed`'e çevirsin (yalnızca yukarıdaki PT'lere ait olanları).
+
+### 4) Para birimi uyumluluğu için ek doğrulama (opsiyonel iyileştirme)
+`createCheckoutSession` içinde TRY kontrolünden sonra, Stripe hesabının desteklediği para birimleriyle uyuşmazlığı zaten Stripe söyleyecek. Ek olarak `creator_payment_accounts.default_currency` varsa uyuşmazlıkta erken `CURRENCY_NOT_SUPPORTED_BY_ACCOUNT` döndürerek daha net mesaj veriyoruz.
+
+### 5) Doğrulama
+- Build sonrası "Ödemeye geç"e tekrar basın; artık konsolda / UI'da gerçek Stripe mesajını görmeliyiz.
+- Eğer mesaj "currency is invalid" gibi çıkarsa, çözüm kod değil hesap tarafıdır: Stripe Dashboard'da TRY destekleyen bir Connect/Standalone hesabı kullanmanız gerekir. O durumda yapılacak şey ya hesabı değiştirmek ya da MVP için kampanya para birimini hesabınızın desteklediği bir kura çevirmek olur — kararı sizinle birlikte alırız.
+
+## Teknik notlar
+
+- `mapStripeError` zaten Stripe SDK hatalarını `DomainPaymentError`'a dönüştürüyor; mesajını kaybetmemek için adapter'da `err.message`'ı `DomainPaymentError`'a geçirelim (zaten `"PAYMENT_FAILED"` koduyla). Frontend ise kodu (`PAYMENT_FAILED`) ve mesajı ayrı parse eder.
+- Hata mesajlarında **secret / anahtar / iç path** yer almasın; sadece Stripe'ın kullanıcı dostu `message` alanı + kod.
+- `useMutation` çağrısında `setSubmitError`'a generic yerine yeni mapper'ın çıktısı geçecek; değişiklik review.tsx'te tek satır.
