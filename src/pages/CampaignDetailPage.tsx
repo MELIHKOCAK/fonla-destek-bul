@@ -137,38 +137,13 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             </Section>
 
             <Section id="fund-usage" title="Fon kullanım planı">
-              <ul className="space-y-2">
-                {c.fundingPlan.map((f) => (
-                  <li
-                    key={f.label}
-                    className="rounded-md border border-border bg-card p-3 text-sm"
-                  >
-                    <div className="flex items-center justify-between font-medium text-foreground">
-                      <span>{f.label}</span>
-                      <span>%{f.percent}</span>
-                    </div>
-                    {f.description ? (
-                      <p className="mt-1 text-xs text-muted-foreground">{f.description}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
+              <RichTextViewer html={c.fundsUsage} className="text-sm" />
             </Section>
 
             <Section id="campaign-timeline" title="Takvim">
-              <ol className="space-y-3">
-                {c.milestones.map((m) => (
-                  <li key={m.id} className="rounded-md border border-border bg-card p-3">
-                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                      <CalendarDays className="size-3.5" aria-hidden="true" />
-                      {dateFormatter.format(new Date(m.date))}
-                    </div>
-                    <p className="mt-1 text-sm font-semibold text-foreground">{m.title}</p>
-                    <p className="text-xs text-muted-foreground">{m.description}</p>
-                  </li>
-                ))}
-              </ol>
+              <RichTextViewer html={c.timeline} className="text-sm" />
             </Section>
+
 
             <Section id="risks-and-challenges" title="Riskler ve zorluklar">
               <RichTextViewer html={c.risks} className="text-sm" />
