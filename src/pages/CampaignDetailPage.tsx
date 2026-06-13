@@ -133,11 +133,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             </section>
 
             <Section id="campaign-story" title="Hikâye">
-              {c.story.split("\n\n").map((p, i) => (
-                <p key={i} className="text-sm leading-relaxed text-foreground sm:text-base">
-                  {p}
-                </p>
-              ))}
+              <RichTextViewer html={c.story} className="text-sm sm:text-base" />
             </Section>
 
             <Section id="fund-usage" title="Fon kullanım planı">
