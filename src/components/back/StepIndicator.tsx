@@ -19,12 +19,12 @@ export function StepIndicator({ slug, current }: Props) {
   const currentIndex = STEPS.findIndex((s) => s.key === current);
   return (
     <nav aria-label="Destek adımları" className="mb-6">
-      <ol className="flex flex-wrap gap-2 text-sm">
+      <ol className="-mx-4 flex flex-nowrap gap-2 overflow-x-auto whitespace-nowrap px-4 text-sm sm:mx-0 sm:flex-wrap sm:px-0">
         {STEPS.map((s, i) => {
           const active = i === currentIndex;
           const passed = i < currentIndex;
           return (
-            <li key={s.key} className="flex items-center gap-2">
+            <li key={s.key} className="flex shrink-0 items-center gap-2">
               <span
                 aria-current={active ? "step" : undefined}
                 className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 font-medium ${
