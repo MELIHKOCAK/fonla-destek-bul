@@ -1,52 +1,56 @@
 
-## Teşhis
+## Amaç
 
-"Ödemeye geç" butonu `createCheckoutSession` server fonksiyonunu çağırıyor. DB'de görülen kanıt:
-
-- Son 3 destek girişiminde `contributions.status = pending` oluşmuş.
-- Karşılık gelen `payment_transactions` satırları `status = initiated`, `provider_checkout_session_id = NULL` durumda kalmış.
-- Yani akışın "5. PT satırı oluştur" adımı başarılı, ama "7. Stripe checkout session oluştur" adımı patlıyor ve hata fırlatılırken PT satırı `failed`'e güncellenmeden bırakılıyor.
-
-Frontend tarafında hata `translateContributionError` ile çevriliyor; mesajda `BFL_*` öneki yoksa (Stripe / DomainPaymentError mesajları içermez) generic **"Beklenmeyen bir hata oluştu"** gösteriliyor. Bu nedenle gerçek Stripe hatası kullanıcıya da geliştiriciye de görünmüyor.
-
-**En olası kök neden:** Stripe test hesabınız Türkiye dışında bir ülkede açılmış olduğu için `currency: "try"` ile `checkout.sessions.create` çağrısı Stripe tarafından reddediliyor (örn. "The currency provided (try) is invalid" / "Your account cannot currently make live charges in this currency"). Adapter bu hatayı `DomainPaymentError("PAYMENT_FAILED", "...")` olarak yeniden fırlatıyor, frontend'de `BFL_*` bulunmadığı için generic mesaj çıkıyor.
+Kampanya detay sayfasındaki tüm metin bölümlerini "Medium/Substack" benzeri rahat bir okuma diline taşımak: ~17–18px gövde, gevşek satır aralığı, sınırlı satır genişliği (~65–75 karakter), net başlık/liste hiyerarşisi. Mevcut tasarım dili (renk tokenları, kart yapısı) korunur — yalnız tipografi ve ritim güçlenir.
 
 ## Yapılacaklar
 
-### 1) Gerçek hatayı görünür kıl
-`src/lib/contributions/errors.ts` içindeki `translateContributionError`'a Stripe / domain ödeme hatalarını da Türkçeleştiren bir kademe ekle:
-- `CAMPAIGN_NOT_PAYMENT_READY` → "Bu kampanya henüz ödeme almaya hazır değil."
-- `DUPLICATE_PAYMENT_ATTEMPT` → "Bu destek için zaten aktif bir ödeme oturumu var. Lütfen birkaç dakika sonra tekrar deneyin."
-- `PAYMENT_FAILED` / Stripe `StripeInvalidRequestError`, `StripeAuthenticationError`, `StripeAPIError`, `StripeConnectionError` → "Ödeme sağlayıcısı isteği reddetti: {kısa mesaj}" (kısa mesaj sanitize edilerek, sadece Stripe'ın `message` alanı kullanılır; secret/anahtar sızmaz).
-- `BFL_CURRENCY_UNSUPPORTED` mesajını `contributionErrorMessages`'a ekle: "Bu kampanyanın para birimi (TRY) ödeme sağlayıcısı tarafından desteklenmiyor."
-- Bilinmeyen Error mesajının ilk 140 karakterini fallback olarak ekrana yaz (yine de generic'i geri planda tut).
+### 1) `RichTextViewer` — okuma tipografisi (tek kaynak)
+`src/components/common/RichTextViewer.tsx`:
+- Varsayılan sınıfı `prose prose-lg` (≈18px, geniş leading) olarak değiştir; `prose-sm` kaldır.
+- `max-w-prose` (≈65ch) varsayılan olsun; tüketici `className`'le `max-w-none` geçebilsin.
+- `dark:prose-invert` kalsın.
+- Element bazlı ince ayarlar (Tailwind v4 prose modifier'ları ile):
+  - `prose-headings:font-semibold prose-headings:tracking-tight`
+  - `prose-h2:mt-8 prose-h2:mb-3 prose-h2:text-xl`
+  - `prose-h3:mt-6 prose-h3:mb-2 prose-h3:text-lg`
+  - `prose-p:leading-relaxed prose-p:my-4`
+  - `prose-li:my-1 prose-ul:my-4 prose-ol:my-4 marker:text-muted-foreground`
+  - `prose-blockquote:border-l-2 prose-blockquote:border-primary/40 prose-blockquote:text-muted-foreground prose-blockquote:not-italic`
+  - `prose-a:text-primary prose-a:underline-offset-4 hover:prose-a:opacity-80`
+  - `prose-hr:my-8 prose-hr:border-border`
+  - `prose-strong:text-foreground prose-code:text-foreground prose-code:bg-muted prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:before:hidden prose-code:after:hidden`
 
-### 2) Server tarafında "failed" işaretle (orphan kayıt bırakma)
-`src/lib/payments/checkout.functions.ts` 6–7. adımlarındaki Stripe çağrısını try/catch'e al:
-- Stripe veya sonraki update hata fırlatırsa `payment_transactions` satırını
-  `status = 'failed'`, `domain_status = 'failed'`, `sanitized_metadata.error = { code, message }` ile güncelle.
-- Sonra hatayı yeniden fırlat (kullanıcıya ulaşması için).
-Bu, "duplicate active session" kontrolünün ilerideki denemelerde yanlış pozitif vermesini de önler.
+### 2) Detay sayfası — boyut zorlamalarını kaldır
+`src/pages/CampaignDetailPage.tsx` içindeki 4 `RichTextViewer` çağrısından `className="text-sm"` ve `className="text-sm sm:text-base"` kaldırılsın; viewer'ın kendi okuma stili kullanılsın. Hikâye dahil hepsi aynı dil.
 
-### 3) Mevcut 3 yarım kayıt için temizlik migrasyonu
-Migration:
-```sql
-update payment_transactions
-set status = 'failed', domain_status = 'failed'
-where provider_checkout_session_id is null
-  and status = 'initiated';
-```
-Aynı migrasyon, ilgili `contributions.status = 'pending'` kayıtlarını da `failed`'e çevirsin (yalnızca yukarıdaki PT'lere ait olanları).
+### 3) Section ritmi
+`Section` bileşeninin başlığı ve içerik üst boşluğu okuma ritmiyle uyumlu olsun: section başlığı `text-lg font-semibold tracking-tight`, içerik `mt-3 sm:mt-4`. Bölümler arası dikey ritim `space-y-8 sm:space-y-10` (mevcut `space-y-*` değeri buna eşitlenir; daha küçükse büyütülür).
 
-### 4) Para birimi uyumluluğu için ek doğrulama (opsiyonel iyileştirme)
-`createCheckoutSession` içinde TRY kontrolünden sonra, Stripe hesabının desteklediği para birimleriyle uyuşmazlığı zaten Stripe söyleyecek. Ek olarak `creator_payment_accounts.default_currency` varsa uyuşmazlıkta erken `CURRENCY_NOT_SUPPORTED_BY_ACCOUNT` döndürerek daha net mesaj veriyoruz.
+### 4) Diğer metin alanlarını aynı dile çek (kapsam: tüm detay sayfası)
+- **Ödül paketleri** (`reward-tiers`):
+  - Kart başlığı `text-base font-semibold` (sm yerine), açıklama `text-sm leading-relaxed text-muted-foreground`, "Tahmini teslim" satırı `text-xs uppercase tracking-wide text-muted-foreground` etiketi + `text-sm text-foreground` değer ile yeniden düzenle.
+  - Kartlar arası boşluk `gap-4`.
+- **Güncellemeler / yorumlar / SSS** gibi metin bloklarında body `text-base leading-relaxed`, meta satırları `text-xs text-muted-foreground` olsun. (Bu bölümler dosyada tespit edilecek; yalnızca tipografi rötuşu.)
+- **AI özet kartı**: gövde `text-base leading-relaxed`, başlık `text-lg font-semibold` — kart yapısına dokunulmaz.
 
-### 5) Doğrulama
-- Build sonrası "Ödemeye geç"e tekrar basın; artık konsolda / UI'da gerçek Stripe mesajını görmeliyiz.
-- Eğer mesaj "currency is invalid" gibi çıkarsa, çözüm kod değil hesap tarafıdır: Stripe Dashboard'da TRY destekleyen bir Connect/Standalone hesabı kullanmanız gerekir. O durumda yapılacak şey ya hesabı değiştirmek ya da MVP için kampanya para birimini hesabınızın desteklediği bir kura çevirmek olur — kararı sizinle birlikte alırız.
+### 5) Mobile-first kontrol
+- `prose prose-lg` mobilde `text-[17px]` civarı oturur; çok geniş hissedilirse `prose-base sm:prose-lg` ile mobilde 16px / desktop 18px ayarına çekilir (eşik karar verme: tek bir manuel preview kontrolünden sonra netleşir).
+- `max-w-prose` sayesinde geniş ekranda satır 65ch ile sınırlanır; sticky destek paneli zaten sağda olduğu için ana sütun ortalanmaz, sola hizalı kalır.
+
+### 6) Doğrulama
+- Build sonrası kampanya detayını mobil (375px) ve desktop (1440px) genişliklerinde göz at; uzun paragraflarda satır uzunluğu, başlık ↔ paragraf boşluğu, liste girinti/marker okunabilirliği teyit edilsin.
+- Görsel regresyon: AI özet kartı, ödül kartları, metrik kartı yan yana hâlâ düzgün hizalı olmalı.
 
 ## Teknik notlar
 
-- `mapStripeError` zaten Stripe SDK hatalarını `DomainPaymentError`'a dönüştürüyor; mesajını kaybetmemek için adapter'da `err.message`'ı `DomainPaymentError`'a geçirelim (zaten `"PAYMENT_FAILED"` koduyla). Frontend ise kodu (`PAYMENT_FAILED`) ve mesajı ayrı parse eder.
-- Hata mesajlarında **secret / anahtar / iç path** yer almasın; sadece Stripe'ın kullanıcı dostu `message` alanı + kod.
-- `useMutation` çağrısında `setSubmitError`'a generic yerine yeni mapper'ın çıktısı geçecek; değişiklik review.tsx'te tek satır.
+- Tailwind v4 + `@plugin "@tailwindcss/typography"` zaten yüklü; ekstra paket gerekmiyor.
+- `RichTextViewer` API'si (props) değişmiyor; sadece varsayılan className zenginleşiyor. Mevcut çağıranlar `className` ile override edebilir; gerçek override gerekirse `max-w-none` ile geçilebilir.
+- Renk/spacing/shadow tokenları aynı kalıyor — `text-white` / `bg-black` gibi sabit renk kullanılmıyor.
+- Erişilebilirlik: kontrast oranı `--foreground` token'ı zaten karşılıyor; `prose-a:underline-offset-4` link odak/hover ipucunu güçlendirir.
+
+## Dokunulacak dosyalar
+
+- `src/components/common/RichTextViewer.tsx`
+- `src/pages/CampaignDetailPage.tsx`
+- Olası küçük rötuş: `Section` bileşeni aynı dosyada yer alıyorsa orada; ayrıysa kendi dosyasında.
