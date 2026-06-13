@@ -94,7 +94,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
               <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                 {c.title}
               </h1>
-              <p className="text-base text-muted-foreground">{c.shortDescription}</p>
+              <p className="max-w-prose text-base leading-relaxed text-muted-foreground sm:text-lg">{c.shortDescription}</p>
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <Link
                   to="/creators/$username"
