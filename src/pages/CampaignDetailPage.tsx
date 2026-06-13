@@ -310,14 +310,14 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
 function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
   const headingId = `section-${id ?? title}`;
   return (
-    <section id={id} aria-labelledby={headingId} className="space-y-3 scroll-mt-24">
+    <section id={id} aria-labelledby={headingId} className="scroll-mt-24">
       <h2
         id={headingId}
-        className="text-lg font-semibold tracking-tight text-foreground sm:text-xl"
+        className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
       >
         {title}
       </h2>
-      <div>{children}</div>
+      <div className="mt-4 sm:mt-5">{children}</div>
     </section>
   );
 }
