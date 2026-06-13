@@ -149,34 +149,46 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             </Section>
 
             <Section id="reward-tiers" title="Ödül paketleri">
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {c.rewardTiers.map((t) => {
                   const soldOut = typeof t.limit === "number" && t.claimed >= t.limit;
                   return (
                     <li
                       key={t.id}
-                      className="flex flex-col rounded-lg border border-border bg-card p-4"
+                      className="flex flex-col rounded-lg border border-border bg-card p-5"
                     >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <h3 className="text-sm font-semibold text-foreground">{t.title}</h3>
-                        <span className="text-sm font-semibold text-primary">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <h3 className="text-base font-semibold text-foreground">{t.title}</h3>
+                        <span className="shrink-0 text-base font-semibold text-primary">
                           {formatMoneyMinor(t.priceMinor)}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{t.description}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Tahmini teslim: {t.estimatedDelivery}
+                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                        {t.description}
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {t.claimed} seçildi
-                        {typeof t.limit === "number" ? ` / ${t.limit} sınırlı` : ""}
-                      </p>
+                      <dl className="mt-4 space-y-1.5 text-sm">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Tahmini teslim
+                          </dt>
+                          <dd className="text-sm text-foreground">{t.estimatedDelivery}</dd>
+                        </div>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Seçim
+                          </dt>
+                          <dd className="text-sm text-foreground">
+                            {t.claimed}
+                            {typeof t.limit === "number" ? ` / ${t.limit}` : ""}
+                          </dd>
+                        </div>
+                      </dl>
                       {user ? (
                         <Button
                           asChild
                           size="sm"
                           variant="outline"
-                          className="mt-3"
+                          className="mt-4"
                           disabled={soldOut}
                         >
                           <Link to="/campaigns/$slug/back" params={{ slug }}>
@@ -187,7 +199,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="mt-3"
+                          className="mt-4"
                           disabled={soldOut}
                           onClick={() => setSupportOpen(true)}
                         >
