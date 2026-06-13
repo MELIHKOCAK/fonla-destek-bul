@@ -171,7 +171,7 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             </Section>
 
             <Section id="risks-and-challenges" title="Riskler ve zorluklar">
-              <p className="text-sm leading-relaxed text-foreground">{c.risks}</p>
+              <RichTextViewer html={c.risks} className="text-sm" />
             </Section>
 
             <Section id="reward-tiers" title="Ödül paketleri">
