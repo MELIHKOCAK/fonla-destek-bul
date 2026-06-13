@@ -133,20 +133,19 @@ export function CampaignDetailPage({ slug }: { slug: string }) {
             </section>
 
             <Section id="campaign-story" title="Hikâye">
-              <RichTextViewer html={c.story} className="text-sm sm:text-base" />
+              <RichTextViewer html={c.story} />
             </Section>
 
             <Section id="fund-usage" title="Fon kullanım planı">
-              <RichTextViewer html={c.fundsUsage} className="text-sm" />
+              <RichTextViewer html={c.fundsUsage} />
             </Section>
 
             <Section id="campaign-timeline" title="Takvim">
-              <RichTextViewer html={c.timeline} className="text-sm" />
+              <RichTextViewer html={c.timeline} />
             </Section>
 
-
             <Section id="risks-and-challenges" title="Riskler ve zorluklar">
-              <RichTextViewer html={c.risks} className="text-sm" />
+              <RichTextViewer html={c.risks} />
             </Section>
 
             <Section id="reward-tiers" title="Ödül paketleri">
