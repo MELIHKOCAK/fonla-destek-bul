@@ -3,9 +3,7 @@ import type {
   CampaignDetail,
   CampaignFaqItem,
   CampaignUpdate,
-  Milestone,
   RewardTier,
-  FundingPlanItem,
 } from "@/types/campaign";
 
 /**
@@ -14,65 +12,35 @@ import type {
  */
 
 const STORY = (title: string) =>
-  `${title} projesi, bir ihtiyaca dürüst bir çözüm üretmek için yola çıktı. ` +
+  `<p>${title} projesi, bir ihtiyaca dürüst bir çözüm üretmek için yola çıktı. ` +
   `Geliştirme süreci boyunca topluluk geri bildirimleriyle iteratif olarak şekillendi; ` +
-  `şimdi üretimi ve dağıtımı tamamlamak için topluluk desteğine ihtiyacımız var. ` +
-  `Bu sayfada projenin nasıl ortaya çıktığını, neyi nasıl üreteceğimizi ve karşılaştığımız ` +
-  `riskleri saydam biçimde paylaşıyoruz.\n\n` +
-  `Topladığımız desteğin tamamı belirtilen plan dahilinde kullanılacaktır. ` +
-  `Kampanya süresince ilerleyişi düzenli güncellemelerle paylaşacağız.`;
+  `şimdi üretimi ve dağıtımı tamamlamak için topluluk desteğine ihtiyacımız var.</p>` +
+  `<p>Topladığımız desteğin tamamı belirtilen plan dahilinde kullanılacaktır. ` +
+  `Kampanya süresince ilerleyişi düzenli güncellemelerle paylaşacağız.</p>`;
 
-const FUNDING_PLAN: ReadonlyArray<FundingPlanItem> = [
-  { label: "Üretim ve malzeme", percent: 55, description: "Kalıp, hammadde ve üretim hizmeti." },
-  {
-    label: "Lojistik ve kargo",
-    percent: 15,
-    description: "Destekçilere kargo, ambalaj ve sigorta.",
-  },
-  { label: "Platform komisyonu ve ödeme", percent: 8, description: "Platform ve ödeme hizmet bedeli." },
-  { label: "Vergi ve yasal", percent: 10, description: "KDV ve faturalandırma yükümlülükleri." },
-  { label: "Operasyon ve iletişim", percent: 12, description: "Tasarım, içerik ve müşteri destek." },
-];
+const FUNDS_USAGE_HTML =
+  `<ul>` +
+  `<li><strong>Üretim ve malzeme (%55):</strong> Kalıp, hammadde ve üretim hizmeti.</li>` +
+  `<li><strong>Lojistik ve kargo (%15):</strong> Destekçilere kargo, ambalaj ve sigorta.</li>` +
+  `<li><strong>Platform komisyonu ve ödeme (%8):</strong> Platform ve ödeme hizmet bedeli.</li>` +
+  `<li><strong>Vergi ve yasal (%10):</strong> KDV ve faturalandırma yükümlülükleri.</li>` +
+  `<li><strong>Operasyon ve iletişim (%12):</strong> Tasarım, içerik ve müşteri destek.</li>` +
+  `</ul>`;
+
+const TIMELINE_HTML =
+  `<ul>` +
+  `<li><strong>Kampanya başlangıcı:</strong> Yayına alma ve ön kayıt destekçileriyle iletişim.</li>` +
+  `<li><strong>Üretim hazırlığı (≈3. hafta):</strong> Tedarikçi anlaşmaları ve üretim siparişi.</li>` +
+  `<li><strong>İlk üretim partisi (≈2. ay):</strong> Üretim ve kalite kontrol.</li>` +
+  `<li><strong>Kargo başlangıcı (≈3. ay):</strong> Destekçilere ödüllerin gönderimi.</li>` +
+  `</ul>`;
 
 const RISKS =
-  "Üretim süreçlerinde gecikme yaşanması, tedarik zincirinde fiyat dalgalanmaları ve " +
-  "lojistik kaynaklı sapmalar en bilinen risklerdir. Bu durumda kampanya sayfasından " +
-  "açık güncellemelerle ilerleyişi paylaşacağız. Hedefe ulaşılamazsa BeniFonla kuralları " +
-  "uyarınca destek tutarları iade edilir; bu süreçte destekçilerden ek ücret talep edilmez.";
-
-function milestones(start: Date): ReadonlyArray<Milestone> {
-  const add = (days: number) => {
-    const d = new Date(start);
-    d.setUTCDate(d.getUTCDate() + days);
-    return d.toISOString();
-  };
-  return [
-    {
-      id: "m-1",
-      date: add(0),
-      title: "Kampanya başlangıcı",
-      description: "Kampanya yayına alındı, ön kayıt destekçileriyle iletişim kuruldu.",
-    },
-    {
-      id: "m-2",
-      date: add(20),
-      title: "Üretim hazırlığı",
-      description: "Tedarikçi anlaşmaları tamamlanır, üretim siparişi verilir.",
-    },
-    {
-      id: "m-3",
-      date: add(60),
-      title: "İlk üretim partisi",
-      description: "İlk parti üretim tamamlanır, kalite kontrol süreçleri uygulanır.",
-    },
-    {
-      id: "m-4",
-      date: add(90),
-      title: "Kargo başlangıcı",
-      description: "Destekçilere ödüller kargolanmaya başlar.",
-    },
-  ];
-}
+  `<p>Üretim süreçlerinde gecikme yaşanması, tedarik zincirinde fiyat dalgalanmaları ve ` +
+  `lojistik kaynaklı sapmalar en bilinen risklerdir. Bu durumda kampanya sayfasından ` +
+  `açık güncellemelerle ilerleyişi paylaşacağız.</p>` +
+  `<p>Hedefe ulaşılamazsa BeniFonla kuralları uyarınca destek tutarları iade edilir; ` +
+  `bu süreçte destekçilerden ek ücret talep edilmez.</p>`;
 
 function rewardTiers(goalMinor: number): ReadonlyArray<RewardTier> {
   const base = Math.max(10_000, Math.round(goalMinor / 200));
@@ -184,8 +152,8 @@ export function buildCampaignDetail(c: Campaign): CampaignDetail {
   return {
     ...c,
     story: STORY(c.title),
-    fundingPlan: FUNDING_PLAN,
-    milestones: milestones(start),
+    fundsUsage: FUNDS_USAGE_HTML,
+    timeline: TIMELINE_HTML,
     risks: RISKS,
     rewardTiers: rewardTiers(c.goalAmountMinor),
     updates: updates(start),

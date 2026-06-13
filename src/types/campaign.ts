@@ -72,13 +72,6 @@ export interface RewardTier {
   claimed: number;
 }
 
-export interface Milestone {
-  id: string;
-  date: string;
-  title: string;
-  description: string;
-}
-
 export interface CampaignUpdate {
   id: string;
   date: string;
@@ -99,17 +92,14 @@ export interface CampaignFaqItem {
   answer: string;
 }
 
-export interface FundingPlanItem {
-  label: string;
-  /** 0–100, toplamı 100 olmalı */
-  percent: number;
-  description?: string;
-}
-
 export interface CampaignDetail extends Campaign {
+  /** HTML — RichTextViewer ile render edilir */
   story: string;
-  fundingPlan: ReadonlyArray<FundingPlanItem>;
-  milestones: ReadonlyArray<Milestone>;
+  /** HTML — RichTextViewer ile render edilir */
+  fundsUsage: string;
+  /** HTML — RichTextViewer ile render edilir */
+  timeline: string;
+  /** HTML — RichTextViewer ile render edilir */
   risks: string;
   rewardTiers: ReadonlyArray<RewardTier>;
   updates: ReadonlyArray<CampaignUpdate>;
