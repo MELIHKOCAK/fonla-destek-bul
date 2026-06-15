@@ -291,9 +291,11 @@ export const Route = createFileRoute("/api/public/ai/chat")({
           );
         }
 
-        // 6. Rate-limit (aktör anahtarı hash'lenir; DB'de ham IP saklanmaz)
+        // 6. Rate-limit (aktör anahtarı HMAC'tir; DB'de ham IP/UA saklanmaz)
+        const actorSalt = readActorHashSecret();
+        if (typeof actorSalt !== "string") return actorSalt.error;
         const actorKeyHash = createHash("sha256")
-          .update(buildActorKey(userId, request))
+          .update(buildActorKey(userId, request, actorSalt))
           .digest("hex");
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
