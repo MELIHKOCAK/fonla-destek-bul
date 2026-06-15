@@ -27,25 +27,25 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  const rootRoute = createRootRoute();
-  const indexRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: "/",
-    component: () => null,
-  });
+  return ({ children }: { children: React.ReactNode }) => {
+    const rootRoute = createRootRoute();
+    const indexRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: "/",
+      component: () => <>{children}</>,
+    });
 
-  const router = createRouter({
-    routeTree: rootRoute.addChildren([indexRoute]),
-    history: createMemoryHistory({ initialEntries: ["/"] }),
-  });
+    const router = createRouter({
+      routeTree: rootRoute.addChildren([indexRoute]),
+      history: createMemoryHistory({ initialEntries: ["/"] }),
+    });
 
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router}>
-        {children}
-      </RouterProvider>
-    </QueryClientProvider>
-  );
+    return (
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    );
+  };
 }
 
 describe("useAiChat", () => {
@@ -131,7 +131,7 @@ describe("useAiChat", () => {
   it("should handle generic API error", async () => {
     vi.mocked(api.sendAiChatMessage).mockResolvedValueOnce({
       status: "error",
-      code: "API_ERROR",
+      code: "AI_PROVIDER_ERROR",
       message: "Internal server error",
     });
 
@@ -142,7 +142,7 @@ describe("useAiChat", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.error).toBe("API_ERROR");
+      expect(result.current.error).toBe("AI_PROVIDER_ERROR");
     });
 
     // User message remains for retry
@@ -153,7 +153,7 @@ describe("useAiChat", () => {
     // 1st request fails
     vi.mocked(api.sendAiChatMessage).mockResolvedValueOnce({
       status: "error",
-      code: "API_ERROR",
+      code: "AI_PROVIDER_ERROR",
       message: "Failed",
     });
 
@@ -164,7 +164,7 @@ describe("useAiChat", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.error).toBe("API_ERROR");
+      expect(result.current.error).toBe("AI_PROVIDER_ERROR");
     });
 
     // 2nd request succeeds
