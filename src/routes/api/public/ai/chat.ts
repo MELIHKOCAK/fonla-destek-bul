@@ -29,7 +29,7 @@ import type {
 } from "@/lib/ai/chat/types";
 import {
   AI_CHAT_DEFAULT_MODEL,
-  buildAiChatSystemInstruction,
+  buildAiChatGatewayMessages,
 } from "@/lib/ai/chat/prompt.server";
 import { callAiChatGateway } from "@/lib/ai/chat/gateway.server";
 
