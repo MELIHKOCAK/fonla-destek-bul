@@ -29,7 +29,7 @@ describe("buildAiChatSystemInstruction", () => {
   });
 
   it("sürüm ve model sabitlerini dışa aktarır", () => {
-    expect(AI_CHAT_PROMPT_VERSION).toBe("chat-v1");
+    expect(AI_CHAT_PROMPT_VERSION).toMatch(/^chat-v1\+kb-/);
     expect(AI_CHAT_DEFAULT_MODEL).toMatch(/^google\//);
   });
 });
