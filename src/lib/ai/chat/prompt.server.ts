@@ -50,8 +50,9 @@ export function buildAiChatSystemInstruction(pathname: string): string {
   ].join("\n");
 }
 
-/** Prompt sürümü; değişirse cache invalidation / audit için kullanılır. */
-export const AI_CHAT_PROMPT_VERSION = "chat-v1" as const;
+/** Prompt sürümü; bilgi tabanı sürümünü de içerir (cache / audit için). */
+export const AI_CHAT_PROMPT_VERSION =
+  `chat-v1+${AI_CHAT_KNOWLEDGE_VERSION}` as const;
 
 /** Varsayılan model — Lovable AI Gateway. */
 export const AI_CHAT_DEFAULT_MODEL = "google/gemini-2.5-flash" as const;
