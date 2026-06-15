@@ -284,12 +284,11 @@ export const Route = createFileRoute("/api/public/ai/chat")({
           );
         }
 
-        // 7. Sistem promptu + bağlam mesajları
-        const systemInstruction = buildAiChatSystemInstruction(pathname);
-        const gatewayMessages = [
-          { role: "system" as const, content: systemInstruction },
-          ...messages.map((m) => ({ role: m.role, content: m.content })),
-        ];
+        // 7. Sistem promptu + güvenilmeyen sohbet zarfı
+        const gatewayMessages = buildAiChatGatewayMessages(
+          pathname,
+          messages.map((m) => ({ role: m.role, content: m.content })),
+        );
 
         // 8. AI çağrısı
         const result = await callAiChatGateway({
