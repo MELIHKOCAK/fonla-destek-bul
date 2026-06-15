@@ -29,7 +29,7 @@ import type {
 } from "@/lib/ai/chat/types";
 import {
   AI_CHAT_DEFAULT_MODEL,
-  buildAiChatSystemInstruction,
+  buildAiChatGatewayMessages,
 } from "@/lib/ai/chat/prompt.server";
 import { callAiChatGateway } from "@/lib/ai/chat/gateway.server";
 
@@ -284,18 +284,17 @@ export const Route = createFileRoute("/api/public/ai/chat")({
           );
         }
 
-        // 7. Sistem promptu + bağlam mesajları
-        const systemInstruction = buildAiChatSystemInstruction(pathname);
-        const gatewayMessages = [
-          { role: "system" as const, content: systemInstruction },
-          ...messages.map((m) => ({ role: m.role, content: m.content })),
-        ];
+        // 7. Sistem promptu + güvenilmeyen sohbet zarfı
+        const gatewayMessages = buildAiChatGatewayMessages(
+          pathname,
+          messages.map((m) => ({ role: m.role, content: m.content })),
+        );
 
         // 8. AI çağrısı
         const result = await callAiChatGateway({
           apiKey: lovableApiKey,
           model: AI_CHAT_DEFAULT_MODEL,
-          messages: gatewayMessages,
+          messages: gatewayMessages.map((m) => ({ ...m })),
         });
 
         if (!result.ok) {
