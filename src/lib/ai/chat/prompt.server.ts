@@ -1,46 +1,17 @@
 /**
- * AI Sohbet — sistem promptu ve bilgi tabanı.
+ * AI Sohbet — sistem promptu.
  *
  * Server-only. Yalnızca AI gateway çağrısında kullanılır.
- * Bilgi tabanı `docs/product-scope.md`, `docs/domain-glossary.md` ve
- * `docs/project-knowledge.md`'in özetidir; uzun cevap üretmek yerine
- * platformun kapsamı içinde kalır ve yatırım/finansal tavsiye vermez.
+ * Bilgi tabanı `./knowledge.server.ts` içinde versiyonlanır; bu dosya
+ * yalnızca davranış kurallarını ve prompt birleştirmeyi içerir.
  */
 
-const KNOWLEDGE_BASE = `
-# BeniFonla — Bilgi tabanı (özet)
+import {
+  AI_CHAT_KNOWLEDGE_VERSION,
+  renderAiChatKnowledge,
+} from "./knowledge.server";
 
-## Platform
-- BeniFonla, **ödül (reward) temelli kitle fonlama** platformudur.
-- Kullanıcılar (creator) ürün/proje/fikirlerini sunar, **belirli bir hedef tutar ve süreyle** destek toplar.
-- Destek veren kullanıcı (backer) yalnızca kampanyanın tanımladığı **reward tier** karşılığında ödül talep hakkı kazanır.
-- BeniFonla **yatırım, hisse, faiz, kâr payı veya cüzdan ürünü DEĞİLDİR**. Asla finansal getiri vaat edilmez.
-- MVP'de para birimi TRY'dir; ödeme şu an sandbox modundadır, gerçek tahsilat hukuki uyum sonrası açılır.
-
-## Kampanya yaşam döngüsü
-- Durumlar: \`draft\` → \`submitted\` → \`approved\`/\`rejected\`/\`revision_requested\` → \`scheduled\` → \`live\` → \`successful\`/\`failed\`/\`suspended\`.
-- Creator, çok adımlı wizard ile taslak hazırlar (temel bilgi, hikâye, görsel, hedef tutar, süre, kategori, reward tier).
-- Taslak admin incelemesine gönderilir. Admin onaylar, reddeder veya revizyon ister.
-- Kampanya, hedefe ulaşırsa \`successful\`, ulaşamazsa \`failed\` olur. \`all-or-nothing\` modeli geçerlidir.
-
-## Destek (contribution) akışı
-- Backer, kampanya detayında bir reward tier seçer veya serbest tutar belirler.
-- Ödeme sandbox sağlayıcısı üzerinden tamamlanır. Başarılı destekler kampanya toplamına yansır.
-- Destek başarısız olursa kullanıcı yeniden deneyebilir; her deneme ayrı bir attempt olarak kaydedilir.
-- Kampanya \`failed\` olursa destek tutarları iade sürecine alınır.
-
-## Roller
-- **Guest**: kampanyaları görüntüler.
-- **User/Backer**: destek verir, favori ekler, takip eder, yorum yapar.
-- **Creator**: kampanya oluşturur ve yönetir.
-- **Admin**: kampanya inceleme, moderasyon ve sistem operasyonları yürütür.
-
-## Sınırlar (AI sohbet bağlamı)
-- Sohbet **genel platform bilgisi** ve **kullanım rehberliği** sunar.
-- Kullanıcının kişisel ödeme, destek, iade, bildirim veya cüzdan verisi sohbete dahil edilmez.
-- Kampanyanın **özel sayısal başarı tahminleri** verilmez (oran, beklenen gelir, vb.).
-- Belirli kampanya, kullanıcı veya creator hakkında özel veri yorumlanmaz; gerekirse ilgili sayfaya yönlendirme yapılır.
-`.trim();
+const KNOWLEDGE_BASE = renderAiChatKnowledge();
 
 const SYSTEM_RULES = `
 Sen **BeniFonla AI Asistanı**'sın. Görevin, kullanıcıya BeniFonla kitle fonlama platformunu kullanma konusunda Türkçe, kısa ve net yardım sağlamaktır.
