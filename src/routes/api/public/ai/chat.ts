@@ -294,7 +294,7 @@ export const Route = createFileRoute("/api/public/ai/chat")({
         const result = await callAiChatGateway({
           apiKey: lovableApiKey,
           model: AI_CHAT_DEFAULT_MODEL,
-          messages: gatewayMessages,
+          messages: gatewayMessages.map((m) => ({ ...m })),
         });
 
         if (!result.ok) {
