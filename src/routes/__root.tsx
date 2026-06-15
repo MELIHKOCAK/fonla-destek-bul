@@ -16,6 +16,8 @@ import { themeInitScript } from "@/app/theme/theme-script";
 import { AppShell } from "@/components/layout/AppShell";
 import { AuthProvider } from "@/app/auth/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { AiChatWidget } from "@/components/ai-chat/AiChatWidget";
+import { env } from "@/lib/env";
 
 function NotFoundComponent() {
   return (
@@ -133,6 +135,7 @@ function RootComponent() {
           <AppShell>
             <Outlet />
           </AppShell>
+          {env.VITE_AI_CHAT_ENABLED && <AiChatWidget />}
           <Toaster richColors closeButton />
         </AuthProvider>
       </ThemeProvider>
