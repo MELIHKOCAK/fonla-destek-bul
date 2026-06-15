@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_chat_rate_limits: {
+        Row: {
+          actor_key_hash: string
+          request_count: number
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          actor_key_hash: string
+          request_count?: number
+          updated_at?: string
+          window_started_at?: string
+        }
+        Update: {
+          actor_key_hash?: string
+          request_count?: number
+          updated_at?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -2381,6 +2402,14 @@ export type Database = {
       check_username_available: {
         Args: { _username: string }
         Returns: boolean
+      }
+      claim_ai_chat_request: {
+        Args: {
+          _actor_key_hash: string
+          _max_requests: number
+          _window_seconds: number
+        }
+        Returns: Json
       }
       claim_campaign_ai_summary_generation: {
         Args: {
