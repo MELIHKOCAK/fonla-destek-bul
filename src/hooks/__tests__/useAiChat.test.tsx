@@ -1,13 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  RouterProvider,
-  createMemoryHistory,
-  createRootRoute,
-  createRoute,
-  createRouter,
-} from "@tanstack/react-router";
 import { useAiChat } from "../useAiChat";
 import * as api from "@/lib/ai/chat/api";
 import { AI_CHAT_STORAGE_KEY } from "@/lib/ai/chat/constants";
@@ -21,30 +14,19 @@ vi.mock("@/lib/ai/chat/api", async (importOriginal) => {
   };
 });
 
+// useRouterState is mocked so we don't need a real RouterProvider in unit tests.
+vi.mock("@tanstack/react-router", () => ({
+  useRouterState: () => "/",
+}));
+
 // Setup wrapper for testing
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  const rootRoute = createRootRoute();
-  const indexRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: "/",
-    component: () => null,
-  });
-
-  const router = createRouter({
-    routeTree: rootRoute.addChildren([indexRoute]),
-    history: createMemoryHistory({ initialEntries: ["/"] }),
-  });
-
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router}>
-        {children}
-      </RouterProvider>
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 }
 
@@ -131,7 +113,7 @@ describe("useAiChat", () => {
   it("should handle generic API error", async () => {
     vi.mocked(api.sendAiChatMessage).mockResolvedValueOnce({
       status: "error",
-      code: "API_ERROR",
+      code: "AI_PROVIDER_ERROR",
       message: "Internal server error",
     });
 
@@ -142,7 +124,7 @@ describe("useAiChat", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.error).toBe("API_ERROR");
+      expect(result.current.error).toBe("AI_PROVIDER_ERROR");
     });
 
     // User message remains for retry
@@ -153,7 +135,7 @@ describe("useAiChat", () => {
     // 1st request fails
     vi.mocked(api.sendAiChatMessage).mockResolvedValueOnce({
       status: "error",
-      code: "API_ERROR",
+      code: "AI_PROVIDER_ERROR",
       message: "Failed",
     });
 
@@ -164,7 +146,7 @@ describe("useAiChat", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.error).toBe("API_ERROR");
+      expect(result.current.error).toBe("AI_PROVIDER_ERROR");
     });
 
     // 2nd request succeeds
