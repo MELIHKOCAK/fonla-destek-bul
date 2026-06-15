@@ -72,6 +72,7 @@ import { Route as ApiPublicHooksRunPaymentReconciliationRouteImport } from './ro
 import { Route as ApiPublicHooksPublishDueCampaignsRouteImport } from './routes/api/public/hooks/publish-due-campaigns'
 import { Route as ApiPublicHooksProcessNotificationOutboxRouteImport } from './routes/api/public/hooks/process-notification-outbox'
 import { Route as ApiPublicAiGenerateCampaignSummaryRouteImport } from './routes/api/public/ai/generate-campaign-summary'
+import { Route as ApiPublicAiChatRouteImport } from './routes/api/public/ai/chat'
 import { Route as AuthenticatedCreatorCampaignsNewRouteImport } from './routes/_authenticated/creator.campaigns.new'
 import { Route as AuthenticatedAdminCampaignReviewsCampaignIdRouteImport } from './routes/_authenticated/admin.campaign-reviews.$campaignId'
 import { Route as AuthenticatedCreatorCampaignsCampaignIdUpdatesRouteImport } from './routes/_authenticated/creator.campaigns.$campaignId.updates'
@@ -422,6 +423,11 @@ const ApiPublicAiGenerateCampaignSummaryRoute =
     path: '/api/public/ai/generate-campaign-summary',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAiChatRoute = ApiPublicAiChatRouteImport.update({
+  id: '/api/public/ai/chat',
+  path: '/api/public/ai/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedCreatorCampaignsNewRoute =
   AuthenticatedCreatorCampaignsNewRouteImport.update({
     id: '/new',
@@ -541,6 +547,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/$slug/': typeof CampaignsSlugIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/ai/chat': typeof ApiPublicAiChatRoute
   '/api/public/ai/generate-campaign-summary': typeof ApiPublicAiGenerateCampaignSummaryRoute
   '/api/public/hooks/process-notification-outbox': typeof ApiPublicHooksProcessNotificationOutboxRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
@@ -612,6 +619,7 @@ export interface FileRoutesByTo {
   '/campaigns/$slug': typeof CampaignsSlugIndexRoute
   '/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/ai/chat': typeof ApiPublicAiChatRoute
   '/api/public/ai/generate-campaign-summary': typeof ApiPublicAiGenerateCampaignSummaryRoute
   '/api/public/hooks/process-notification-outbox': typeof ApiPublicHooksProcessNotificationOutboxRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
@@ -689,6 +697,7 @@ export interface FileRoutesById {
   '/campaigns/$slug/': typeof CampaignsSlugIndexRoute
   '/_authenticated/admin/campaign-reviews/$campaignId': typeof AuthenticatedAdminCampaignReviewsCampaignIdRoute
   '/_authenticated/creator/campaigns/new': typeof AuthenticatedCreatorCampaignsNewRoute
+  '/api/public/ai/chat': typeof ApiPublicAiChatRoute
   '/api/public/ai/generate-campaign-summary': typeof ApiPublicAiGenerateCampaignSummaryRoute
   '/api/public/hooks/process-notification-outbox': typeof ApiPublicHooksProcessNotificationOutboxRoute
   '/api/public/hooks/publish-due-campaigns': typeof ApiPublicHooksPublishDueCampaignsRoute
@@ -766,6 +775,7 @@ export interface FileRouteTypes {
     | '/campaigns/$slug/'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
+    | '/api/public/ai/chat'
     | '/api/public/ai/generate-campaign-summary'
     | '/api/public/hooks/process-notification-outbox'
     | '/api/public/hooks/publish-due-campaigns'
@@ -837,6 +847,7 @@ export interface FileRouteTypes {
     | '/campaigns/$slug'
     | '/admin/campaign-reviews/$campaignId'
     | '/creator/campaigns/new'
+    | '/api/public/ai/chat'
     | '/api/public/ai/generate-campaign-summary'
     | '/api/public/hooks/process-notification-outbox'
     | '/api/public/hooks/publish-due-campaigns'
@@ -913,6 +924,7 @@ export interface FileRouteTypes {
     | '/campaigns/$slug/'
     | '/_authenticated/admin/campaign-reviews/$campaignId'
     | '/_authenticated/creator/campaigns/new'
+    | '/api/public/ai/chat'
     | '/api/public/ai/generate-campaign-summary'
     | '/api/public/hooks/process-notification-outbox'
     | '/api/public/hooks/publish-due-campaigns'
@@ -966,6 +978,7 @@ export interface RootRouteChildren {
   CampaignsSlugRoute: typeof CampaignsSlugRouteWithChildren
   CategoriesSlugRoute: typeof CategoriesSlugRoute
   CreatorsUsernameRoute: typeof CreatorsUsernameRoute
+  ApiPublicAiChatRoute: typeof ApiPublicAiChatRoute
   ApiPublicAiGenerateCampaignSummaryRoute: typeof ApiPublicAiGenerateCampaignSummaryRoute
   ApiPublicHooksProcessNotificationOutboxRoute: typeof ApiPublicHooksProcessNotificationOutboxRoute
   ApiPublicHooksPublishDueCampaignsRoute: typeof ApiPublicHooksPublishDueCampaignsRoute
@@ -1417,6 +1430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAiGenerateCampaignSummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ai/chat': {
+      id: '/api/public/ai/chat'
+      path: '/api/public/ai/chat'
+      fullPath: '/api/public/ai/chat'
+      preLoaderRoute: typeof ApiPublicAiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/creator/campaigns/new': {
       id: '/_authenticated/creator/campaigns/new'
       path: '/new'
@@ -1683,6 +1703,7 @@ const rootRouteChildren: RootRouteChildren = {
   CampaignsSlugRoute: CampaignsSlugRouteWithChildren,
   CategoriesSlugRoute: CategoriesSlugRoute,
   CreatorsUsernameRoute: CreatorsUsernameRoute,
+  ApiPublicAiChatRoute: ApiPublicAiChatRoute,
   ApiPublicAiGenerateCampaignSummaryRoute:
     ApiPublicAiGenerateCampaignSummaryRoute,
   ApiPublicHooksProcessNotificationOutboxRoute:
