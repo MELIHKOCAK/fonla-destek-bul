@@ -86,11 +86,44 @@ function maskDetail(detail: string): string {
   return detail.length > 120 ? detail.slice(0, 120) + "…" : detail;
 }
 
-function buildActorKey(userId: string | null, request: Request): string {
-  const salt =
-    process.env.AI_RATE_LIMIT_HASH_SECRET ??
-    process.env.NOTIFICATION_OUTBOX_CRON_SECRET ??
-    "benifonla-ai-chat-default-salt";
+/**
+ * Aktör anahtarı için tuz (salt) okur. Bu değer rate-limit hash'inin tek
+ * gizli girdisidir; tahmin edilebilir/sabit bir fallback **production'da
+ * kullanılmaz**. Yoksa yapılandırma hatası fırlatılır.
+ */
+function readActorHashSecret(): string | { error: Response } {
+  const secret = process.env.AI_RATE_LIMIT_HASH_SECRET;
+  if (secret && secret.length >= 16) return secret;
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      "[ai-chat] AI_RATE_LIMIT_HASH_SECRET missing or too short in production",
+    );
+    return {
+      error: jsonResponse(
+        errorBody("AI_PROVIDER_ERROR", "Sunucu yapılandırması eksik."),
+        500,
+      ),
+    };
+  }
+  // Yalnızca production-dışı (dev/test) ortamlarda geliştirici deneyimi
+  // için sabit bir tuz kullanılır; bu durumda rate-limit hash'i tahmin
+  // edilebilirdir ve **production'a çıkarılmamalıdır**.
+  return "benifonla-ai-chat-dev-only-salt";
+}
+
+/**
+ * Aktör anahtarı:
+ *  - Giriş yapmış kullanıcı: HMAC(secret, "user:<sub>")
+ *  - Guest: HMAC(secret, "ip:<proxy-ip>" || "ua:<sınırlı-ua>")
+ *
+ * Ham IP / user-agent **saklanmaz**; yalnızca HMAC çıktısı DB'ye gider.
+ * IP, yalnızca güvenilir proxy header'larından okunur.
+ */
+function buildActorKey(
+  userId: string | null,
+  request: Request,
+  salt: string,
+): string {
   if (userId) {
     return createHmac("sha256", salt).update(`user:${userId}`).digest("hex");
   }
@@ -99,24 +132,35 @@ function buildActorKey(userId: string | null, request: Request): string {
     request.headers.get("x-real-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "";
-  const ua = request.headers.get("user-agent") ?? "";
-  const target = ipHeader ? `ip:${ipHeader}` : `guest:${ua.slice(0, 200)}`;
+  // User-agent en fazla 120 karakterle sınırlandırılır; tam UA saklanmaz.
+  const ua = (request.headers.get("user-agent") ?? "").slice(0, 120);
+  const target = ipHeader ? `ip:${ipHeader}` : `ua:${ua}`;
   return createHmac("sha256", salt).update(target).digest("hex");
 }
 
+/**
+ * `Authorization` header opsiyoneldir.
+ *  - Yoksa: guest olarak devam et.
+ *  - `Bearer <jwt>` varsa: Supabase `getClaims` ile doğrulanır.
+ *  - Geçersiz / bozuk token → 401.
+ *
+ * Dönen `userId` **yalnızca** rate-limit aktör anahtarı türetmek için
+ * kullanılır. Bu fazda kişisel kayıt sorgulanmaz.
+ */
 async function authenticateUser(
   request: Request,
 ): Promise<{ userId: string | null; error?: Response }> {
   const auth = request.headers.get("authorization");
   if (!auth) return { userId: null };
-  if (!auth.startsWith("Bearer ")) {
+
+  const match = /^Bearer\s+(.+)$/i.exec(auth.trim());
+  const token = match?.[1]?.trim();
+  if (!token) {
     return {
       userId: null,
       error: jsonResponse(errorBody("UNAUTHORIZED", "Geçersiz oturum."), 401),
     };
   }
-  const token = auth.slice("Bearer ".length).trim();
-  if (!token) return { userId: null };
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
@@ -132,16 +176,21 @@ async function authenticateUser(
 
   const { createClient } = await import("@supabase/supabase-js");
   const client = createClient(supabaseUrl, publishableKey, {
-    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    auth: {
+      storage: undefined,
+      persistSession: false,
+      autoRefreshToken: false,
+    },
   });
   const { data, error } = await client.auth.getClaims(token);
-  if (error || !data?.claims?.sub) {
+  const sub = data?.claims?.sub;
+  if (error || typeof sub !== "string" || sub.length === 0) {
     return {
       userId: null,
       error: jsonResponse(errorBody("UNAUTHORIZED", "Geçersiz oturum."), 401),
     };
   }
-  return { userId: data.claims.sub as string };
+  return { userId: sub };
 }
 
 function lastUserMessageTooLong(messages: AiChatMessage[]): boolean {
