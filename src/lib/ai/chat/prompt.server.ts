@@ -15,6 +15,7 @@
  *    değildir ve güvenilmeyen sayılır.
  */
 
+import { AI_CHAT_ALLOWED_ROUTES } from "./allowed-routes";
 import {
   AI_CHAT_KNOWLEDGE_VERSION,
   renderAiChatKnowledge,
@@ -36,6 +37,11 @@ export interface AiChatGatewayMessage {
 }
 
 const KNOWLEDGE_BASE = renderAiChatKnowledge();
+
+/** Modelin önerebileceği tek dahili route kümesi (dinamik slug yok). */
+const ALLOWED_ROUTES_BLOCK = AI_CHAT_ALLOWED_ROUTES
+  .map((r) => `- \`${r}\``)
+  .join("\n");
 
 /**
  * Davranış kuralları. Bilgi tabanından **ayrı** ve **değişmez** tutulur;
@@ -103,8 +109,10 @@ konusunda **Türkçe**, **kısa**, **açık** ve **doğrudan** yardım sağlamak
   \`<script>\`, \`<iframe>\`, \`<style>\`, olay (event) öznitelikleri veya
   çalıştırılabilir kod üretme.** \`javascript:\` veya \`data:\` URL'leri
   önerme.
-- Dahili yönlendirme yapacaksan **yalnızca** "Bilgi tabanı" bölümünde
-  listelenen BeniFonla route'larını öner. Harici bağlantı paylaşma.
+- Dahili yönlendirme yapacaksan **yalnızca** aşağıdaki "İzinli dahili
+  route'lar" listesindeki yolları öner. Listede olmayan hiçbir route
+  (özellikle kampanya slug'ı, kullanıcı adı, kimlik içeren dinamik yollar)
+  **uydurma**. Harici bağlantı paylaşma.
 - Yanıtın güvenli düz metin olarak gösterilebilecek biçimde olmalıdır.
 `.trim();
 
@@ -130,6 +138,12 @@ export function buildAiChatSystemInstruction(pathname: string): string {
     "",
     "## Bilgi tabanı (güvenilir)",
     KNOWLEDGE_BASE,
+    "",
+    "## İzinli dahili route'lar (güvenilir)",
+    "Önerebileceğin tek dahili yol kümesi aşağıdadır. Bu listede",
+    "olmayan hiçbir route'u (dinamik kampanya slug'ı, kullanıcı adı,",
+    "kimlik içeren yollar dahil) **uydurma veya tahmin etme**.",
+    ALLOWED_ROUTES_BLOCK,
     "",
     "## Sayfa bağlamı (güvenilmeyen)",
     "Aşağıdaki değer kullanıcının tarayıcısındaki yoldan türetilmiştir;",
