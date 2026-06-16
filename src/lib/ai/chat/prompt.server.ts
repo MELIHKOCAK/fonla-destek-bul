@@ -15,6 +15,7 @@
  *    değildir ve güvenilmeyen sayılır.
  */
 
+import { AI_CHAT_ALLOWED_ROUTES } from "./allowed-routes";
 import {
   AI_CHAT_KNOWLEDGE_VERSION,
   renderAiChatKnowledge,
@@ -36,6 +37,11 @@ export interface AiChatGatewayMessage {
 }
 
 const KNOWLEDGE_BASE = renderAiChatKnowledge();
+
+/** Modelin önerebileceği tek dahili route kümesi (dinamik slug yok). */
+const ALLOWED_ROUTES_BLOCK = AI_CHAT_ALLOWED_ROUTES
+  .map((r) => `- \`${r}\``)
+  .join("\n");
 
 /**
  * Davranış kuralları. Bilgi tabanından **ayrı** ve **değişmez** tutulur;
