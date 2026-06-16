@@ -304,8 +304,7 @@ export const Route = createFileRoute("/api/public/ai/chat")({
           "claim_ai_chat_request",
           {
             _actor_key_hash: actorKeyHash,
-            _window_seconds: RATE_LIMIT_WINDOW_SECONDS,
-            _max_requests: RATE_LIMIT_MAX_REQUESTS,
+            _user_id: userId,
           },
         );
         if (rlErr) {
@@ -317,10 +316,11 @@ export const Route = createFileRoute("/api/public/ai/chat")({
         }
         const rl = rlRaw as {
           result: "allowed" | "rate_limited";
+          scope?: "minute" | "day";
           retry_after_seconds?: number;
         };
         if (rl.result === "rate_limited") {
-          const retryAfter = rl.retry_after_seconds ?? RATE_LIMIT_WINDOW_SECONDS;
+          const retryAfter = rl.retry_after_seconds ?? 60;
           return new Response(
             JSON.stringify({
               status: "rate_limited",
