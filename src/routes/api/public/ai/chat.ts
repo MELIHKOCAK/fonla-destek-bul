@@ -252,9 +252,9 @@ export const Route = createFileRoute("/api/public/ai/chat")({
           );
         }
 
-
         // 2. Parse body
         let raw: unknown;
+
         try {
           raw = await request.json();
         } catch {
