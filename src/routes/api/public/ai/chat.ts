@@ -56,16 +56,34 @@ const ChatMessageSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
+/**
+ * Pathname yalnızca **bağlam ipucudur** — yetki kararı için kullanılmaz.
+ * - `/` ile başlamak zorunda.
+ * - Tam URL, protokol, scheme veya script benzeri girişler reddedilir.
+ * - Yalnızca güvenli URL path karakterleri kabul edilir.
+ * - Makul üst sınır 512 karakter.
+ */
+const PathnameSchema = z
+  .string()
+  .min(1)
+  .max(512)
+  .startsWith("/")
+  // Protokol / scheme / script şeması: "//host", "http:", "javascript:",
+  // "data:", "vbscript:" vb. reddedilir.
+  .refine((v) => !v.startsWith("//"), "protocol-relative URL not allowed")
+  .refine(
+    (v) => !/^\s*[a-z][a-z0-9+.-]*:/i.test(v),
+    "absolute URL or scheme not allowed",
+  )
+  // Yalnızca güvenli path / query / fragment karakterleri.
+  .regex(/^\/[\w\-./~%?&=#:@!$'()*+,;[\]]*$/, "invalid pathname characters");
+
 const ChatRequestSchema = z.object({
   messages: z
     .array(ChatMessageSchema)
     .min(1)
     .max(AI_CHAT_LIMITS.maxContextMessages),
-  pathname: z
-    .string()
-    .min(1)
-    .max(2048)
-    .startsWith("/"),
+  pathname: PathnameSchema,
 });
 
 // ---------------------------------------------------------------------------
