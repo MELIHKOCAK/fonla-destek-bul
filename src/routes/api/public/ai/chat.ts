@@ -37,9 +37,10 @@ import { callAiChatGateway } from "@/lib/ai/chat/gateway.server";
 // Limits
 // ---------------------------------------------------------------------------
 
-/** Aktör başına 60 saniye penceresinde izin verilen mesaj sayısı. */
-const RATE_LIMIT_WINDOW_SECONDS = 60;
-const RATE_LIMIT_MAX_REQUESTS = 8;
+/**
+ * Rate-limit pencereleri ve üst sınırları DB tarafında (RPC içinde) atomik
+ * olarak uygulanır. Authenticated: 10/dk, 100/gün. Guest: 5/dk, 25/gün.
+ */
 
 // ---------------------------------------------------------------------------
 // Request schema (frontend sözleşmesiyle aynı)
