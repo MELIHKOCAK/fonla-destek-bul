@@ -243,8 +243,9 @@ export const Route = createFileRoute("/api/public/ai/chat")({
 
       POST: async ({ request }) => {
         // 1. AI_CHAT_ENABLED kill-switch.
-        //    Varsayılan: etkin. Yalnızca açıkça "false" olduğunda devre dışı.
-        if (process.env.AI_CHAT_ENABLED === "false") {
+        //    Yalnızca açıkça "true" olduğunda etkindir; başka her değer kapalı kabul edilir.
+        //    Değişken değeri asla loglanmaz veya istemciye gönderilmez.
+        if (process.env.AI_CHAT_ENABLED !== "true") {
           return jsonResponse(
             errorBody("CHAT_DISABLED", "AI asistan şu anda kullanılamıyor."),
             503,
@@ -253,6 +254,7 @@ export const Route = createFileRoute("/api/public/ai/chat")({
 
         // 2. Parse body
         let raw: unknown;
+
         try {
           raw = await request.json();
         } catch {
