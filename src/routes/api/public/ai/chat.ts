@@ -68,15 +68,18 @@ const PathnameSchema = z
   .min(1)
   .max(512)
   .startsWith("/")
+  // Yalnızca güvenli path / query / fragment karakterleri.
+  .regex(
+    /^\/[\w\-./~%?&=#:@!$'()*+,;[\]]*$/,
+    "invalid pathname characters",
+  )
   // Protokol / scheme / script şeması: "//host", "http:", "javascript:",
   // "data:", "vbscript:" vb. reddedilir.
   .refine((v) => !v.startsWith("//"), "protocol-relative URL not allowed")
   .refine(
     (v) => !/^\s*[a-z][a-z0-9+.-]*:/i.test(v),
     "absolute URL or scheme not allowed",
-  )
-  // Yalnızca güvenli path / query / fragment karakterleri.
-  .regex(/^\/[\w\-./~%?&=#:@!$'()*+,;[\]]*$/, "invalid pathname characters");
+  );
 
 const ChatRequestSchema = z.object({
   messages: z
