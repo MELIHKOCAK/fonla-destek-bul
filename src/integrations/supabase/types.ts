@@ -14,24 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_chat_rate_limits: {
+      ai_chat_usage: {
         Row: {
           actor_key_hash: string
-          request_count: number
+          created_at: string
+          day_request_count: number
+          day_window_started_at: string
+          id: string
+          last_request_at: string
+          minute_request_count: number
+          minute_window_started_at: string
           updated_at: string
-          window_started_at: string
+          user_id: string | null
         }
         Insert: {
           actor_key_hash: string
-          request_count?: number
+          created_at?: string
+          day_request_count?: number
+          day_window_started_at?: string
+          id?: string
+          last_request_at?: string
+          minute_request_count?: number
+          minute_window_started_at?: string
           updated_at?: string
-          window_started_at?: string
+          user_id?: string | null
         }
         Update: {
           actor_key_hash?: string
-          request_count?: number
+          created_at?: string
+          day_request_count?: number
+          day_window_started_at?: string
+          id?: string
+          last_request_at?: string
+          minute_request_count?: number
+          minute_window_started_at?: string
           updated_at?: string
-          window_started_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2404,11 +2422,7 @@ export type Database = {
         Returns: boolean
       }
       claim_ai_chat_request: {
-        Args: {
-          _actor_key_hash: string
-          _max_requests: number
-          _window_seconds: number
-        }
+        Args: { _actor_key_hash: string; _user_id?: string }
         Returns: Json
       }
       claim_campaign_ai_summary_generation: {

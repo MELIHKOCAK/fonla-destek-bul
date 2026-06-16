@@ -37,9 +37,10 @@ import { callAiChatGateway } from "@/lib/ai/chat/gateway.server";
 // Limits
 // ---------------------------------------------------------------------------
 
-/** Aktör başına 60 saniye penceresinde izin verilen mesaj sayısı. */
-const RATE_LIMIT_WINDOW_SECONDS = 60;
-const RATE_LIMIT_MAX_REQUESTS = 8;
+/**
+ * Rate-limit pencereleri ve üst sınırları DB tarafında (RPC içinde) atomik
+ * olarak uygulanır. Authenticated: 10/dk, 100/gün. Guest: 5/dk, 25/gün.
+ */
 
 // ---------------------------------------------------------------------------
 // Request schema (frontend sözleşmesiyle aynı)
@@ -303,8 +304,7 @@ export const Route = createFileRoute("/api/public/ai/chat")({
           "claim_ai_chat_request",
           {
             _actor_key_hash: actorKeyHash,
-            _window_seconds: RATE_LIMIT_WINDOW_SECONDS,
-            _max_requests: RATE_LIMIT_MAX_REQUESTS,
+            _user_id: userId ?? undefined,
           },
         );
         if (rlErr) {
@@ -316,10 +316,11 @@ export const Route = createFileRoute("/api/public/ai/chat")({
         }
         const rl = rlRaw as {
           result: "allowed" | "rate_limited";
+          scope?: "minute" | "day";
           retry_after_seconds?: number;
         };
         if (rl.result === "rate_limited") {
-          const retryAfter = rl.retry_after_seconds ?? RATE_LIMIT_WINDOW_SECONDS;
+          const retryAfter = rl.retry_after_seconds ?? 60;
           return new Response(
             JSON.stringify({
               status: "rate_limited",
