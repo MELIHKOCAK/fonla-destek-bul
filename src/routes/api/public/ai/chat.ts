@@ -304,7 +304,7 @@ export const Route = createFileRoute("/api/public/ai/chat")({
           "claim_ai_chat_request",
           {
             _actor_key_hash: actorKeyHash,
-            _user_id: userId,
+            _user_id: userId ?? undefined,
           },
         );
         if (rlErr) {
