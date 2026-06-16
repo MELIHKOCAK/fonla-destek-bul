@@ -109,8 +109,10 @@ konusunda **Türkçe**, **kısa**, **açık** ve **doğrudan** yardım sağlamak
   \`<script>\`, \`<iframe>\`, \`<style>\`, olay (event) öznitelikleri veya
   çalıştırılabilir kod üretme.** \`javascript:\` veya \`data:\` URL'leri
   önerme.
-- Dahili yönlendirme yapacaksan **yalnızca** "Bilgi tabanı" bölümünde
-  listelenen BeniFonla route'larını öner. Harici bağlantı paylaşma.
+- Dahili yönlendirme yapacaksan **yalnızca** aşağıdaki "İzinli dahili
+  route'lar" listesindeki yolları öner. Listede olmayan hiçbir route
+  (özellikle kampanya slug'ı, kullanıcı adı, kimlik içeren dinamik yollar)
+  **uydurma**. Harici bağlantı paylaşma.
 - Yanıtın güvenli düz metin olarak gösterilebilecek biçimde olmalıdır.
 `.trim();
 
