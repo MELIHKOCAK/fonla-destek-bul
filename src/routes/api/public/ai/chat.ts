@@ -212,22 +212,20 @@ function totalContextChars(messages: AiChatMessage[]): number {
 export const Route = createFileRoute("/api/public/ai/chat")({
   server: {
     handlers: {
+      // Same-origin endpoint: tarayıcı UI aynı domain'den çağırır, geniş CORS
+      // tanımlamaya gerek yok. OPTIONS yalnızca preflight uyumluluğu için 204.
       OPTIONS: async () =>
         new Response(null, {
           status: 204,
-          headers: {
-            "access-control-allow-origin": "*",
-            "access-control-allow-methods": "POST, OPTIONS",
-            "access-control-allow-headers": "content-type, authorization",
-            "access-control-max-age": "86400",
-          },
+          headers: { allow: "POST, OPTIONS" },
         }),
 
       POST: async ({ request }) => {
-        // 1. CHAT_DISABLED kill-switch
-        if (process.env.AI_CHAT_DISABLED === "true") {
+        // 1. AI_CHAT_ENABLED kill-switch.
+        //    Varsayılan: etkin. Yalnızca açıkça "false" olduğunda devre dışı.
+        if (process.env.AI_CHAT_ENABLED === "false") {
           return jsonResponse(
-            errorBody("CHAT_DISABLED", "AI sohbet özelliği şu an devre dışı."),
+            errorBody("CHAT_DISABLED", "AI asistan şu anda kullanılamıyor."),
             503,
           );
         }
