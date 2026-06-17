@@ -485,11 +485,11 @@ describe("Rate limit", () => {
         ),
       }),
     ]);
-    if (r1.status === 401 || r2.status === 401) {
+    if (r1.status !== 200 || r2.status !== 429) {
       console.log("r1", r1.status, await r1.clone().text());
       console.log("r2", r2.status, await r2.clone().text());
       console.log("getClaims calls", getClaimsMock.mock.calls);
-      console.log("rpc calls", rpcMock.mock.calls.length);
+      console.log("rpc calls", rpcMock.mock.calls);
     }
     expect([r1.status, r2.status].sort()).toEqual([200, 429]);
     const h1 = (rpcMock.mock.calls[0]?.[1] as { _actor_key_hash: string })
