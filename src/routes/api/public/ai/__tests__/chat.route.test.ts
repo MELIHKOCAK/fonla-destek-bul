@@ -107,7 +107,7 @@ function rpcLimited(scope: "minute" | "day", retry = 30): void {
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   process.env.AI_CHAT_ENABLED = "true";
   process.env.LOVABLE_API_KEY = "lov_test";
   process.env.AI_RATE_LIMIT_HASH_SECRET = "test-secret-for-vitest-only";
