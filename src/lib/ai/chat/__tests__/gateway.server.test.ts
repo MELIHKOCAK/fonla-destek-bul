@@ -184,8 +184,8 @@ describe("callAiChatGateway — Authorization header", () => {
     );
     setFetch(fetchMock as unknown as FetchFn);
     await callAiChatGateway(baseParams);
-    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    const headers = new Headers(init.headers);
+    const call = fetchMock.mock.calls[0] as unknown as [RequestInfo, RequestInit];
+    const headers = new Headers(call[1].headers);
     expect(headers.get("authorization")).toBe("Bearer test-key");
   });
 });
