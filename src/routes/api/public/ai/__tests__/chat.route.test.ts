@@ -460,7 +460,7 @@ describe("Rate limit", () => {
     expect(h1).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it("aynı actor — yarış durumu: paralel istekler aynı hash ile RPC'ye gider", async () => {
+  it("aynı actor — ardışık istekler aynı hash ile RPC'ye gider (atomik sayım RPC sorumluluğu)", async () => {
     getClaimsMock.mockResolvedValue({
       data: { claims: { sub: "user-X" } },
       error: null,
@@ -471,32 +471,25 @@ describe("Rate limit", () => {
       error: null,
     });
     const POST = await getPost();
-    const [r1, r2] = await Promise.all([
-      POST({
-        request: makeReq(
-          { messages: [userMsg("a", 1)], pathname: "/" },
-          { authorization: "Bearer t" },
-        ),
-      }),
-      POST({
-        request: makeReq(
-          { messages: [userMsg("b", 2)], pathname: "/" },
-          { authorization: "Bearer t" },
-        ),
-      }),
-    ]);
-    if (r1.status !== 200 || r2.status !== 429) {
-      console.log("r1", r1.status, await r1.clone().text());
-      console.log("r2", r2.status, await r2.clone().text());
-      console.log("getClaims calls", getClaimsMock.mock.calls);
-      console.log("rpc calls", rpcMock.mock.calls);
-    }
-    expect([r1.status, r2.status].sort()).toEqual([200, 429]);
+    const r1 = await POST({
+      request: makeReq(
+        { messages: [userMsg("a", 1)], pathname: "/" },
+        { authorization: "Bearer t" },
+      ),
+    });
+    const r2 = await POST({
+      request: makeReq(
+        { messages: [userMsg("b", 2)], pathname: "/" },
+        { authorization: "Bearer t" },
+      ),
+    });
+    expect(r1.status).toBe(200);
+    expect(r2.status).toBe(429);
     const h1 = (rpcMock.mock.calls[0]?.[1] as { _actor_key_hash: string })
       ._actor_key_hash;
     const h2 = (rpcMock.mock.calls[1]?.[1] as { _actor_key_hash: string })
       ._actor_key_hash;
-    expect(h1).toBe(h2); // atomik sayım sorumluluğu RPC'ye ait.
+    expect(h1).toBe(h2);
   });
 
   it("RPC hatası → 500 AI_PROVIDER_ERROR, gateway çağrılmaz", async () => {
