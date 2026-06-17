@@ -71,18 +71,14 @@ describe("callAiChatGateway — provider hataları", () => {
   });
 
   it("402 → AI_BALANCE_UNAVAILABLE", async () => {
-    setFetch(
-      vi.fn(async () => new Response("{}", { status: 402 })) as unknown as FetchFn,
-    );
+    setFetch(vi.fn(async () => new Response("{}", { status: 402 })) as unknown as FetchFn);
     const r = await callAiChatGateway(baseParams);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("AI_BALANCE_UNAVAILABLE");
   });
 
   it("429 → AI_PROVIDER_RATE_LIMITED", async () => {
-    setFetch(
-      vi.fn(async () => new Response("{}", { status: 429 })) as unknown as FetchFn,
-    );
+    setFetch(vi.fn(async () => new Response("{}", { status: 429 })) as unknown as FetchFn);
     const r = await callAiChatGateway(baseParams);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("AI_PROVIDER_RATE_LIMITED");
@@ -90,9 +86,7 @@ describe("callAiChatGateway — provider hataları", () => {
 
   it("500 → AI_PROVIDER_ERROR ve provider gövdesi maskelenir/sınırlı", async () => {
     const leaky = `Bearer abc.def.ghi sk-supersecretkey1234 ${"y".repeat(500)}`;
-    setFetch(
-      vi.fn(async () => new Response(leaky, { status: 500 })) as unknown as FetchFn,
-    );
+    setFetch(vi.fn(async () => new Response(leaky, { status: 500 })) as unknown as FetchFn);
     const r = await callAiChatGateway(baseParams);
     expect(r.ok).toBe(false);
     if (!r.ok) {
@@ -104,18 +98,14 @@ describe("callAiChatGateway — provider hataları", () => {
   });
 
   it("bozuk JSON → AI_PROVIDER_ERROR", async () => {
-    setFetch(
-      vi.fn(async () => new Response("not-json", { status: 200 })) as unknown as FetchFn,
-    );
+    setFetch(vi.fn(async () => new Response("not-json", { status: 200 })) as unknown as FetchFn);
     const r = await callAiChatGateway(baseParams);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("AI_PROVIDER_ERROR");
   });
 
   it("boş choices → AI_PROVIDER_ERROR", async () => {
-    setFetch(
-      vi.fn(async () => jsonOk({ choices: [] })) as unknown as FetchFn,
-    );
+    setFetch(vi.fn(async () => jsonOk({ choices: [] })) as unknown as FetchFn);
     const r = await callAiChatGateway(baseParams);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("AI_PROVIDER_ERROR");
@@ -179,9 +169,7 @@ describe("callAiChatGateway — provider hataları", () => {
 
 describe("callAiChatGateway — Authorization header", () => {
   it("Authorization header gönderir ve loglamaz", async () => {
-    const fetchMock = vi.fn(async () =>
-      jsonOk({ choices: [{ message: { content: "ok" } }] }),
-    );
+    const fetchMock = vi.fn(async () => jsonOk({ choices: [{ message: { content: "ok" } }] }));
     setFetch(fetchMock as unknown as FetchFn);
     await callAiChatGateway(baseParams);
     const call = fetchMock.mock.calls[0] as unknown as [RequestInfo, RequestInit];
