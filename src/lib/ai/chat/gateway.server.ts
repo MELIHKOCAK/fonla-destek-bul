@@ -18,7 +18,7 @@
  * akışı bozmamak için ortak bir soyutlamaya çıkarılmamıştır.
  */
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const GATEWAY_URL = "https://api.openai.com/v1/chat/completions";
 
 /** Modelden istenen en fazla token sayısı (provider tarafı). */
 const MAX_OUTPUT_TOKENS = 800;
@@ -46,18 +46,18 @@ export interface ChatMessageInput {
  */
 export type ChatGatewayResult =
   | {
-      readonly ok: true;
-      readonly content: string;
-      readonly modelIdentifier: string;
-      /** Server tarafı kesimi yapıldı mı? */
-      readonly truncated: boolean;
-    }
+    readonly ok: true;
+    readonly content: string;
+    readonly modelIdentifier: string;
+    /** Server tarafı kesimi yapıldı mı? */
+    readonly truncated: boolean;
+  }
   | {
-      readonly ok: false;
-      readonly code: "AI_BALANCE_UNAVAILABLE" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_ERROR";
-      /** Sunucu logu için kısa, maskelenmiş açıklama. */
-      readonly detail: string;
-    };
+    readonly ok: false;
+    readonly code: "AI_BALANCE_UNAVAILABLE" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_ERROR";
+    /** Sunucu logu için kısa, maskelenmiş açıklama. */
+    readonly detail: string;
+  };
 
 interface GatewayParams {
   /**
