@@ -54,10 +54,7 @@ export type ChatGatewayResult =
     }
   | {
       readonly ok: false;
-      readonly code:
-        | "AI_BALANCE_UNAVAILABLE"
-        | "AI_PROVIDER_RATE_LIMITED"
-        | "AI_PROVIDER_ERROR";
+      readonly code: "AI_BALANCE_UNAVAILABLE" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_ERROR";
       /** Sunucu logu için kısa, maskelenmiş açıklama. */
       readonly detail: string;
     };
@@ -113,9 +110,7 @@ function combineSignals(
   };
 }
 
-export async function callAiChatGateway(
-  params: GatewayParams,
-): Promise<ChatGatewayResult> {
+export async function callAiChatGateway(params: GatewayParams): Promise<ChatGatewayResult> {
   const apiKey = params.apiKey ?? process.env.LOVABLE_API_KEY;
   if (!apiKey || apiKey.length === 0) {
     return {
@@ -134,10 +129,7 @@ export async function callAiChatGateway(
     stream: false,
   };
 
-  const { signal, cancel } = combineSignals(
-    params.signal,
-    params.timeoutMs ?? GATEWAY_TIMEOUT_MS,
-  );
+  const { signal, cancel } = combineSignals(params.signal, params.timeoutMs ?? GATEWAY_TIMEOUT_MS);
 
   let response: Response;
   try {
@@ -243,9 +235,7 @@ export async function callAiChatGateway(
   // Server tarafında uzunluk kesimi. Model çıktısı HTML olarak güvenilmez;
   // çağıran taraf güvenli düz metin / sade markdown olarak işlemelidir.
   const truncated = trimmed.length > MAX_OUTPUT_CHARACTERS;
-  const safeContent = truncated
-    ? `${trimmed.slice(0, MAX_OUTPUT_CHARACTERS)}…`
-    : trimmed;
+  const safeContent = truncated ? `${trimmed.slice(0, MAX_OUTPUT_CHARACTERS)}…` : trimmed;
 
   return {
     ok: true,

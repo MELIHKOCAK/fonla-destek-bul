@@ -17,19 +17,18 @@ import type { ChatGatewayResult } from "@/lib/ai/chat/gateway.server";
 // Module-level mocks (hoisted by vitest)
 // ---------------------------------------------------------------------------
 
-const gatewayMock = vi.fn<
-  (...args: unknown[]) => Promise<ChatGatewayResult>
->();
+const gatewayMock = vi.fn<(...args: unknown[]) => Promise<ChatGatewayResult>>();
 vi.mock("@/lib/ai/chat/gateway.server", () => ({
   callAiChatGateway: gatewayMock,
 }));
 
-const rpcMock = vi.fn<
-  (
-    name: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: { message: string } | null }>
->();
+const rpcMock =
+  vi.fn<
+    (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: { message: string } | null }>
+  >();
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     rpc: (...args: Parameters<typeof rpcMock>) => rpcMock(...args),
@@ -37,9 +36,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
 }));
 
 const getClaimsMock = vi.fn<
-  (
-    token: string,
-  ) => Promise<{
+  (token: string) => Promise<{
     data: { claims: { sub?: string } } | null;
     error: { message: string } | null;
   }>
@@ -204,10 +201,7 @@ describe("Request doğrulama", () => {
     const POST = await getPost();
     const res = await POST({
       request: makeReq({
-        messages: [
-          userMsg("soru", 0),
-          { ...userMsg("cevap", 1), role: "assistant" },
-        ],
+        messages: [userMsg("soru", 0), { ...userMsg("cevap", 1), role: "assistant" }],
         pathname: "/",
       }),
     });
@@ -237,9 +231,7 @@ describe("Request doğrulama", () => {
 
   it("12+ mesaj context → 400", async () => {
     const POST = await getPost();
-    const messages = Array.from({ length: 13 }, (_, i) =>
-      userMsg(`m${i}`, i % 10),
-    );
+    const messages = Array.from({ length: 13 }, (_, i) => userMsg(`m${i}`, i % 10));
     const res = await POST({ request: makeReq({ messages, pathname: "/" }) });
     expect(res.status).toBe(400);
   });
@@ -346,10 +338,7 @@ describe("Authentication — opsiyonel Bearer", () => {
   it("boş Bearer token → 401", async () => {
     const POST = await getPost();
     const res = await POST({
-      request: makeReq(
-        { messages: [userMsg("a")], pathname: "/" },
-        { authorization: "Bearer " },
-      ),
+      request: makeReq({ messages: [userMsg("a")], pathname: "/" }, { authorization: "Bearer " }),
     });
     expect(res.status).toBe(401);
   });
@@ -394,10 +383,7 @@ describe("Rate limit", () => {
     rpcLimited("minute", 30);
     const POST = await getPost();
     const res = await POST({
-      request: makeReq(
-        { messages: [userMsg("a")], pathname: "/" },
-        { authorization: "Bearer t" },
-      ),
+      request: makeReq({ messages: [userMsg("a")], pathname: "/" }, { authorization: "Bearer t" }),
     });
     expect(res.status).toBe(429);
     const args = rpcMock.mock.calls[0]?.[1] as { _user_id?: string };
@@ -412,10 +398,7 @@ describe("Rate limit", () => {
     rpcLimited("day", 3600);
     const POST = await getPost();
     const res = await POST({
-      request: makeReq(
-        { messages: [userMsg("a")], pathname: "/" },
-        { authorization: "Bearer t" },
-      ),
+      request: makeReq({ messages: [userMsg("a")], pathname: "/" }, { authorization: "Bearer t" }),
     });
     expect(res.status).toBe(429);
     expect(res.headers.get("retry-after")).toBe("3600");
@@ -441,21 +424,13 @@ describe("Rate limit", () => {
       .mockResolvedValueOnce({ data: { claims: { sub: "u2" } }, error: null });
     const POST = await getPost();
     await POST({
-      request: makeReq(
-        { messages: [userMsg("a")], pathname: "/" },
-        { authorization: "Bearer t1" },
-      ),
+      request: makeReq({ messages: [userMsg("a")], pathname: "/" }, { authorization: "Bearer t1" }),
     });
     await POST({
-      request: makeReq(
-        { messages: [userMsg("a")], pathname: "/" },
-        { authorization: "Bearer t2" },
-      ),
+      request: makeReq({ messages: [userMsg("a")], pathname: "/" }, { authorization: "Bearer t2" }),
     });
-    const h1 = (rpcMock.mock.calls[0]?.[1] as { _actor_key_hash: string })
-      ._actor_key_hash;
-    const h2 = (rpcMock.mock.calls[1]?.[1] as { _actor_key_hash: string })
-      ._actor_key_hash;
+    const h1 = (rpcMock.mock.calls[0]?.[1] as { _actor_key_hash: string })._actor_key_hash;
+    const h2 = (rpcMock.mock.calls[1]?.[1] as { _actor_key_hash: string })._actor_key_hash;
     expect(h1).not.toBe(h2);
     expect(h1).toMatch(/^[a-f0-9]{64}$/);
   });
@@ -485,10 +460,8 @@ describe("Rate limit", () => {
     });
     expect(r1.status).toBe(200);
     expect(r2.status).toBe(429);
-    const h1 = (rpcMock.mock.calls[0]?.[1] as { _actor_key_hash: string })
-      ._actor_key_hash;
-    const h2 = (rpcMock.mock.calls[1]?.[1] as { _actor_key_hash: string })
-      ._actor_key_hash;
+    const h1 = (rpcMock.mock.calls[0]?.[1] as { _actor_key_hash: string })._actor_key_hash;
+    const h2 = (rpcMock.mock.calls[1]?.[1] as { _actor_key_hash: string })._actor_key_hash;
     expect(h1).toBe(h2);
   });
 

@@ -22,15 +22,8 @@ import { createHash, createHmac, randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { AI_CHAT_LIMITS } from "@/lib/ai/chat/constants";
-import type {
-  AiChatErrorCode,
-  AiChatMessage,
-  AiChatResponse,
-} from "@/lib/ai/chat/types";
-import {
-  AI_CHAT_DEFAULT_MODEL,
-  buildAiChatGatewayMessages,
-} from "@/lib/ai/chat/prompt.server";
+import type { AiChatErrorCode, AiChatMessage, AiChatResponse } from "@/lib/ai/chat/types";
+import { AI_CHAT_DEFAULT_MODEL, buildAiChatGatewayMessages } from "@/lib/ai/chat/prompt.server";
 import { callAiChatGateway } from "@/lib/ai/chat/gateway.server";
 
 // ---------------------------------------------------------------------------
@@ -49,10 +42,7 @@ import { callAiChatGateway } from "@/lib/ai/chat/gateway.server";
 const ChatMessageSchema = z.object({
   id: z.string().uuid(),
   role: z.enum(["user", "assistant"]),
-  content: z
-    .string()
-    .min(1)
-    .max(AI_CHAT_LIMITS.maxContextCharacters),
+  content: z.string().min(1).max(AI_CHAT_LIMITS.maxContextCharacters),
   createdAt: z.string().datetime(),
 });
 
@@ -69,23 +59,14 @@ const PathnameSchema = z
   .max(512)
   .startsWith("/")
   // Yalnızca güvenli path / query / fragment karakterleri.
-  .regex(
-    /^\/[\w\-./~%?&=#:@!$'()*+,;[\]]*$/,
-    "invalid pathname characters",
-  )
+  .regex(/^\/[\w\-./~%?&=#:@!$'()*+,;[\]]*$/, "invalid pathname characters")
   // Protokol / scheme / script şeması: "//host", "http:", "javascript:",
   // "data:", "vbscript:" vb. reddedilir.
   .refine((v) => !v.startsWith("//"), "protocol-relative URL not allowed")
-  .refine(
-    (v) => !/^\s*[a-z][a-z0-9+.-]*:/i.test(v),
-    "absolute URL or scheme not allowed",
-  );
+  .refine((v) => !/^\s*[a-z][a-z0-9+.-]*:/i.test(v), "absolute URL or scheme not allowed");
 
 const ChatRequestSchema = z.object({
-  messages: z
-    .array(ChatMessageSchema)
-    .min(1)
-    .max(AI_CHAT_LIMITS.maxContextMessages),
+  messages: z.array(ChatMessageSchema).min(1).max(AI_CHAT_LIMITS.maxContextMessages),
   pathname: PathnameSchema,
 });
 
@@ -117,14 +98,9 @@ function readActorHashSecret(): string | { error: Response } {
   const secret = process.env.AI_RATE_LIMIT_HASH_SECRET;
   if (secret && secret.length >= 16) return secret;
   if (process.env.NODE_ENV === "production") {
-    console.error(
-      "[ai-chat] AI_RATE_LIMIT_HASH_SECRET missing or too short in production",
-    );
+    console.error("[ai-chat] AI_RATE_LIMIT_HASH_SECRET missing or too short in production");
     return {
-      error: jsonResponse(
-        errorBody("AI_PROVIDER_ERROR", "Sunucu yapılandırması eksik."),
-        500,
-      ),
+      error: jsonResponse(errorBody("AI_PROVIDER_ERROR", "Sunucu yapılandırması eksik."), 500),
     };
   }
   // Yalnızca production-dışı (dev/test) ortamlarda geliştirici deneyimi
@@ -141,11 +117,7 @@ function readActorHashSecret(): string | { error: Response } {
  * Ham IP / user-agent **saklanmaz**; yalnızca HMAC çıktısı DB'ye gider.
  * IP, yalnızca güvenilir proxy header'larından okunur.
  */
-function buildActorKey(
-  userId: string | null,
-  request: Request,
-  salt: string,
-): string {
+function buildActorKey(userId: string | null, request: Request, salt: string): string {
   if (userId) {
     return createHmac("sha256", salt).update(`user:${userId}`).digest("hex");
   }
@@ -189,10 +161,7 @@ async function authenticateUser(
   if (!supabaseUrl || !publishableKey) {
     return {
       userId: null,
-      error: jsonResponse(
-        errorBody("AI_PROVIDER_ERROR", "Sunucu yapılandırması eksik."),
-        500,
-      ),
+      error: jsonResponse(errorBody("AI_PROVIDER_ERROR", "Sunucu yapılandırması eksik."), 500),
     };
   }
 
@@ -258,18 +227,12 @@ export const Route = createFileRoute("/api/public/ai/chat")({
         try {
           raw = await request.json();
         } catch {
-          return jsonResponse(
-            errorBody("INVALID_REQUEST", "Geçersiz istek gövdesi."),
-            400,
-          );
+          return jsonResponse(errorBody("INVALID_REQUEST", "Geçersiz istek gövdesi."), 400);
         }
 
         const parsed = ChatRequestSchema.safeParse(raw);
         if (!parsed.success) {
-          return jsonResponse(
-            errorBody("INVALID_REQUEST", "Eksik veya hatalı parametre."),
-            400,
-          );
+          return jsonResponse(errorBody("INVALID_REQUEST", "Eksik veya hatalı parametre."), 400);
         }
         const { messages, pathname } = parsed.data;
 
@@ -282,10 +245,7 @@ export const Route = createFileRoute("/api/public/ai/chat")({
         }
         if (totalContextChars(messages) > AI_CHAT_LIMITS.maxContextCharacters) {
           return jsonResponse(
-            errorBody(
-              "CONTEXT_TOO_LARGE",
-              "Sohbet geçmişi çok uzun. Yeni bir sohbet başlatın.",
-            ),
+            errorBody("CONTEXT_TOO_LARGE", "Sohbet geçmişi çok uzun. Yeni bir sohbet başlatın."),
             413,
           );
         }
@@ -307,10 +267,7 @@ export const Route = createFileRoute("/api/public/ai/chat")({
         // 5. Lovable AI key
         const lovableApiKey = process.env.LOVABLE_API_KEY;
         if (!lovableApiKey) {
-          return jsonResponse(
-            errorBody("AI_PROVIDER_ERROR", "AI servisi yapılandırılmamış."),
-            500,
-          );
+          return jsonResponse(errorBody("AI_PROVIDER_ERROR", "AI servisi yapılandırılmamış."), 500);
         }
 
         // 6. Rate-limit (aktör anahtarı HMAC'tir; DB'de ham IP/UA saklanmaz)
@@ -321,19 +278,13 @@ export const Route = createFileRoute("/api/public/ai/chat")({
           .digest("hex");
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: rlRaw, error: rlErr } = await supabaseAdmin.rpc(
-          "claim_ai_chat_request",
-          {
-            _actor_key_hash: actorKeyHash,
-            _user_id: userId ?? undefined,
-          },
-        );
+        const { data: rlRaw, error: rlErr } = await supabaseAdmin.rpc("claim_ai_chat_request", {
+          _actor_key_hash: actorKeyHash,
+          _user_id: userId ?? undefined,
+        });
         if (rlErr) {
           console.error("[ai-chat] rate-limit RPC failed", { error: rlErr.message });
-          return jsonResponse(
-            errorBody("AI_PROVIDER_ERROR", "İstek işlenemedi."),
-            500,
-          );
+          return jsonResponse(errorBody("AI_PROVIDER_ERROR", "İstek işlenemedi."), 500);
         }
         const rl = rlRaw as {
           result: "allowed" | "rate_limited";
@@ -380,14 +331,14 @@ export const Route = createFileRoute("/api/public/ai/chat")({
             result.code === "AI_BALANCE_UNAVAILABLE"
               ? 503
               : result.code === "AI_PROVIDER_RATE_LIMITED"
-              ? 429
-              : 502;
+                ? 429
+                : 502;
           const message =
             result.code === "AI_BALANCE_UNAVAILABLE"
               ? "AI servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin."
               : result.code === "AI_PROVIDER_RATE_LIMITED"
-              ? "AI servisi yoğun. Lütfen biraz sonra tekrar deneyin."
-              : "AI servisi yanıt veremedi. Lütfen tekrar deneyin.";
+                ? "AI servisi yoğun. Lütfen biraz sonra tekrar deneyin."
+                : "AI servisi yanıt veremedi. Lütfen tekrar deneyin.";
           return jsonResponse(errorBody(result.code, message), httpStatus);
         }
 
