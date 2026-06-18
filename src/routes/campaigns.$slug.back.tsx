@@ -37,7 +37,7 @@ function BackLayout() {
   }
   if (error) {
     return (
-      <main className="container py-10">
+      <main className="mx-auto max-w-3xl px-4 py-10">
         <h1 className="text-2xl font-bold">Destek akışı</h1>
         <p className="mt-4 text-destructive">{translateContributionError(error)}</p>
       </main>
