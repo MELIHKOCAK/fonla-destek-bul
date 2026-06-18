@@ -1,56 +1,39 @@
+## Sebep
 
-## Amaç
+`POST /api/public/ai/chat` route handler'ı ilk adımda kill-switch'i kontrol ediyor:
 
-Kampanya detay sayfasındaki tüm metin bölümlerini "Medium/Substack" benzeri rahat bir okuma diline taşımak: ~17–18px gövde, gevşek satır aralığı, sınırlı satır genişliği (~65–75 karakter), net başlık/liste hiyerarşisi. Mevcut tasarım dili (renk tokenları, kart yapısı) korunur — yalnız tipografi ve ritim güçlenir.
+```ts
+if (process.env.AI_CHAT_ENABLED !== "true") {
+  return 503 CHAT_DISABLED  // "AI sohbet özelliği şu an devre dışı."
+}
+```
 
-## Yapılacaklar
+Lovable Cloud secret listesinde mevcut olanlar: `LOVABLE_API_KEY`, Stripe/cron secret'ları, vs. **Eksikler:**
 
-### 1) `RichTextViewer` — okuma tipografisi (tek kaynak)
-`src/components/common/RichTextViewer.tsx`:
-- Varsayılan sınıfı `prose prose-lg` (≈18px, geniş leading) olarak değiştir; `prose-sm` kaldır.
-- `max-w-prose` (≈65ch) varsayılan olsun; tüketici `className`'le `max-w-none` geçebilsin.
-- `dark:prose-invert` kalsın.
-- Element bazlı ince ayarlar (Tailwind v4 prose modifier'ları ile):
-  - `prose-headings:font-semibold prose-headings:tracking-tight`
-  - `prose-h2:mt-8 prose-h2:mb-3 prose-h2:text-xl`
-  - `prose-h3:mt-6 prose-h3:mb-2 prose-h3:text-lg`
-  - `prose-p:leading-relaxed prose-p:my-4`
-  - `prose-li:my-1 prose-ul:my-4 prose-ol:my-4 marker:text-muted-foreground`
-  - `prose-blockquote:border-l-2 prose-blockquote:border-primary/40 prose-blockquote:text-muted-foreground prose-blockquote:not-italic`
-  - `prose-a:text-primary prose-a:underline-offset-4 hover:prose-a:opacity-80`
-  - `prose-hr:my-8 prose-hr:border-border`
-  - `prose-strong:text-foreground prose-code:text-foreground prose-code:bg-muted prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:before:hidden prose-code:after:hidden`
+1. `AI_CHAT_ENABLED` — hiç tanımlı değil → her istek 503 dönüyor.
+2. `AI_RATE_LIMIT_HASH_SECRET` — tanımlı değil; bu olmadan flag açılsa bile `actor_key_hash` üretimi (HMAC) güvensiz/başarısız olacak. Route bunu zorunlu istiyor.
 
-### 2) Detay sayfası — boyut zorlamalarını kaldır
-`src/pages/CampaignDetailPage.tsx` içindeki 4 `RichTextViewer` çağrısından `className="text-sm"` ve `className="text-sm sm:text-base"` kaldırılsın; viewer'ın kendi okuma stili kullanılsın. Hikâye dahil hepsi aynı dil.
+Frontend tarafı (`VITE_AI_CHAT_ENABLED`) default `true` olduğu için widget görünüyor, ama backend kapalı olduğundan kullanıcı her gönderdiğinde 503 alıyor — bu yüzden "şu an devre dışı" mesajı çıkıyor.
 
-### 3) Section ritmi
-`Section` bileşeninin başlığı ve içerik üst boşluğu okuma ritmiyle uyumlu olsun: section başlığı `text-lg font-semibold tracking-tight`, içerik `mt-3 sm:mt-4`. Bölümler arası dikey ritim `space-y-8 sm:space-y-10` (mevcut `space-y-*` değeri buna eşitlenir; daha küçükse büyütülür).
+`LOVABLE_API_KEY` zaten mevcut, ek olarak Lovable AI Gateway yapılandırması gerekli değil.
 
-### 4) Diğer metin alanlarını aynı dile çek (kapsam: tüm detay sayfası)
-- **Ödül paketleri** (`reward-tiers`):
-  - Kart başlığı `text-base font-semibold` (sm yerine), açıklama `text-sm leading-relaxed text-muted-foreground`, "Tahmini teslim" satırı `text-xs uppercase tracking-wide text-muted-foreground` etiketi + `text-sm text-foreground` değer ile yeniden düzenle.
-  - Kartlar arası boşluk `gap-4`.
-- **Güncellemeler / yorumlar / SSS** gibi metin bloklarında body `text-base leading-relaxed`, meta satırları `text-xs text-muted-foreground` olsun. (Bu bölümler dosyada tespit edilecek; yalnızca tipografi rötuşu.)
-- **AI özet kartı**: gövde `text-base leading-relaxed`, başlık `text-lg font-semibold` — kart yapısına dokunulmaz.
+## Çözüm
 
-### 5) Mobile-first kontrol
-- `prose prose-lg` mobilde `text-[17px]` civarı oturur; çok geniş hissedilirse `prose-base sm:prose-lg` ile mobilde 16px / desktop 18px ayarına çekilir (eşik karar verme: tek bir manuel preview kontrolünden sonra netleşir).
-- `max-w-prose` sayesinde geniş ekranda satır 65ch ile sınırlanır; sticky destek paneli zaten sağda olduğu için ana sütun ortalanmaz, sola hizalı kalır.
+İki server secret'ını Lovable Cloud üzerinden ekle:
 
-### 6) Doğrulama
-- Build sonrası kampanya detayını mobil (375px) ve desktop (1440px) genişliklerinde göz at; uzun paragraflarda satır uzunluğu, başlık ↔ paragraf boşluğu, liste girinti/marker okunabilirliği teyit edilsin.
-- Görsel regresyon: AI özet kartı, ödül kartları, metrik kartı yan yana hâlâ düzgün hizalı olmalı.
+1. **`AI_RATE_LIMIT_HASH_SECRET`** — rate-limit aktör hash'i için rastgele uzun bir string (kullanıcıdan girmesini iste; rastgele 32+ byte hex/base64 önerilir).
+2. **`AI_CHAT_ENABLED`** — değer olarak `true` (kapatmak için ileride `false`).
 
-## Teknik notlar
+Secret'lar eklendikten sonra Worker otomatik yeniden başlar, ek deploy gerekmez.
 
-- Tailwind v4 + `@plugin "@tailwindcss/typography"` zaten yüklü; ekstra paket gerekmiyor.
-- `RichTextViewer` API'si (props) değişmiyor; sadece varsayılan className zenginleşiyor. Mevcut çağıranlar `className` ile override edebilir; gerçek override gerekirse `max-w-none` ile geçilebilir.
-- Renk/spacing/shadow tokenları aynı kalıyor — `text-white` / `bg-black` gibi sabit renk kullanılmıyor.
-- Erişilebilirlik: kontrast oranı `--foreground` token'ı zaten karşılıyor; `prose-a:underline-offset-4` link odak/hover ipucunu güçlendirir.
+## Doğrulama
 
-## Dokunulacak dosyalar
+- `/faq` sayfasında widget'tan "BeniFonla nedir?" gönder; 200 + asistan cevabı dönmeli.
+- 11. istekte (authenticated) 429 + `Retry-After` header'ı gelmeli (RPC rate-limit).
+- Kapatma testi: `AI_CHAT_ENABLED=false` yapıp tekrar 503 + `CHAT_DISABLED` dönüşü görülmeli, sonra `true`'ya geri al.
 
-- `src/components/common/RichTextViewer.tsx`
-- `src/pages/CampaignDetailPage.tsx`
-- Olası küçük rötuş: `Section` bileşeni aynı dosyada yer alıyorsa orada; ayrıysa kendi dosyasında.
+## Kapsam dışı
+
+- Kod değişikliği yok; route, RPC, RLS ve widget zaten doğru çalışıyor.
+- `VITE_AI_CHAT_ENABLED` (frontend görünürlük flag'i) değiştirilmiyor.
+- `LOVABLE_API_KEY` zaten mevcut, dokunulmuyor.
