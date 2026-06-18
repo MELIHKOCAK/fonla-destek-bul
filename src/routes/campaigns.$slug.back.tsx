@@ -46,7 +46,7 @@ function BackLayout() {
   if (!data) return <NotFoundPage />;
 
   return (
-    <main className="container py-8">
+    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       <header className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">Destekliyorsunuz:</p>
