@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Container } from "@/components/common/Container";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ function Page() {
   const unread = items.filter((n) => !n.read_at).length;
 
   return (
-    <Container className="py-8">
+    <DashboardLayout>
       <PageHeader
         title="Bildirimler"
         description="Kampanya güncellemeleri, yorumlar ve sistem mesajları burada."
@@ -71,6 +71,6 @@ function Page() {
           ))}
         </ul>
       )}
-    </Container>
+    </DashboardLayout>
   );
 }
