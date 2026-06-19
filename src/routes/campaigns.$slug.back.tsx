@@ -33,11 +33,11 @@ function BackLayout() {
   });
 
   if (isLoading) {
-    return <div className="container py-10" role="status">Yükleniyor…</div>;
+    return <div className="mx-auto max-w-3xl px-4 py-10" role="status">Yükleniyor…</div>;
   }
   if (error) {
     return (
-      <main className="container py-10">
+      <main className="mx-auto max-w-3xl px-4 py-10">
         <h1 className="text-2xl font-bold">Destek akışı</h1>
         <p className="mt-4 text-destructive">{translateContributionError(error)}</p>
       </main>
@@ -46,7 +46,7 @@ function BackLayout() {
   if (!data) return <NotFoundPage />;
 
   return (
-    <main className="container py-8">
+    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       <header className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">Destekliyorsunuz:</p>
