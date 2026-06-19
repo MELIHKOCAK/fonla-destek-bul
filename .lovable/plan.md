@@ -1,39 +1,60 @@
-## Sebep
 
-`POST /api/public/ai/chat` route handler'ı ilk adımda kill-switch'i kontrol ediyor:
+## Sorun analizi
 
-```ts
-if (process.env.AI_CHAT_ENABLED !== "true") {
-  return 503 CHAT_DISABLED  // "AI sohbet özelliği şu an devre dışı."
-}
+Konsoldaki en kritik hata, ana sayfanın boş kalmasının doğrudan nedeni:
+
+```
+A tree hydrated but some attributes of the server rendered HTML didn't match...
+<html lang="tr"
+-  style={{color-scheme:"light"}}
 ```
 
-Lovable Cloud secret listesinde mevcut olanlar: `LOVABLE_API_KEY`, Stripe/cron secret'ları, vs. **Eksikler:**
+### Kök neden
 
-1. `AI_CHAT_ENABLED` — hiç tanımlı değil → her istek 503 dönüyor.
-2. `AI_RATE_LIMIT_HASH_SECRET` — tanımlı değil; bu olmadan flag açılsa bile `actor_key_hash` üretimi (HMAC) güvensiz/başarısız olacak. Route bunu zorunlu istiyor.
+`src/app/theme/theme-script.ts` içindeki `themeInitScript`, `<head>`'te senkron çalışıp `document.documentElement.style.colorScheme = 'light' | 'dark'` yazıyor (FOUC önlemek için, doğru davranış). Ancak:
 
-Frontend tarafı (`VITE_AI_CHAT_ENABLED`) default `true` olduğu için widget görünüyor, ama backend kapalı olduğundan kullanıcı her gönderdiğinde 503 alıyor — bu yüzden "şu an devre dışı" mesajı çıkıyor.
+- SSR HTML'i `<html lang="tr">` — `style` yok.
+- Tarayıcıda, React hydrate olmadan **önce** inline script `colorScheme` style'ını ekliyor.
+- React 19 + TanStack Start, `<html>` üzerindeki bu DOM/SSR farkını "hydration mismatch" sayıyor. React 19'da kök elementteki uyumsuzluk, ağacın hydrate olamamasına ve istemcide tamamen yeniden render denemesine yol açıyor — bu da preview'da blank/SSR error olarak görünüyor.
 
-`LOVABLE_API_KEY` zaten mevcut, ek olarak Lovable AI Gateway yapılandırması gerekli değil.
+### Yan etki
+
+Önceki turda `ThemeProvider`'da yapılan "ilk render her zaman `system` + `light` ile başlasın" düzeltmesi React tree mismatch'ini çözdü, ama gerçek mismatch React tree'de değil, **`<html>` elementinde** — onu inline script üretiyor. Bu yüzden hata tekrar etti.
 
 ## Çözüm
 
-İki server secret'ını Lovable Cloud üzerinden ekle:
+### Tek dosya değişikliği: `src/routes/__root.tsx`
 
-1. **`AI_RATE_LIMIT_HASH_SECRET`** — rate-limit aktör hash'i için rastgele uzun bir string (kullanıcıdan girmesini iste; rastgele 32+ byte hex/base64 önerilir).
-2. **`AI_CHAT_ENABLED`** — değer olarak `true` (kapatmak için ileride `false`).
+`RootShell`'deki `<html>` (ve emniyet için `<body>`) elementine `suppressHydrationWarning` ekle:
 
-Secret'lar eklendikten sonra Worker otomatik yeniden başlar, ek deploy gerekmez.
+```tsx
+<html lang="tr" suppressHydrationWarning>
+  <head><HeadContent /></head>
+  <body suppressHydrationWarning>
+    {children}
+    <Scripts />
+  </body>
+</html>
+```
+
+`suppressHydrationWarning` sadece **o elementin kendi attribute'larında** uyarıyı bastırır — alt ağaçtaki gerçek mismatch'leri gizlemez. Bu, "tema initleyen inline script" deseni için React'in resmi olarak önerdiği yaklaşımdır.
+
+### Neden ek değişiklik gerekmiyor
+
+- `themeInitScript` doğru çalışıyor, FOUC'u önlüyor — kaldırmak istemiyoruz.
+- `ThemeProvider`'daki "ilk render `system`+`light`" geçici hack'i artık gereksiz; ama bunu **bu turda dokunmadan bırakıyorum** (kullanıcı sadece ana sayfa için düzeltme istedi, davranışı bozma riski yok). İstenirse ayrı bir turda geri sadeleştirilebilir.
+
+## Diğer kontrol edilen olası sorunlar
+
+İncelediğim ve **şu an müdahale gerektirmeyen** durumlar:
+
+- AI chat 503 hatası: önceki turlarda `AI_CHAT_ENABLED=true` ile çözüldü; hata mesajı oturum tekrarı (session replay) eski olduğu için görünüyor.
+- `/notifications`, `/creator` ve `/back` ile ilgili önceki turlarda yapılan düzeltmeler etkilenmiyor.
+- Routing, root layout (`__root.tsx`), `_authenticated` gate ve `getRouter` doğru kurulu — başka SSR-kıran kod yolu bulamadım.
 
 ## Doğrulama
 
-- `/faq` sayfasında widget'tan "BeniFonla nedir?" gönder; 200 + asistan cevabı dönmeli.
-- 11. istekte (authenticated) 429 + `Retry-After` header'ı gelmeli (RPC rate-limit).
-- Kapatma testi: `AI_CHAT_ENABLED=false` yapıp tekrar 503 + `CHAT_DISABLED` dönüşü görülmeli, sonra `true`'ya geri al.
-
-## Kapsam dışı
-
-- Kod değişikliği yok; route, RPC, RLS ve widget zaten doğru çalışıyor.
-- `VITE_AI_CHAT_ENABLED` (frontend görünürlük flag'i) değiştirilmiyor.
-- `LOVABLE_API_KEY` zaten mevcut, dokunulmuyor.
+Düzeltmeden sonra:
+1. Preview'da `/` yüklenmeli, hydration mismatch uyarısı kaybolmalı.
+2. Tema değiştirme (light/dark/system) hâlâ çalışmalı, FOUC olmamalı.
+3. Diğer rotaların (`/discover`, `/dashboard`, `/campaigns/...`) etkilenmediği gözle kontrol edilecek.
