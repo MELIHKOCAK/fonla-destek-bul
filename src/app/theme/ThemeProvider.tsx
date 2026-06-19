@@ -49,8 +49,23 @@ const applyTheme = (resolved: ResolvedTheme) => {
 };
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => readStoredTheme());
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveTheme(theme));
+  // SSR ve ilk client render aynı değeri kullanmalı — hydration mismatch'ini
+  // önlemek için her zaman "system" ile başla; localStorage'dan okuma
+  // mount sonrası efektte yapılır.
+  const [theme, setThemeState] = useState<Theme>("system");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
+
+  // Mount sonrası: depolanan tercihi oku ve uygula.
+  useEffect(() => {
+    const stored = readStoredTheme();
+    if (stored !== "system") {
+      setThemeState(stored);
+    } else {
+      const next = resolveTheme("system");
+      setResolvedTheme(next);
+      applyTheme(next);
+    }
+  }, []);
 
   useEffect(() => {
     const next = resolveTheme(theme);
