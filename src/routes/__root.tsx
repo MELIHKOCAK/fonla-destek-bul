@@ -96,6 +96,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "BeniFonla" },
+      { name: "description", content: "BeniFonla, yaratıcı projeler ve fikirler için ödül tabanlı kitle fonlama platformudur." },
+      { property: "og:description", content: "BeniFonla, yaratıcı projeler ve fikirler için ödül tabanlı kitle fonlama platformudur." },
+      { name: "twitter:description", content: "BeniFonla, yaratıcı projeler ve fikirler için ödül tabanlı kitle fonlama platformudur." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c2947b73-8703-487c-b02e-48aa1df34627/id-preview-e4cde2f5--4b63b170-c7a2-4db8-8472-85e40362b908.lovable.app-1781881543602.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c2947b73-8703-487c-b02e-48aa1df34627/id-preview-e4cde2f5--4b63b170-c7a2-4db8-8472-85e40362b908.lovable.app-1781881543602.png" },
     ],
     links: [
       {
