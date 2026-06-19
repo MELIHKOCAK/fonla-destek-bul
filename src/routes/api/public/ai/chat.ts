@@ -265,8 +265,8 @@ export const Route = createFileRoute("/api/public/ai/chat")({
         const userId = auth.userId;
 
         // 5. Lovable AI key
-        const lovableApiKey = process.env.GEMINI_API_KEY;
-        if (!lovableApiKey) {
+        const openAiApiKey = process.env.OPENAI_API_KEY;
+        if (!openAiApiKey) {
           return jsonResponse(errorBody("AI_PROVIDER_ERROR", "AI servisi yapılandırılmamış."), 500);
         }
 
@@ -316,7 +316,7 @@ export const Route = createFileRoute("/api/public/ai/chat")({
 
         // 8. AI çağrısı
         const result = await callAiChatGateway({
-          apiKey: lovableApiKey,
+          apiKey: openAiApiKey,
           model: AI_CHAT_DEFAULT_MODEL,
           messages: gatewayMessages.map((m) => ({ ...m })),
         });

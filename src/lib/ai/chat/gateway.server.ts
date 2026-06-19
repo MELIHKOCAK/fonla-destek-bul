@@ -18,7 +18,7 @@
  * akışı bozmamak için ortak bir soyutlamaya çıkarılmamıştır.
  */
 
-const GATEWAY_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const GATEWAY_URL = "https://api.openai.com/v1/chat/completions";
 
 /** Modelden istenen en fazla token sayısı (provider tarafı). */
 const MAX_OUTPUT_TOKENS = 800;
@@ -111,12 +111,12 @@ function combineSignals(
 }
 
 export async function callAiChatGateway(params: GatewayParams): Promise<ChatGatewayResult> {
-  const apiKey = params.apiKey ?? process.env.GEMINI_API_KEY;
+  const apiKey = params.apiKey ?? process.env.OPENAI_API_KEY;
   if (!apiKey || apiKey.length === 0) {
     return {
       ok: false,
       code: "AI_PROVIDER_ERROR",
-      detail: "missing GEMINI_API_KEY",
+      detail: "missing OPENAI_API_KEY",
     };
   }
 
