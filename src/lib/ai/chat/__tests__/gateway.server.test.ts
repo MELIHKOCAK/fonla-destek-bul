@@ -22,7 +22,7 @@ function jsonOk(body: unknown, status = 200): Response {
 
 const baseParams = {
   apiKey: "test-key",
-  model: "google/gemini-2.5-flash",
+  model: "gemini-2.5-flash",
   messages: [{ role: "user" as const, content: "Merhaba" }],
 };
 

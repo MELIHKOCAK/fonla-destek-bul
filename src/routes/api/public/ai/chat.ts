@@ -265,7 +265,7 @@ export const Route = createFileRoute("/api/public/ai/chat")({
         const userId = auth.userId;
 
         // 5. Lovable AI key
-        const lovableApiKey = process.env.LOVABLE_API_KEY;
+        const lovableApiKey = process.env.GEMINI_API_KEY;
         if (!lovableApiKey) {
           return jsonResponse(errorBody("AI_PROVIDER_ERROR", "AI servisi yapılandırılmamış."), 500);
         }

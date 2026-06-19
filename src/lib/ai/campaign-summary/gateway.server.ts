@@ -14,7 +14,7 @@ import {
 } from "./schema";
 import { SUPPORTED_SUMMARY_LANGUAGES } from "./languages";
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const GATEWAY_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 export type GatewayResult =
   | { ok: true; raw: unknown; modelIdentifier: string }

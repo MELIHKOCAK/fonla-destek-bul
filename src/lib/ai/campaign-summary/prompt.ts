@@ -13,7 +13,7 @@ export const SCHEMA_VERSION = 1;
 export const MAX_CAMPAIGN_SUMMARY_SOURCE_CHARS = 24_000;
 
 /** Identifier persisted on the summary row; central server-side default. */
-export const DEFAULT_MODEL_IDENTIFIER = "google/gemini-2.5-flash";
+export const DEFAULT_MODEL_IDENTIFIER = "gemini-2.5-flash";
 
 const SECTION_LIST = SUMMARY_SECTION_KEYS.map((k) => `- ${k}`).join("\n");
 const SOURCE_FIELD_LIST = SUMMARY_SOURCE_FIELDS.map((k) => `- ${k}`).join("\n");

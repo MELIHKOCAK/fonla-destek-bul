@@ -202,4 +202,4 @@ export const AI_CHAT_PROMPT_VERSION =
   `chat-v2+${AI_CHAT_KNOWLEDGE_VERSION}` as const;
 
 /** Varsayılan model — Lovable AI Gateway. */
-export const AI_CHAT_DEFAULT_MODEL = "google/gemini-2.5-flash" as const;
+export const AI_CHAT_DEFAULT_MODEL = "gemini-2.5-flash" as const;

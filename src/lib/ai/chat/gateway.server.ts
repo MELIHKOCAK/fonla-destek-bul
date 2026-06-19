@@ -1,7 +1,7 @@
 /**
  * Lovable AI Gateway çağrısı — AI sohbet özelliği için.
  *
- * Server-only. Bu modül asla istemciye gönderilmez; `LOVABLE_API_KEY`
+ * Server-only. Bu modül asla istemciye gönderilmez; `GEMINI_API_KEY`
  * yalnızca server ortam değişkeninden okunur.
  *
  * İlk sürüm tasarımı:
@@ -18,7 +18,7 @@
  * akışı bozmamak için ortak bir soyutlamaya çıkarılmamıştır.
  */
 
-const GATEWAY_URL = "https://api.openai.com/v1/chat/completions";
+const GATEWAY_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 /** Modelden istenen en fazla token sayısı (provider tarafı). */
 const MAX_OUTPUT_TOKENS = 800;
@@ -61,7 +61,7 @@ export type ChatGatewayResult =
 
 interface GatewayParams {
   /**
-   * Opsiyonel; verilmezse server `process.env.LOVABLE_API_KEY` okunur.
+   * Opsiyonel; verilmezse server `process.env.GEMINI_API_KEY` okunur.
    * API key **asla** istemciden gelmemelidir.
    */
   apiKey?: string;
@@ -111,12 +111,12 @@ function combineSignals(
 }
 
 export async function callAiChatGateway(params: GatewayParams): Promise<ChatGatewayResult> {
-  const apiKey = params.apiKey ?? process.env.LOVABLE_API_KEY;
+  const apiKey = params.apiKey ?? process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey.length === 0) {
     return {
       ok: false,
       code: "AI_PROVIDER_ERROR",
-      detail: "missing LOVABLE_API_KEY",
+      detail: "missing GEMINI_API_KEY",
     };
   }
 
