@@ -20,13 +20,32 @@ async function getServerEntry(): Promise<ServerEntry> {
 
 // h3 swallows in-handler throws into a normal 500 Response with body
 // {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
-async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
+async function normalizeCatastrophicSsrResponse(
+  request: Request,
+  response: Response,
+): Promise<Response> {
   if (response.status < 500) return response;
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) return response;
 
   const body = await response.clone().text();
   if (!body.includes('"unhandled":true') || !body.includes('"message":"HTTPError"')) {
+    return response;
+  }
+
+  // Only replace the SSR (HTML page) response with our branded error page.
+  // For non-HTML callers — server functions (RPC), API routes, fetch() calls —
+  // keep the JSON 500 so the client-side error handler can surface the real
+  // failure instead of trying to parse HTML as JSON.
+  const accept = request.headers.get("accept") ?? "";
+  const url = new URL(request.url);
+  const isRpcOrApi =
+    url.pathname.startsWith("/_serverFn/") ||
+    url.pathname.startsWith("/api/") ||
+    url.pathname.includes("/_server");
+  const wantsHtml = accept.includes("text/html");
+  if (isRpcOrApi || !wantsHtml) {
+    console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed handler error: ${body}`));
     return response;
   }
 
