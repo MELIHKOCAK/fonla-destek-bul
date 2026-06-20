@@ -14,7 +14,7 @@ export const Route = createFileRoute("/campaigns/$slug/back")({
   beforeLoad: async ({ location }) => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) {
-      throw redirect({ to: "/auth", search: { redirect: location.href } });
+      throw redirect({ to: "/login", search: { redirect: location.href } });
     }
   },
   head: ({ params }) => ({ meta: [{ title: `${params.slug} — Destekle` }] }),
