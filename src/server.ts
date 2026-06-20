@@ -64,6 +64,18 @@ export default {
       return await normalizeCatastrophicSsrResponse(request, response);
     } catch (error) {
       console.error(error);
+      const accept = request.headers.get("accept") ?? "";
+      const url = new URL(request.url);
+      const isRpcOrApi =
+        url.pathname.startsWith("/_serverFn/") ||
+        url.pathname.startsWith("/api/") ||
+        url.pathname.includes("/_server");
+      if (isRpcOrApi || !accept.includes("text/html")) {
+        return new Response(
+          JSON.stringify({ error: "internal_error", message: "Server error" }),
+          { status: 500, headers: { "content-type": "application/json" } },
+        );
+      }
       return new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
