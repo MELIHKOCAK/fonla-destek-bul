@@ -61,7 +61,7 @@ export type ChatGatewayResult =
 
 interface GatewayParams {
   /**
-   * Opsiyonel; verilmezse server `process.env.GEMINI_API_KEY` okunur.
+   * Opsiyonel; verilmezse server `process.env.GROQ_API_KEY` okunur.
    * API key **asla** istemciden gelmemelidir.
    */
   apiKey?: string;
