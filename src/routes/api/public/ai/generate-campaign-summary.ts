@@ -147,9 +147,9 @@ export const Route = createFileRoute("/api/public/ai/generate-campaign-summary")
         const { userId, error: authError } = await authenticateUser(request);
         if (authError) return authError;
 
-        // 3. Lovable AI key
-        const lovableApiKey = process.env.GEMINI_API_KEY;
-        if (!lovableApiKey) {
+        // 3. Groq API key
+        const groqApiKey = process.env.GROQ_API_KEY;
+        if (!groqApiKey) {
           return jsonResponse(errorBody("AI_PROVIDER_ERROR", "AI servisi yapılandırılmamış."), 500);
         }
 
@@ -298,8 +298,8 @@ export const Route = createFileRoute("/api/public/ai/generate-campaign-summary")
         try {
           // 8. Call AI
           const aiResult = await callCampaignSummaryGateway({
-            apiKey: lovableApiKey,
-            model: DEFAULT_MODEL_IDENTIFIER,
+            apiKey: groqApiKey,
+            model: process.env.GROQ_MODEL ?? DEFAULT_MODEL_IDENTIFIER,
             systemInstruction,
             userPrompt,
           });

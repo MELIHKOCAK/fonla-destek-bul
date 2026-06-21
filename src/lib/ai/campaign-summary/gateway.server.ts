@@ -14,7 +14,7 @@ import {
 } from "./schema";
 import { SUPPORTED_SUMMARY_LANGUAGES } from "./languages";
 
-const GATEWAY_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const GATEWAY_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 export type GatewayResult =
   | { ok: true; raw: unknown; modelIdentifier: string }
