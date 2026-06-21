@@ -1,7 +1,7 @@
 /**
- * Lovable AI Gateway çağrısı — AI sohbet özelliği için.
+ * Groq AI Gateway çağrısı — AI sohbet özelliği için.
  *
- * Server-only. Bu modül asla istemciye gönderilmez; `GEMINI_API_KEY`
+ * Server-only. Bu modül asla istemciye gönderilmez; `GROQ_API_KEY`
  * yalnızca server ortam değişkeninden okunur.
  *
  * İlk sürüm tasarımı:
@@ -18,7 +18,7 @@
  * akışı bozmamak için ortak bir soyutlamaya çıkarılmamıştır.
  */
 
-const GATEWAY_URL = "https://api.openai.com/v1/chat/completions";
+const GATEWAY_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 /** Modelden istenen en fazla token sayısı (provider tarafı). */
 const MAX_OUTPUT_TOKENS = 800;
