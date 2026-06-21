@@ -264,9 +264,9 @@ export const Route = createFileRoute("/api/public/ai/chat")({
         if (auth.error) return auth.error;
         const userId = auth.userId;
 
-        // 5. Lovable AI key
-        const openAiApiKey = process.env.OPENAI_API_KEY;
-        if (!openAiApiKey) {
+        // 5. Groq AI key
+        const groqApiKey = process.env.GROQ_API_KEY;
+        if (!groqApiKey) {
           return jsonResponse(errorBody("AI_PROVIDER_ERROR", "AI servisi yapılandırılmamış."), 500);
         }
 
@@ -316,8 +316,8 @@ export const Route = createFileRoute("/api/public/ai/chat")({
 
         // 8. AI çağrısı
         const result = await callAiChatGateway({
-          apiKey: openAiApiKey,
-          model: AI_CHAT_DEFAULT_MODEL,
+          apiKey: groqApiKey,
+          model: process.env.GROQ_MODEL ?? AI_CHAT_DEFAULT_MODEL,
           messages: gatewayMessages.map((m) => ({ ...m })),
         });
 
