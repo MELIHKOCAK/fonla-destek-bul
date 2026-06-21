@@ -13,7 +13,7 @@ export const SCHEMA_VERSION = 1;
 export const MAX_CAMPAIGN_SUMMARY_SOURCE_CHARS = 24_000;
 
 /** Identifier persisted on the summary row; central server-side default (Groq). */
-export const DEFAULT_MODEL_IDENTIFIER = "llama-3.1-8b-instant";
+export const DEFAULT_MODEL_IDENTIFIER = "llama-3.3-70b-versatile";
 
 const SECTION_LIST = SUMMARY_SECTION_KEYS.map((k) => `- ${k}`).join("\n");
 const SOURCE_FIELD_LIST = SUMMARY_SOURCE_FIELDS.map((k) => `- ${k}`).join("\n");

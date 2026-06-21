@@ -142,7 +142,11 @@ export async function callCampaignSummaryGateway(params: {
   systemInstruction: string;
   userPrompt: string;
 }): Promise<GatewayResult> {
-  const attempts: Mode[] = ["json_schema", "json_object"];
+  // Groq models (llama, mixtral, gemma) do not support OpenAI-style
+  // `json_schema` response_format — only `json_object`. Skip the json_schema
+  // probe for them to avoid wasting a round trip on a guaranteed 400.
+  const isGroqModel = /^(llama|mixtral|gemma|qwen|deepseek|kimi|openai\/)/i.test(params.model);
+  const attempts: Mode[] = isGroqModel ? ["json_object"] : ["json_schema", "json_object"];
   let lastDetail = "";
 
   for (const mode of attempts) {
