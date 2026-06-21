@@ -13,7 +13,7 @@ export const SCHEMA_VERSION = 1;
 export const MAX_CAMPAIGN_SUMMARY_SOURCE_CHARS = 24_000;
 
 /** Identifier persisted on the summary row; central server-side default (Groq). */
-export const DEFAULT_MODEL_IDENTIFIER = "llama-3.1-8b-instant";
+export const DEFAULT_MODEL_IDENTIFIER = "llama-3.3-70b-versatile";
 
 const SECTION_LIST = SUMMARY_SECTION_KEYS.map((k) => `- ${k}`).join("\n");
 const SOURCE_FIELD_LIST = SUMMARY_SOURCE_FIELDS.map((k) => `- ${k}`).join("\n");
@@ -41,7 +41,19 @@ export function buildSystemInstruction(language: SupportedSummaryLanguage): stri
     "- Respond ONLY with a JSON object matching the provided schema. No prose, no",
     "  markdown code fences, no commentary.",
     "",
-    "Required sections (exactly these 8 keys, each unique):",
+    "JSON output shape (sections MUST be an array of 8 objects, in this order,",
+    "each with the exact `key` value listed below):",
+    "{",
+    '  "schemaVersion": 1,',
+    `  "languageCode": "${language}",`,
+    '  "sections": [',
+    '    { "key": "<one of the keys below>", "heading": "...", "content": "...", "sourceFields": ["..."] }',
+    "  ],",
+    '  "missingInformation": ["..."],',
+    '  "disclaimer": "..."',
+    "}",
+    "",
+    "Required section `key` values (exactly these 8, each used once, in this order):",
     SECTION_LIST,
     "",
     "Allowed sourceFields enum (use ONLY these literal values):",
