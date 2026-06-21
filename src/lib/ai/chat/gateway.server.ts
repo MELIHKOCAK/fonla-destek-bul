@@ -111,12 +111,12 @@ function combineSignals(
 }
 
 export async function callAiChatGateway(params: GatewayParams): Promise<ChatGatewayResult> {
-  const apiKey = params.apiKey ?? process.env.OPENAI_API_KEY;
+  const apiKey = params.apiKey ?? process.env.GROQ_API_KEY;
   if (!apiKey || apiKey.length === 0) {
     return {
       ok: false,
       code: "AI_PROVIDER_ERROR",
-      detail: "missing OPENAI_API_KEY",
+      detail: "missing GROQ_API_KEY",
     };
   }
 
