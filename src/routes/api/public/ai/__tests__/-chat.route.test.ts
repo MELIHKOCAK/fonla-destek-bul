@@ -106,7 +106,7 @@ function rpcLimited(scope: "minute" | "day", retry = 30): void {
 beforeEach(() => {
   vi.resetAllMocks();
   process.env.AI_CHAT_ENABLED = "true";
-  process.env.GEMINI_API_KEY = "gemini_test";
+  process.env.GROQ_API_KEY = "groq_test";
   process.env.AI_RATE_LIMIT_HASH_SECRET = "test-secret-for-vitest-only";
   process.env.SUPABASE_URL = "http://localhost:54321";
   process.env.SUPABASE_PUBLISHABLE_KEY = "pub-test-key";
