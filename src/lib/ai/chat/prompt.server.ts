@@ -201,5 +201,5 @@ export function buildAiChatGatewayMessages(
 export const AI_CHAT_PROMPT_VERSION =
   `chat-v2+${AI_CHAT_KNOWLEDGE_VERSION}` as const;
 
-/** Varsayılan model — OpenAI */
-export const AI_CHAT_DEFAULT_MODEL = "gpt-5.4-nano" as const;
+/** Varsayılan model — Groq */
+export const AI_CHAT_DEFAULT_MODEL = "llama-3.1-8b-instant" as const;
