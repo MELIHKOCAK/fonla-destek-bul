@@ -8,12 +8,12 @@ export const SCHEMA_VERSION = 1;
 
 /**
  * Hard cap for normalized source characters sent to the model.
- * Tuned to fit a fast Gemini Flash context window safely.
+ * Tuned to fit a Groq Llama context window safely.
  */
 export const MAX_CAMPAIGN_SUMMARY_SOURCE_CHARS = 24_000;
 
-/** Identifier persisted on the summary row; central server-side default. */
-export const DEFAULT_MODEL_IDENTIFIER = "gemini-2.5-flash";
+/** Identifier persisted on the summary row; central server-side default (Groq). */
+export const DEFAULT_MODEL_IDENTIFIER = "llama-3.1-8b-instant";
 
 const SECTION_LIST = SUMMARY_SECTION_KEYS.map((k) => `- ${k}`).join("\n");
 const SOURCE_FIELD_LIST = SUMMARY_SOURCE_FIELDS.map((k) => `- ${k}`).join("\n");
