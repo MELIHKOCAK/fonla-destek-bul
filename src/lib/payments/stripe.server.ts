@@ -23,6 +23,9 @@ export function getStripe(): Stripe {
     typescript: true,
     appInfo: { name: "BeniFonla", version: "0.12.0" },
     maxNetworkRetries: 2,
+    // Cloudflare Workers / edge runtimes lack a usable Node http module.
+    // Stripe's default NodeHttpClient throws / hangs there — force fetch().
+    httpClient: Stripe.createFetchHttpClient(),
   };
   if (process.env.STRIPE_API_VERSION) {
     (config as { apiVersion?: string }).apiVersion = process.env.STRIPE_API_VERSION;
