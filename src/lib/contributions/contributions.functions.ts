@@ -154,8 +154,7 @@ export const simulateTestPayment = createServerFn({ method: "POST" })
     // production-of-sandbox deployments, so gating purely on APP_ENV blocks
     // the simulate buttons even when Stripe is demonstrably in test mode.
     const { getEnvironment } = await import("@/lib/payments/stripe.server");
-    const stripeEnv = getEnvironment();
-    if (stripeEnv === "live" || process.env.APP_ENV === "production") {
+    if (getEnvironment() === "live") {
       throw new Error("BFL_SIMULATION_DISABLED");
     }
     const { supabase } = context;
