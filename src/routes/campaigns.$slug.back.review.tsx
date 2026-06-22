@@ -34,17 +34,22 @@ function ReviewStep() {
   const state = typeof window !== "undefined" ? getBackFlow(slug) : null;
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const reward = data?.rewards.find((r) => r.id === state?.rewardTierId) ?? null;
+  const donationMinor = state?.amountMinor ?? 0;
+  const rewardMinor = reward ? Number(reward.amount_minor) : 0;
+  const totalMinor = donationMinor + rewardMinor;
+
   const mutation = useMutation({
     mutationKey: ["contributions", "create", slug, state?.idempotencyKey],
     mutationFn: async () => {
-      if (!state || !state.campaignId || !state.amountMinor) {
+      if (!state || !state.campaignId || !donationMinor) {
         throw new Error("BFL_INVALID_AMOUNT");
       }
       const row = await create({
         data: {
           campaignId: state.campaignId,
           rewardTierId: state.rewardTierId,
-          amountMinor: state.amountMinor,
+          amountMinor: totalMinor,
           anonymous: state.anonymous,
           riskAck: true as const,
           shipping: state.shipping,
@@ -83,15 +88,16 @@ function ReviewStep() {
     );
   }
 
-  const reward = data?.rewards.find((r) => r.id === state.rewardTierId) ?? null;
-
   return (
     <section>
       <StepIndicator slug={slug} current="review" />
       <h2 className="mb-4 text-lg font-semibold">Destek özeti</h2>
       <dl className="max-w-xl space-y-2 rounded-md border p-4 text-sm">
-        <Row label="Tutar" value={formatMoneyMinor(state.amountMinor)} />
+        <Row label="Destek tutarı" value={formatMoneyMinor(donationMinor)} />
         <Row label="Ödül" value={reward ? reward.title : "Ödül yok"} />
+        {reward && <Row label="Ödül tutarı" value={formatMoneyMinor(rewardMinor)} />}
+        <div className="my-2 border-t" />
+        <Row label="Toplam ödeme" value={formatMoneyMinor(totalMinor)} />
         <Row label="Anonim" value={state.anonymous ? "Evet" : "Hayır"} />
         {reward?.shipping_required && (
           <Row
