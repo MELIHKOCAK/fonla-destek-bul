@@ -147,15 +147,15 @@ export const simulateTestPayment = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    // Multi-factor guard: default-deny when APP_ENV is missing or unknown,
-    // and refuse whenever the Stripe key looks live. Defense in depth so an
-    // accidentally unset env var on a production deployment cannot expose
-    // this endpoint.
-    const appEnv = process.env.APP_ENV;
+    // The real safety invariant for the simulate endpoint is "we are NOT
+    // talking to a live Stripe account". The Stripe secret key prefix is the
+    // source of truth (sk_test_ → sandbox, sk_live_ → live). APP_ENV is an
+    // operator hint and is frequently unset on Lovable Cloud previews /
+    // production-of-sandbox deployments, so gating purely on APP_ENV blocks
+    // the simulate buttons even when Stripe is demonstrably in test mode.
     const { getEnvironment } = await import("@/lib/payments/stripe.server");
     const stripeEnv = getEnvironment();
-    const allowedEnv = appEnv === "development" || appEnv === "test" || appEnv === "staging";
-    if (!allowedEnv || stripeEnv === "live") {
+    if (stripeEnv === "live" || process.env.APP_ENV === "production") {
       throw new Error("BFL_SIMULATION_DISABLED");
     }
     const { supabase } = context;
