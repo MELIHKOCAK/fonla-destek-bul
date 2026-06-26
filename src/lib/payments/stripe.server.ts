@@ -22,7 +22,8 @@ export function getStripe(): Stripe {
   const config: StripeCtorConfig = {
     typescript: true,
     appInfo: { name: "BeniFonla", version: "0.12.0" },
-    maxNetworkRetries: 2,
+    maxNetworkRetries: 1,
+    timeout: 15_000,
     // Cloudflare Workers / edge runtimes lack a usable Node http module.
     // Stripe's default NodeHttpClient throws / hangs there — force fetch().
     httpClient: Stripe.createFetchHttpClient(),
