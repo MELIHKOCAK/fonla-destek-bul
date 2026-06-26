@@ -256,12 +256,21 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
         err instanceof DomainPaymentError ? err.code : err instanceof Error ? err.name : "UNKNOWN";
       const errMessage =
         err instanceof Error ? err.message.slice(0, 240) : String(err).slice(0, 240);
+      // Read-modify-write to preserve any other keys already in sanitized_metadata.
+      const { data: ptCurrent } = await supabaseAdmin
+        .from("payment_transactions")
+        .select("sanitized_metadata")
+        .eq("id", ptInsert.id)
+        .maybeSingle();
+      const prevMeta =
+        (ptCurrent?.sanitized_metadata as Record<string, unknown> | null) ?? {};
       await supabaseAdmin
         .from("payment_transactions")
         .update({
           status: "failed",
           domain_status: "failed",
           sanitized_metadata: {
+            ...prevMeta,
             campaign_id: campaign.id,
             error: { code: errCode, message: errMessage },
           },
