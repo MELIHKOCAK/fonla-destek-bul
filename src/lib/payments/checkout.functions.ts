@@ -98,18 +98,30 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
         productionApprovalStatus: "not_verified",
         stripeSandboxActivated: true,
       }) as StripeSandboxProvider;
-      const session = await provider.fetchCheckoutSession(existingPt.provider_checkout_session_id);
-      if (session.status === "open" && session.url) {
-        return {
-          paymentTransactionId: existingPt.id,
-          providerSessionId: session.id,
-          url: session.url,
-          expiresAt: existingPt.checkout_expires_at,
-        };
+      try {
+        const session = await provider.fetchCheckoutSession(existingPt.provider_checkout_session_id);
+        if (session.status === "open" && session.url) {
+          return {
+            paymentTransactionId: existingPt.id,
+            providerSessionId: session.id,
+            url: session.url,
+            expiresAt: existingPt.checkout_expires_at,
+          };
+        }
+      } catch {
+        // Stripe lookup failed — fall through, mark stale PT cancelled
       }
+      // Stale: idempotency matched but session is no longer usable.
+      // Cancel the old PT so the duplicate-active guard below doesn't block us.
+      await supabaseAdmin
+        .from("payment_transactions")
+        .update({ status: "cancelled", domain_status: "cancelled" })
+        .eq("id", existingPt.id);
     }
 
-    // 4. Block duplicate active session per contribution
+    // 4. Block duplicate active session per contribution.
+    // If the active PT's checkout window has expired (or has no expires_at after a stale init),
+    // mark it expired so the user can re-try instead of being permanently locked out.
     const { data: activePt } = await supabaseAdmin
       .from("payment_transactions")
       .select("id, provider_checkout_session_id, domain_status, checkout_expires_at")
@@ -118,8 +130,32 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (activePt?.provider_checkout_session_id && activePt.checkout_expires_at) {
-      if (new Date(activePt.checkout_expires_at).getTime() > Date.now()) {
+    if (activePt) {
+      const expiresAtMs = activePt.checkout_expires_at
+        ? new Date(activePt.checkout_expires_at).getTime()
+        : null;
+      const isExpired = expiresAtMs !== null && expiresAtMs <= Date.now();
+      const isStaleNoExpiry = expiresAtMs === null && activePt.domain_status === "created";
+      if (isExpired || isStaleNoExpiry) {
+        // Best-effort: ask Stripe to expire the session too (no-op if already gone).
+        if (activePt.provider_checkout_session_id) {
+          try {
+            const provider = getProvider({
+              environment: getEnvironment(),
+              livePaymentsEnabled: false,
+              productionApprovalStatus: "not_verified",
+              stripeSandboxActivated: true,
+            }) as StripeSandboxProvider;
+            await provider.expireCheckoutSession(activePt.provider_checkout_session_id);
+          } catch {
+            // ignore — session may already be expired/completed
+          }
+        }
+        await supabaseAdmin
+          .from("payment_transactions")
+          .update({ status: "expired", domain_status: "expired" })
+          .eq("id", activePt.id);
+      } else if (activePt.provider_checkout_session_id && expiresAtMs && expiresAtMs > Date.now()) {
         throw new DomainPaymentError("DUPLICATE_PAYMENT_ATTEMPT");
       }
     }
@@ -220,12 +256,21 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
         err instanceof DomainPaymentError ? err.code : err instanceof Error ? err.name : "UNKNOWN";
       const errMessage =
         err instanceof Error ? err.message.slice(0, 240) : String(err).slice(0, 240);
+      // Read-modify-write to preserve any other keys already in sanitized_metadata.
+      const { data: ptCurrent } = await supabaseAdmin
+        .from("payment_transactions")
+        .select("sanitized_metadata")
+        .eq("id", ptInsert.id)
+        .maybeSingle();
+      const prevMeta =
+        (ptCurrent?.sanitized_metadata as Record<string, unknown> | null) ?? {};
       await supabaseAdmin
         .from("payment_transactions")
         .update({
           status: "failed",
           domain_status: "failed",
           sanitized_metadata: {
+            ...prevMeta,
             campaign_id: campaign.id,
             error: { code: errCode, message: errMessage },
           },
